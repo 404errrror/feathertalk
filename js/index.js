@@ -15,6 +15,7 @@ if (localStorage.getItem('ftColor')) {
   color = localStorage.getItem('ftColor')
   document.querySelector('#color').value=color
 }
+document.body.setAttribute('style', `background: ${color};`)
 
 var interval = 1500
 var length = parseInt(interval/20)
@@ -52,81 +53,95 @@ document.querySelector('#interval').addEventListener('change', function(e){
   location.href=location.href;
 })
 
-var ftBangArray = new Array(10).fill('assets/bang.png')
-if (localStorage.getItem('ftBang')) {
-    ftBangArray = JSON.parse(localStorage.getItem('ftBang'))
+function normalizeAssetPath(value) {
+  if (typeof value !== 'string') {
+    return value
+  }
+  if (value.indexOf('/assets/') === 0) {
+    return value.slice(1)
+  }
+  return value
 }
 
-var ftEyesArray = new Array(10).fill('assets/eyes.png')
-if (localStorage.getItem('ftEyes')) {
-    ftEyesArray = JSON.parse(localStorage.getItem('ftEyes'))
+function readAssetArray(key, fallback) {
+  const stored = localStorage.getItem(key)
+  let values
+  if (!stored) {
+    values = new Array(10).fill(fallback)
+  } else if (stored[0] !== '[') {
+    values = new Array(10).fill(normalizeAssetPath(stored))
+  } else {
+    const parsed = JSON.parse(stored)
+    values = Array.isArray(parsed) ? parsed : new Array(10).fill(fallback)
+  }
+  const normalized = new Array(10)
+  for (let i = 0; i < 10; i++) {
+    const normalizedValue = normalizeAssetPath(values[i])
+    normalized[i] = normalizedValue == null ? fallback : normalizedValue
+  }
+  localStorage.setItem(key, JSON.stringify(normalized))
+  return normalized
 }
 
-var ftEyesClosedArray = new Array(10).fill('assets/eyesclosed.png')
-if (localStorage.getItem('ftEyesClosed')) {
-    ftEyesClosedArray = JSON.parse(localStorage.getItem('ftEyesClosed'))
-}
+var ftBangArray = readAssetArray('ftBang', 'assets/bang.png')
+var ftEyesArray = readAssetArray('ftEyes', 'assets/eyes.png')
+var ftEyesClosedArray = readAssetArray('ftEyesClosed', 'assets/eyesclosed.png')
+var ftMouthArray = readAssetArray('ftMouth', 'assets/mouth.png')
+var ftMouthOpenArray = readAssetArray('ftMouthOpen', 'assets/mouthopen.png')
+var ftFaceArray = readAssetArray('ftFace', 'assets/face.png')
+var ftBodyArray = readAssetArray('ftBody', 'assets/body.png')
+var ftBackArray = readAssetArray('ftBack', 'assets/back.png')
 
-var ftMouthArray = new Array(10).fill('assets/mouth.png')
-if (localStorage.getItem('ftMouth')) {
-    ftMouthArray = JSON.parse(localStorage.getItem('ftMouth'))
-}
-
-var ftMouthOpenArray = new Array(10).fill('assets/mouthopen.png')
-if (localStorage.getItem('ftMouthOpen')) {
-    ftMouthOpenArray = JSON.parse(localStorage.getItem('ftMouthOpen'))
-}
-
-var ftFaceArray = new Array(10).fill('assets/face.png')
-if (localStorage.getItem('ftFace')) {
-    ftFaceArray = JSON.parse(localStorage.getItem('ftFace'))
-}
-
-var ftBodyArray = new Array(10).fill('assets/body.png')
-if (localStorage.getItem('ftBody')) {
-    ftBodyArray = JSON.parse(localStorage.getItem('ftBody'))
-}
-
-var ftBackArray = new Array(10).fill('assets/back.png')
-if (localStorage.getItem('ftBack')) {
-    ftBackArray = JSON.parse(localStorage.getItem('ftBack'))
-}
-
-document.querySelector('#bangl').setAttribute('src', ftBangArray[0])
-document.querySelector('#eyesl').setAttribute('src', ftEyesArray[0])
-document.querySelector('#mouthl').setAttribute('src', ftMouthArray[0])
-document.querySelector('#facel').setAttribute('src', ftFaceArray[0])
-document.querySelector('#bangr').setAttribute('src', ftBangArray[0])
-document.querySelector('#eyesr').setAttribute('src', ftEyesArray[0])
-document.querySelector('#mouthr').setAttribute('src', ftMouthArray[0])
-document.querySelector('#facer').setAttribute('src', ftFaceArray[0])
-document.querySelector('#body').setAttribute('src', ftBodyArray[0])
-document.querySelector('#back').setAttribute('src', ftBackArray[0])
 let ftMouth = ftMouthArray[0]
 let ftMouthOpen = ftMouthOpenArray[0]
 let ftEyes = ftEyesArray[0]
 let ftEyesClosed = ftEyesClosedArray[0]
 
-for (let i=0; i<10; i++) {
-  window.addEventListener('keydown', function(e) {
-    if (e.key == `${(i+1)%10}`) {
-      document.querySelector('#bangl').setAttribute('src', ftBangArray[i])
-      document.querySelector('#eyesl').setAttribute('src', ftEyesArray[i])
-      document.querySelector('#mouthl').setAttribute('src', ftMouthArray[i])
-      document.querySelector('#facel').setAttribute('src', ftFaceArray[i])
-      document.querySelector('#bangr').setAttribute('src', ftBangArray[i])
-      document.querySelector('#eyesr').setAttribute('src', ftEyesArray[i])
-      document.querySelector('#mouthr').setAttribute('src', ftMouthArray[i])
-      document.querySelector('#facer').setAttribute('src', ftFaceArray[i])
-      document.querySelector('#body').setAttribute('src', ftBodyArray[i])
-      document.querySelector('#back').setAttribute('src', ftBackArray[i])
+function applyPreset(index) {
+  document.querySelector('#bangl').setAttribute('src', ftBangArray[index])
+  document.querySelector('#eyesl').setAttribute('src', ftEyesArray[index])
+  document.querySelector('#mouthl').setAttribute('src', ftMouthArray[index])
+  document.querySelector('#facel').setAttribute('src', ftFaceArray[index])
+  document.querySelector('#bangr').setAttribute('src', ftBangArray[index])
+  document.querySelector('#eyesr').setAttribute('src', ftEyesArray[index])
+  document.querySelector('#mouthr').setAttribute('src', ftMouthArray[index])
+  document.querySelector('#facer').setAttribute('src', ftFaceArray[index])
+  document.querySelector('#body').setAttribute('src', ftBodyArray[index])
+  document.querySelector('#back').setAttribute('src', ftBackArray[index])
 
-      ftMouth = ftMouthArray[i]
-      ftMouthOpen = ftMouthOpenArray[i]
-      ftEyes = ftEyesArray[i]
-      ftEyesClosed = ftEyesClosedArray[i]
-    }
-  })
+  ftMouth = ftMouthArray[index]
+  ftMouthOpen = ftMouthOpenArray[index]
+  ftEyes = ftEyesArray[index]
+  ftEyesClosed = ftEyesClosedArray[index]
+}
+
+applyPreset(0)
+
+window.addEventListener('keydown', function(e) {
+  const digit = parseInt(e.key, 10)
+  if (Number.isNaN(digit)) {
+    return
+  }
+  const index = (digit + 9) % 10
+  applyPreset(index)
+})
+
+function updateExpression(volume) {
+  const now = Date.now()
+  if (volume >= thres && now % 400 >= 200) {
+    document.querySelector('#mouthl').setAttribute('src', ftMouthOpen)
+    document.querySelector('#mouthr').setAttribute('src', ftMouthOpen)
+  } else {
+    document.querySelector('#mouthl').setAttribute('src', ftMouth)
+    document.querySelector('#mouthr').setAttribute('src', ftMouth)
+  }
+  if (now % 3000 >= 2800) {
+    document.querySelector('#eyesl').setAttribute('src', ftEyesClosed)
+    document.querySelector('#eyesr').setAttribute('src', ftEyesClosed)
+  } else {
+    document.querySelector('#eyesl').setAttribute('src', ftEyes)
+    document.querySelector('#eyesr').setAttribute('src', ftEyes)
+  }
 }
 
 async function audio () {
@@ -154,20 +169,7 @@ async function audio () {
         volumeSum += volume;
       const averageVolume = volumeSum / volumes.length;
 
-      if (averageVolume >= thres && new Date() % 400 >= 200) {
-        document.querySelector('#mouthl').setAttribute('src', ftMouthOpen)
-        document.querySelector('#mouthr').setAttribute('src', ftMouthOpen)
-      } else {
-        document.querySelector('#mouthl').setAttribute('src', ftMouth)
-        document.querySelector('#mouthr').setAttribute('src', ftMouth)
-      }
-      if (new Date() % 3000 >= 2800) {
-        document.querySelector('#eyesl').setAttribute('src', ftEyesClosed)
-        document.querySelector('#eyesr').setAttribute('src', ftEyesClosed)
-      } else {
-        document.querySelector('#eyesl').setAttribute('src', ftEyes)
-        document.querySelector('#eyesr').setAttribute('src', ftEyes)
-      }
+      updateExpression(averageVolume)
       // Value range: 127 = analyser.maxDecibels - analyser.minDecibels;
     };
   } catch(e) {
@@ -178,20 +180,7 @@ async function audio () {
     volumeCallback = () => {
       const volume = Math.min(Math.max(Math.random() * 100, 0.8 * lastVolume), 1.2 * lastVolume);
       lastVolume = volume;
-      if (lastVolume >= thres && new Date() % 400 >= 200) {
-        document.querySelector('#mouthl').setAttribute('src', ftMouthOpen)
-        document.querySelector('#mouthr').setAttribute('src', ftMouthOpen)
-      } else {
-        document.querySelector('#mouthl').setAttribute('src', ftMouth)
-        document.querySelector('#mouthr').setAttribute('src', ftMouth)
-      }
-      if (new Date() % 3000 >= 2800) {
-        document.querySelector('#eyesl').setAttribute('src', ftEyesClosed)
-        document.querySelector('#eyesr').setAttribute('src', ftEyesClosed)
-      } else {
-        document.querySelector('#eyesl').setAttribute('src', ftEyes)
-        document.querySelector('#eyesr').setAttribute('src', ftEyes)
-      }
+      updateExpression(lastVolume)
     };
   }
   setInterval(() => {
@@ -204,8 +193,8 @@ async function audio () {
     
     var lastRandomX = randomX
     var lastRandomY = randomY
-    randomX = Math.seedrandom(1) * document.body.clientWidth / 3 + document.body.clientWidth / 3
-    randomY = Math.seedrandom(3) * document.body.clientHeight
+    randomX = Math.random() * document.body.clientWidth / 3 + document.body.clientWidth / 3
+    randomY = Math.random() * document.body.clientHeight
 
     function wait(sec) {
         let start = Date.now(), now = start;
@@ -266,7 +255,8 @@ let lastY = 0
 var stiffness = 0.07; // 강도 (높을수록 빠름)
 var damping = 0.8;   // 감쇠 (낮을수록 더 많이 출렁임)
 let X = lastX
-let Y = lastX
+let Y = lastY
+let velocity = 0
 
 document.addEventListener('mousemove',function(e){
     clearInterval(autoRig)
@@ -281,7 +271,7 @@ document.addEventListener('mousemove',function(e){
     var currentScaleXM = 1 - 4* squashStretchM; // 좌우로 늘어남 (부피 유지)
     var currentScaleNegXM = 1 + 4* squashStretchM; // 좌우로 늘어남 (부피 유지)
 
-    document.querySelector('#back').setAttribute('style', `height: ${100*currentScaleYM}dvh; left:min(${50*document.body.clientWidth - 50*currentScaleXM}vw, ${50*document.body.clientWidth - 50*currentScaleXM}dvh), width: min(${100*currentScaleXM}vw, ${100*currentScaleXM}dvh); top: ${(5 - (Y / document.body.clientHeight) * 10)*rig/100}px;`)
+    document.querySelector('#back').setAttribute('style', `height: ${100*currentScaleYM}dvh; left: min(${50*document.body.clientWidth - 50*currentScaleXM}vw, ${50*document.body.clientWidth - 50*currentScaleXM}dvh); width: min(${100*currentScaleXM}vw, ${100*currentScaleXM}dvh); top: ${(5 - (Y / document.body.clientHeight) * 10)*rig/100}px;`)
 
       document.querySelector('#bangdivl').setAttribute('style', `width: min(${50 + (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}vw, ${50 + (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}dvh);`)
 
@@ -328,8 +318,8 @@ document.addEventListener('mousemove',function(e){
 
     var lastRandomX = randomX?randomX:e.clientX
     var lastRandomY = randomY?randomY:e.clientY
-    randomX = Math.random(1) * document.body.clientWidth
-    randomY = Math.random(3) * document.body.clientHeight
+    randomX = Math.random() * document.body.clientWidth
+    randomY = Math.random() * document.body.clientHeight
     
     function wait(sec) {
         let start = Date.now(), now = start;
@@ -359,7 +349,7 @@ document.addEventListener('mousemove',function(e){
       var currentScaleX = 1 - squashStretch; // 좌우로 늘어남 (부피 유지)
       var currentScaleNegX = 1 + squashStretch; // 좌우로 늘어남 (부피 유지)
       
-      document.querySelector('#back').setAttribute('style', `height: ${100*currentScaleY}dvh; left:min(${50*document.body.clientWidth - 50*currentScaleX}vw, ${50*document.body.clientWidth - 50*currentScaleX}dvh), width: min(${100*currentScaleX}vw, ${100*currentScaleX}dvh); top: ${(5 - (Y / document.body.clientHeight) * 10)*rig/100}px`)
+      document.querySelector('#back').setAttribute('style', `height: ${100*currentScaleY}dvh; left: min(${50*document.body.clientWidth - 50*currentScaleX}vw, ${50*document.body.clientWidth - 50*currentScaleX}dvh); width: min(${100*currentScaleX}vw, ${100*currentScaleX}dvh); top: ${(5 - (Y / document.body.clientHeight) * 10)*rig/100}px`)
 
       document.querySelector('#bangdivl').setAttribute('style', `width: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}dvh);`)
 
