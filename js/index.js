@@ -17,15 +17,164 @@ if (localStorage.getItem('ftColor')) {
 }
 document.body.setAttribute('style', `background: ${color};`)
 
-var interval = 1500
-var length = parseInt(interval/20)
-var intervals = Array.from({ length }, (_, k) => 0 + k * 20);
-if (localStorage.getItem('ftInterval')) {
-  interval = localStorage.getItem('ftInterval')
-  length = parseInt(interval/20)
-  intervals = Array.from({ length }, (_, k) => 0 + k * 20);
-  document.querySelector('#interval').value=interval
+var intervalLimitMin = 200
+var intervalLimitMax = 3000
+var intervalMin = 1500
+var intervalMax = 1500
+var storedInterval = localStorage.getItem('ftInterval')
+if (storedInterval && !localStorage.getItem('ftIntervalMin') && !localStorage.getItem('ftIntervalMax')) {
+  intervalMin = parseInt(storedInterval, 10)
+  intervalMax = intervalMin
 }
+if (localStorage.getItem('ftIntervalMin')) {
+  intervalMin = parseInt(localStorage.getItem('ftIntervalMin'), 10)
+}
+if (localStorage.getItem('ftIntervalMax')) {
+  intervalMax = parseInt(localStorage.getItem('ftIntervalMax'), 10)
+}
+
+function clampInterval(value, minValue, maxValue) {
+  return Math.min(Math.max(value, minValue), maxValue)
+}
+
+function normalizeIntervalRange() {
+  if (!Number.isFinite(intervalMin)) {
+    intervalMin = 1500
+  }
+  if (!Number.isFinite(intervalMax)) {
+    intervalMax = 1500
+  }
+  intervalMin = clampInterval(intervalMin, intervalLimitMin, intervalLimitMax)
+  intervalMax = clampInterval(intervalMax, intervalLimitMin, intervalLimitMax)
+  if (intervalMin > intervalMax) {
+    const temp = intervalMin
+    intervalMin = intervalMax
+    intervalMax = temp
+  }
+}
+
+function clampIntervalRange(changedKey) {
+  if (!Number.isFinite(intervalMin)) {
+    intervalMin = 1500
+  }
+  if (!Number.isFinite(intervalMax)) {
+    intervalMax = 1500
+  }
+  intervalMin = clampInterval(intervalMin, intervalLimitMin, intervalLimitMax)
+  intervalMax = clampInterval(intervalMax, intervalLimitMin, intervalLimitMax)
+  if (intervalMin > intervalMax) {
+    if (changedKey === 'min') {
+      intervalMin = intervalMax
+    } else if (changedKey === 'max') {
+      intervalMax = intervalMin
+    } else {
+      const temp = intervalMin
+      intervalMin = intervalMax
+      intervalMax = temp
+    }
+  }
+}
+
+function buildIntervals(duration) {
+  var length = Math.max(1, parseInt(duration / 20, 10))
+  return Array.from({ length }, (_, k) => 0 + k * 20)
+}
+
+function pickRandomInterval() {
+  if (intervalMin === intervalMax) {
+    return intervalMin
+  }
+  return Math.floor(Math.random() * (intervalMax - intervalMin + 1)) + intervalMin
+}
+
+normalizeIntervalRange()
+
+var intervalMinInput = document.querySelector('#interval-min')
+var intervalMaxInput = document.querySelector('#interval-max')
+var intervalDisplay = document.querySelector('#interval-values')
+var intervalRangeFill = document.querySelector('#interval-range-fill')
+var intervalRange = document.querySelector('#interval-range')
+var activeIntervalHandle = 'max'
+
+function formatIntervalMs(value) {
+  return (value / 1000).toFixed(1)
+}
+
+function updateIntervalHandleZ() {
+  if (!intervalMinInput || !intervalMaxInput) {
+    return
+  }
+  if (intervalMin === intervalMax) {
+    if (intervalMin <= intervalLimitMin) {
+      intervalMinInput.style.zIndex = '3'
+      intervalMaxInput.style.zIndex = '4'
+    } else if (intervalMax >= intervalLimitMax) {
+      intervalMinInput.style.zIndex = '4'
+      intervalMaxInput.style.zIndex = '3'
+    } else if (activeIntervalHandle === 'min') {
+      intervalMinInput.style.zIndex = '4'
+      intervalMaxInput.style.zIndex = '3'
+    } else {
+      intervalMinInput.style.zIndex = '3'
+      intervalMaxInput.style.zIndex = '4'
+    }
+  } else {
+    intervalMinInput.style.zIndex = '3'
+    intervalMaxInput.style.zIndex = '4'
+  }
+}
+
+function setIntervalHandleActive(handle) {
+  activeIntervalHandle = handle
+  updateIntervalHandleZ()
+}
+
+function bindIntervalHandleEvents(input, handle) {
+  if (!input) {
+    return
+  }
+  input.addEventListener('pointerdown', function() {
+    setIntervalHandleActive(handle)
+  })
+  input.addEventListener('mousedown', function() {
+    setIntervalHandleActive(handle)
+  })
+  input.addEventListener('touchstart', function() {
+    setIntervalHandleActive(handle)
+  }, { passive: true })
+  input.addEventListener('focus', function() {
+    setIntervalHandleActive(handle)
+  })
+}
+
+function updateIntervalUI() {
+  if (intervalMinInput) {
+    intervalMinInput.value = intervalMin
+  }
+  if (intervalMaxInput) {
+    intervalMaxInput.value = intervalMax
+  }
+  if (intervalDisplay) {
+    intervalDisplay.textContent = `[${formatIntervalMs(intervalMin)}]~[${formatIntervalMs(intervalMax)}]s`
+  }
+  if (intervalRangeFill) {
+    var rangeSpan = intervalLimitMax - intervalLimitMin
+    var minPercent = ((intervalMin - intervalLimitMin) / rangeSpan) * 100
+    var maxPercent = ((intervalMax - intervalLimitMin) / rangeSpan) * 100
+    intervalRangeFill.style.left = `${minPercent}%`
+    intervalRangeFill.style.width = `${maxPercent - minPercent}%`
+  }
+  updateIntervalHandleZ()
+}
+
+if (storedInterval && (!localStorage.getItem('ftIntervalMin') || !localStorage.getItem('ftIntervalMax'))) {
+  localStorage.setItem('ftIntervalMin', intervalMin)
+  localStorage.setItem('ftIntervalMax', intervalMax)
+}
+
+bindIntervalHandleEvents(intervalMinInput, 'min')
+bindIntervalHandleEvents(intervalMaxInput, 'max')
+updateIntervalUI()
 
 var randomX = document.body.clientWidth/2; 
 var randomY= document.body.clientHeight/2;
@@ -46,13 +195,27 @@ document.querySelector('#color').addEventListener('change', function(e){
   localStorage.setItem('ftColor', color)
 })
 
-document.querySelector('#interval').addEventListener('change', function(e){
-  interval = e.target.value
-  localStorage.setItem('ftInterval', interval)
+if (intervalMinInput) {
+  intervalMinInput.addEventListener('input', function(e){
+    setIntervalHandleActive('min')
+    intervalMin = parseInt(e.target.value, 10)
+    clampIntervalRange('min')
+    localStorage.setItem('ftIntervalMin', intervalMin)
+    localStorage.setItem('ftIntervalMax', intervalMax)
+    updateIntervalUI()
+  })
+}
 
-  location.href=location.href;
-})
-
+if (intervalMaxInput) {
+  intervalMaxInput.addEventListener('input', function(e){
+    setIntervalHandleActive('max')
+    intervalMax = parseInt(e.target.value, 10)
+    clampIntervalRange('max')
+    localStorage.setItem('ftIntervalMin', intervalMin)
+    localStorage.setItem('ftIntervalMax', intervalMax)
+    updateIntervalUI()
+  })
+}
 function normalizeAssetPath(value) {
   if (typeof value !== 'string') {
     return value
@@ -189,8 +352,39 @@ async function audio () {
   }, 100);
 }
 
-  let autoRig = setInterval(async () => {
-    
+  let autoRig = null
+  let autoResumeTimer = null
+  let autoFrameTimers = []
+  var pointerIdleDelay = 1500
+
+  function clearAutoFrameTimers() {
+    for (let i = 0; i < autoFrameTimers.length; i++) {
+      clearTimeout(autoFrameTimers[i])
+    }
+    autoFrameTimers = []
+  }
+
+  function scheduleAutoFrame(callback, delay) {
+    var id = setTimeout(callback, delay)
+    autoFrameTimers.push(id)
+  }
+
+  function stopAutoRig() {
+    clearTimeout(autoRig)
+    clearAutoFrameTimers()
+  }
+
+  function scheduleAutoResume(fallbackX, fallbackY) {
+    clearTimeout(autoResumeTimer)
+    autoResumeTimer = setTimeout(function() {
+      scheduleAutoRigFromPointer(fallbackX, fallbackY)
+    }, pointerIdleDelay)
+  }
+
+  function scheduleAutoRig() {
+    clearAutoFrameTimers()
+    var currentInterval = pickRandomInterval()
+    var intervals = buildIntervals(currentInterval)
     var lastRandomX = randomX
     var lastRandomY = randomY
     randomX = Math.random() * document.body.clientWidth / 3 + document.body.clientWidth / 3
@@ -202,12 +396,12 @@ async function audio () {
             now = Date.now();
         }
     }
-    for await (let i of intervals) {
+    for (let i of intervals) {
 
-      setTimeout(() => {
+      scheduleAutoFrame(() => {
         
-      var X = lastRandomX + (randomX - lastRandomX) * i / interval
-      var Y = lastRandomY + (randomY - lastRandomY) * i / interval
+      var X = lastRandomX + (randomX - lastRandomX) * i / currentInterval
+      var Y = lastRandomY + (randomY - lastRandomY) * i / currentInterval
       
       document.querySelector('#back').setAttribute('style', `top: ${(5 - (Y / document.body.clientHeight) * 10)*rig/100}px`)
 
@@ -246,30 +440,106 @@ async function audio () {
       document.querySelector('#character').setAttribute('style', `transform: rotate(${(X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100}deg);`)
       }, i*12/20);
     }
-  }, interval);
+    autoRig = setTimeout(scheduleAutoRig, currentInterval)
+  }
+
+  scheduleAutoRig()
   
 audio()
 
 let lastX = 0
 let lastY = 0
-var stiffness = 0.07; // 강도 (높을수록 빠름)
-var damping = 0.8;   // 감쇠 (낮을수록 더 많이 출렁임)
+var stiffness = 0.07; // 강도 (?�을?�록 빠름)
+var damping = 0.8;   // 감쇠 (??��?�록 ??많이 출렁??
 let X = lastX
 let Y = lastY
 let velocity = 0
 
+function scheduleAutoRigFromPointer(fallbackX, fallbackY) {
+  clearAutoFrameTimers()
+  var currentInterval = pickRandomInterval()
+  var intervals = buildIntervals(currentInterval)
+  var lastRandomX = randomX ? randomX : fallbackX
+  var lastRandomY = randomY ? randomY : fallbackY
+  randomX = Math.random() * document.body.clientWidth
+  randomY = Math.random() * document.body.clientHeight
+
+  let X = lastRandomX
+  let Y = lastRandomY
+  let velocity = (randomX - X) * stiffness * damping;
+  let velocityY = (randomY - Y) * stiffness * damping;
+  for (let i of intervals) {
+
+    scheduleAutoFrame(() => {
+        
+    // var t = i / currentInterval;
+    // var elasticT = Math.sin(-13 * (Math.PI / 2) * (t + 1)) * Math.pow(2, -10 * t) + 1;    
+    //var X = lastRandomX + (randomX - lastRandomX) * elasticT;
+    //var Y = lastRandomY + (randomY - lastRandomY) * elasticT;
+    velocity = (velocity + (randomX - X) * stiffness) * damping;
+    velocityY = (randomY - Y) * stiffness * damping;
+    X += velocity;
+    Y += velocityY;
+    var squashStretch = Math.abs(velocity) * 0.0005; // 0.1???ê°?�ë�?ì¡°ì ???
+    var currentScaleY = 1 + 0.5*squashStretch; // ??�ì•�??ë¡œ ?©ìž??´ì§
+    var currentScaleNegY = 1 - 0.5*squashStretch; // ??�ì•�??ë¡œ ?©ìž??´ì§
+    var currentScaleX = 1 - squashStretch; // ì¢Œìš°ë¡???ì?��??(ë¶???? ì?)
+    var currentScaleNegX = 1 + squashStretch; // ì¢Œìš°ë¡???ì?��??(ë¶???? ì?)
+    
+    document.querySelector('#back').setAttribute('style', `height: ${100*currentScaleY}dvh; left: min(${50 - 50*currentScaleX}vw, ${50 - 50*currentScaleX}dvh); width: min(${100*currentScaleX}vw, ${100*currentScaleX}dvh); top: ${(5 - (Y / document.body.clientHeight) * 10)*rig/100}px`)
+
+    document.querySelector('#bangdivl').setAttribute('style', `width: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}dvh);`)
+
+    document.querySelector('#bangdivr').setAttribute('style', `width: min(${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}vw, ${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}dvh); left: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}dvh);`)
+
+    document.querySelector('#bangl').setAttribute('style', `height: ${100*currentScaleY}dvh; width: min(${(100 + (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleNegX}vw, ${(100 + (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleNegX}dvh); top: ${(-10 + (Y / document.body.clientHeight) * 20)*rig/100}px;`)
+
+    document.querySelector('#bangr').setAttribute('style', `height: ${100*currentScaleY}dvh; width: min(${(100 - (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleX}vw, ${(100 - (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleX}dvh);top: ${(-10 + (Y / document.body.clientHeight) * 20)*rig/100}px;`)
+    
+    document.querySelector('#eyesdivl').setAttribute('style', `width: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh);`)
+
+    document.querySelector('#eyesdivr').setAttribute('style', `width: min(${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh); left: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh);`)
+
+    document.querySelector('#eyesl').setAttribute('style', `height: ${100*currentScaleY}dvh; width: min(${(100 + (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleNegX}vw, ${(100 + (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleNegX}dvh);top: ${(-15 + (Y / document.body.clientHeight) * 30)*rig/100}px;`)
+
+    document.querySelector('#eyesr').setAttribute('style', `height: ${100*currentScaleY}dvh; width: min(${(100 - (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleX}vw, ${(100 - (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleX}dvh);top: ${(-15 + (Y / document.body.clientHeight) * 30)*rig/100}px;`)
+
+    document.querySelector('#mouthdivl').setAttribute('style', `width: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh);`)
+
+    document.querySelector('#mouthdivr').setAttribute('style', `width: min(${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh); left: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh);`)
+
+    document.querySelector('#mouthl').setAttribute('style', `height: ${100*currentScaleY}dvh; width: min(${100 + (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100}vw, ${100 + (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100}dvh);top: ${(-10 + (Y / document.body.clientHeight) * 20)*rig/100}px;`)
+
+    document.querySelector('#mouthr').setAttribute('style', `height: ${100*currentScaleY}dvh; width: min(${100 - (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100}vw, ${100 - (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100}dvh);top: ${(-10 + (Y / document.body.clientHeight) * 20)*rig/100}px;`)
+
+    document.querySelector('#facedivl').setAttribute('style', `width: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh);`)
+
+    document.querySelector('#facedivr').setAttribute('style', `width: min(${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh); left: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh);`)
+
+    document.querySelector('#facel').setAttribute('style', `height: ${100*currentScaleY}dvh; width: min(${(100 + (X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)*currentScaleNegX}vw, ${(100 + (X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)*currentScaleNegX}dvh);top: ${(-5 + (Y / document.body.clientHeight) * 10)*rig/100}px;`)
+
+    document.querySelector('#facer').setAttribute('style', `height: ${100*currentScaleY}dvh; width: min(${(100 - (X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)*currentScaleX}vw, ${(100 - (X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)*currentScaleX}dvh);top: ${(-5 + (Y / document.body.clientHeight) * 10)*rig/100}px;`)
+
+    document.querySelector('#character').setAttribute('style', `transform: rotate(${(X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100}deg);`)
+    }, i*12/20);
+  }
+  autoRig = setTimeout(() => {
+    scheduleAutoRigFromPointer(fallbackX, fallbackY)
+  }, currentInterval)
+}
+
 document.addEventListener('mousemove',function(e){
-    clearInterval(autoRig)
+    stopAutoRig()
 
     X = e.clientX
     Y = e.clientY
     velocity = (lastX - X) * stiffness * damping;
     
-    var squashStretchM = Math.abs(velocity) * 0.0005; // 0.1은 강도 조절용
-    var currentScaleYM = 1 + 2*squashStretchM; // 위아래로 납작해짐
-    var currentScaleNegYM = 1 - 2*squashStretchM; // 위아래로 납작해짐
-    var currentScaleXM = 1 - 4* squashStretchM; // 좌우로 늘어남 (부피 유지)
-    var currentScaleNegXM = 1 + 4* squashStretchM; // 좌우로 늘어남 (부피 유지)
+    var squashStretchM = Math.abs(velocity) * 0.0005; // 0.1?� 강도 조절??
+    var currentScaleYM = 1 + 2*squashStretchM; // ?�아?�로 ?�작?�짐
+    var currentScaleNegYM = 1 - 2*squashStretchM; // ?�아?�로 ?�작?�짐
+    var currentScaleXM = 1 - 4* squashStretchM; // 좌우�??�어??(부???��?)
+    var currentScaleNegXM = 1 + 4* squashStretchM; // 좌우�??�어??(부???��?)
 
       document.querySelector('#back').setAttribute('style', `height: ${100*currentScaleYM}dvh; left: min(${50 - 50*currentScaleXM}vw, ${50 - 50*currentScaleXM}dvh); width: min(${100*currentScaleXM}vw, ${100*currentScaleXM}dvh); top: ${(5 - (Y / document.body.clientHeight) * 10)*rig/100}px;`)
 
@@ -314,78 +584,17 @@ document.addEventListener('mousemove',function(e){
     randomX = 0
     randomY = 0
 
-    autoRig = setInterval(async () => {
+    scheduleAutoResume(e.clientX, e.clientY)
 
-    var lastRandomX = randomX?randomX:e.clientX
-    var lastRandomY = randomY?randomY:e.clientY
-    randomX = Math.random() * document.body.clientWidth
-    randomY = Math.random() * document.body.clientHeight
-    
-    function wait(sec) {
-        let start = Date.now(), now = start;
-        while (now - start < sec) {
-            now = Date.now();
-        }
-    }
-      let X = lastRandomX
-      let Y = lastRandomY
-      let velocity = (randomX - X) * stiffness * damping;
-      let velocityY = (randomY - Y) * stiffness * damping;
-    for await (let i of intervals) {
-
-      setTimeout(() => {
-        
-      // var t = i / interval;
-      // var elasticT = Math.sin(-13 * (Math.PI / 2) * (t + 1)) * Math.pow(2, -10 * t) + 1;    
-      //var X = lastRandomX + (randomX - lastRandomX) * elasticT;
-      //var Y = lastRandomY + (randomY - lastRandomY) * elasticT;
-      velocity = (velocity + (randomX - X) * stiffness) * damping;
-      velocityY = (randomY - Y) * stiffness * damping;
-      X += velocity;
-      Y += velocityY;
-      var squashStretch = Math.abs(velocity) * 0.0005; // 0.1은 강도 조절용
-      var currentScaleY = 1 + 0.5*squashStretch; // 위아래로 납작해짐
-      var currentScaleNegY = 1 - 0.5*squashStretch; // 위아래로 납작해짐
-      var currentScaleX = 1 - squashStretch; // 좌우로 늘어남 (부피 유지)
-      var currentScaleNegX = 1 + squashStretch; // 좌우로 늘어남 (부피 유지)
-      
-      document.querySelector('#back').setAttribute('style', `height: ${100*currentScaleY}dvh; left: min(${50 - 50*currentScaleX}vw, ${50 - 50*currentScaleX}dvh); width: min(${100*currentScaleX}vw, ${100*currentScaleX}dvh); top: ${(5 - (Y / document.body.clientHeight) * 10)*rig/100}px`)
-
-      document.querySelector('#bangdivl').setAttribute('style', `width: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}dvh);`)
-
-      document.querySelector('#bangdivr').setAttribute('style', `width: min(${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}vw, ${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}dvh); left: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}dvh);`)
-
-      document.querySelector('#bangl').setAttribute('style', `height: ${100*currentScaleY}dvh; width: min(${(100 + (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleNegX}vw, ${(100 + (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleNegX}dvh); top: ${(-10 + (Y / document.body.clientHeight) * 20)*rig/100}px;`)
-
-      document.querySelector('#bangr').setAttribute('style', `height: ${100*currentScaleY}dvh; width: min(${(100 - (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleX}vw, ${(100 - (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleX}dvh);top: ${(-10 + (Y / document.body.clientHeight) * 20)*rig/100}px;`)
-      
-      document.querySelector('#eyesdivl').setAttribute('style', `width: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh);`)
-
-      document.querySelector('#eyesdivr').setAttribute('style', `width: min(${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh); left: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh);`)
-
-      document.querySelector('#eyesl').setAttribute('style', `height: ${100*currentScaleY}dvh; width: min(${(100 + (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleNegX}vw, ${(100 + (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleNegX}dvh);top: ${(-15 + (Y / document.body.clientHeight) * 30)*rig/100}px;`)
-
-      document.querySelector('#eyesr').setAttribute('style', `height: ${100*currentScaleY}dvh; width: min(${(100 - (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleX}vw, ${(100 - (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleX}dvh);top: ${(-15 + (Y / document.body.clientHeight) * 30)*rig/100}px;`)
-
-      document.querySelector('#mouthdivl').setAttribute('style', `width: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh);`)
-
-      document.querySelector('#mouthdivr').setAttribute('style', `width: min(${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh); left: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh);`)
-
-      document.querySelector('#mouthl').setAttribute('style', `height: ${100*currentScaleY}dvh; width: min(${100 + (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100}vw, ${100 + (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100}dvh);top: ${(-10 + (Y / document.body.clientHeight) * 20)*rig/100}px;`)
-
-      document.querySelector('#mouthr').setAttribute('style', `height: ${100*currentScaleY}dvh; width: min(${100 - (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100}vw, ${100 - (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100}dvh);top: ${(-10 + (Y / document.body.clientHeight) * 20)*rig/100}px;`)
-
-      document.querySelector('#facedivl').setAttribute('style', `width: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh);`)
-
-      document.querySelector('#facedivr').setAttribute('style', `width: min(${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh); left: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh);`)
-
-      document.querySelector('#facel').setAttribute('style', `height: ${100*currentScaleY}dvh; width: min(${(100 + (X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)*currentScaleNegX}vw, ${(100 + (X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)*currentScaleNegX}dvh);top: ${(-5 + (Y / document.body.clientHeight) * 10)*rig/100}px;`)
-
-      document.querySelector('#facer').setAttribute('style', `height: ${100*currentScaleY}dvh; width: min(${(100 - (X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)*currentScaleX}vw, ${(100 - (X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)*currentScaleX}dvh);top: ${(-5 + (Y / document.body.clientHeight) * 10)*rig/100}px;`)
-
-      document.querySelector('#character').setAttribute('style', `transform: rotate(${(X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100}deg);`)
-      }, i*12/20);
-    }
-  }, interval);
 })
     
+
+
+
+
+
+
+
+
+
+
