@@ -22,6 +22,14 @@ function normalizeAssetPath(value) {
   return value
 }
 
+function resolveInputSrc(part, value) {
+  const trimmed = typeof value === 'string' ? value.trim() : value
+  if (!trimmed) {
+    return part.defaultSrc
+  }
+  return normalizeAssetPath(trimmed)
+}
+
 function loadPartArray(part) {
   const storageKey = `ft${part.key}`
   const stored = localStorage.getItem(storageKey)
@@ -60,7 +68,10 @@ parts.forEach(function(part) {
 parts.forEach(function(part) {
   for (let i = 0; i < SLOT_COUNT; i++) {
     document.querySelector(`#${part.id}${i}`).addEventListener('input', function(e) {
-      document.querySelector(`#${part.id}_img${i}`).setAttribute('src', normalizeAssetPath(e.target.value))
+      const target = e.target
+      target.dataset.touched = '1'
+      const resolvedSrc = resolveInputSrc(part, target.value)
+      document.querySelector(`#${part.id}_img${i}`).setAttribute('src', resolvedSrc)
     })
   }
 })
@@ -86,7 +97,8 @@ document.querySelector('#submit').addEventListener('click', function() {
       const id = slotId(i)
       const input = document.querySelector(`#${part.id}${id}`)
       const inputValue = input.value
-      values[i] = inputValue ? normalizeAssetPath(inputValue) : currentValues[i]
+      const touched = input.dataset.touched === '1'
+      values[i] = touched ? resolveInputSrc(part, inputValue) : currentValues[i]
     }
 
     localStorage.setItem(storageKey, JSON.stringify(values))
