@@ -79,6 +79,57 @@ function applyStoredInputs(part, values) {
   }
 }
 
+function setupFilePicker(input) {
+  if (!input || input.dataset.filePicker === '1') {
+    return
+  }
+  input.dataset.filePicker = '1'
+  const parent = input.parentElement
+  if (!parent) {
+    return
+  }
+
+  const row = document.createElement('div')
+  row.className = 'input-row'
+  parent.insertBefore(row, input)
+  row.appendChild(input)
+
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.className = 'file-button'
+  button.textContent = '파일'
+  button.setAttribute('aria-label', '파일 선택')
+
+  const fileInput = document.createElement('input')
+  fileInput.type = 'file'
+  fileInput.accept = 'image/*'
+  fileInput.className = 'file-input'
+
+  button.addEventListener('click', function() {
+    fileInput.click()
+  })
+
+  fileInput.addEventListener('change', function() {
+    const file = fileInput.files && fileInput.files[0]
+    if (!file) {
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = function() {
+      const result = reader.result
+      if (typeof result === 'string') {
+        input.value = result
+        input.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+      fileInput.value = ''
+    }
+    reader.readAsDataURL(file)
+  })
+
+  row.appendChild(button)
+  row.appendChild(fileInput)
+}
+
 const storedParts = {}
 parts.forEach(function(part) {
   storedParts[part.key] = loadPartArray(part)
@@ -97,6 +148,10 @@ parts.forEach(function(part) {
       document.querySelector(`#${part.id}_img${i}`).setAttribute('src', resolvedSrc)
     })
   }
+})
+
+document.querySelectorAll('.form input[type="text"]').forEach(function(input) {
+  setupFilePicker(input)
 })
 
 for (let i = 0; i < SLOT_COUNT; i++) {

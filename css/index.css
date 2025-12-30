@@ -85,6 +85,37 @@ input {
     width: 100%;
 }
 
+.input-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.input-row input[type="text"] {
+    flex: 1;
+    width: auto;
+}
+
+.file-button {
+    padding: 4px 8px;
+    border-radius: 10px;
+    border: 1px solid #86D7FF;
+    background-color: #86D7FF;
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.file-button:focus {
+    outline: 2px solid #86D7FF;
+    outline-offset: 2px;
+}
+
+.file-input {
+    display: none;
+}
+
 .button {
     width: 100px;
     min-width: 100px;
