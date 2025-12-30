@@ -1,5 +1,9 @@
 # Repository Guidelines
 
+## Project Context
+- 이 프로젝트는 저사양 환경에서 VTuber 아바타를 쉽게 표현하는 프로그램이다.
+- 작업자는 한국어를 사용한다. 가능한 경우 답변은 한국어로 한다.
+
 ## Project Structure & Module Organization
 - `index.html` is the configuration UI and entry point.
 - `live.html` renders the animated character.
