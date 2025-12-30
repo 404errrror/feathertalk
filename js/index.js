@@ -271,7 +271,7 @@ document.addEventListener('mousemove',function(e){
     var currentScaleXM = 1 - 4* squashStretchM; // 좌우로 늘어남 (부피 유지)
     var currentScaleNegXM = 1 + 4* squashStretchM; // 좌우로 늘어남 (부피 유지)
 
-    document.querySelector('#back').setAttribute('style', `height: ${100*currentScaleYM}dvh; left: min(${50*document.body.clientWidth - 50*currentScaleXM}vw, ${50*document.body.clientWidth - 50*currentScaleXM}dvh); width: min(${100*currentScaleXM}vw, ${100*currentScaleXM}dvh); top: ${(5 - (Y / document.body.clientHeight) * 10)*rig/100}px;`)
+      document.querySelector('#back').setAttribute('style', `height: ${100*currentScaleYM}dvh; left: min(${50 - 50*currentScaleXM}vw, ${50 - 50*currentScaleXM}dvh); width: min(${100*currentScaleXM}vw, ${100*currentScaleXM}dvh); top: ${(5 - (Y / document.body.clientHeight) * 10)*rig/100}px;`)
 
       document.querySelector('#bangdivl').setAttribute('style', `width: min(${50 + (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}vw, ${50 + (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}dvh);`)
 
@@ -349,7 +349,7 @@ document.addEventListener('mousemove',function(e){
       var currentScaleX = 1 - squashStretch; // 좌우로 늘어남 (부피 유지)
       var currentScaleNegX = 1 + squashStretch; // 좌우로 늘어남 (부피 유지)
       
-      document.querySelector('#back').setAttribute('style', `height: ${100*currentScaleY}dvh; left: min(${50*document.body.clientWidth - 50*currentScaleX}vw, ${50*document.body.clientWidth - 50*currentScaleX}dvh); width: min(${100*currentScaleX}vw, ${100*currentScaleX}dvh); top: ${(5 - (Y / document.body.clientHeight) * 10)*rig/100}px`)
+      document.querySelector('#back').setAttribute('style', `height: ${100*currentScaleY}dvh; left: min(${50 - 50*currentScaleX}vw, ${50 - 50*currentScaleX}dvh); width: min(${100*currentScaleX}vw, ${100*currentScaleX}dvh); top: ${(5 - (Y / document.body.clientHeight) * 10)*rig/100}px`)
 
       document.querySelector('#bangdivl').setAttribute('style', `width: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}dvh);`)
 
