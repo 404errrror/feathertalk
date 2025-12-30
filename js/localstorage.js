@@ -60,23 +60,73 @@ function loadPartArray(part) {
   return normalized
 }
 
-function applyStoredInputs(part, values) {
+function loadDisplayArray(part, values) {
+  const storageKey = `ft${part.key}Display`
+  const stored = localStorage.getItem(storageKey)
+  let storedValues
+
+  if (!stored) {
+    storedValues = Array.isArray(values) ? values.slice() : new Array(SLOT_COUNT).fill('')
+  } else if (stored[0] !== '[') {
+    storedValues = new Array(SLOT_COUNT).fill(stored)
+  } else {
+    storedValues = JSON.parse(stored)
+  }
+
+  const normalized = new Array(SLOT_COUNT)
+  for (let i = 0; i < SLOT_COUNT; i++) {
+    const value = Array.isArray(storedValues) ? storedValues[i] : storedValues
+    normalized[i] = typeof value === 'string' ? value : ''
+  }
+
+  localStorage.setItem(storageKey, JSON.stringify(normalized))
+
+  return normalized
+}
+
+function applyStoredInputs(part, values, displayValues) {
   if (!Array.isArray(values)) {
     return
   }
+  const displayArray = Array.isArray(displayValues) ? displayValues : values
   for (let i = 0; i < SLOT_COUNT; i++) {
     const id = slotId(i)
     const input = document.querySelector(`#${part.id}${id}`)
     if (!input) {
       continue
     }
-    const normalizedValue = normalizeAssetPath(values[i])
-    if (normalizedValue && normalizedValue !== part.defaultSrc) {
-      input.value = normalizedValue
+    const actualValue = normalizeAssetPath(values[i])
+    const displayValue = Array.isArray(displayArray) ? displayArray[i] : displayArray
+    const trimmedDisplay = typeof displayValue === 'string' ? displayValue.trim() : ''
+    if (trimmedDisplay && trimmedDisplay !== part.defaultSrc) {
+      input.value = displayValue
+    } else if (actualValue && actualValue !== part.defaultSrc) {
+      input.value = actualValue
     } else {
       input.value = ''
     }
+
+    if (trimmedDisplay && actualValue && trimmedDisplay !== actualValue) {
+      input.dataset.actualSrc = actualValue
+      input.dataset.displayValue = displayValue
+    } else {
+      delete input.dataset.actualSrc
+      delete input.dataset.displayValue
+    }
   }
+}
+
+function resolveInputValue(part, input) {
+  const displayValue = input.value
+  const displayMarker = input.dataset.displayValue
+  if (input.dataset.actualSrc && displayMarker === displayValue) {
+    return resolveInputSrc(part, input.dataset.actualSrc)
+  }
+  if (input.dataset.actualSrc) {
+    delete input.dataset.actualSrc
+    delete input.dataset.displayValue
+  }
+  return resolveInputSrc(part, displayValue)
 }
 
 function setupFilePicker(input) {
@@ -118,7 +168,9 @@ function setupFilePicker(input) {
     reader.onload = function() {
       const result = reader.result
       if (typeof result === 'string') {
-        input.value = result
+        input.dataset.actualSrc = result
+        input.dataset.displayValue = file.name
+        input.value = file.name
         input.dispatchEvent(new Event('input', { bubbles: true }))
       }
       fileInput.value = ''
@@ -131,12 +183,17 @@ function setupFilePicker(input) {
 }
 
 const storedParts = {}
+const storedDisplayParts = {}
 parts.forEach(function(part) {
   storedParts[part.key] = loadPartArray(part)
 })
 
 parts.forEach(function(part) {
-  applyStoredInputs(part, storedParts[part.key])
+  storedDisplayParts[part.key] = loadDisplayArray(part, storedParts[part.key])
+})
+
+parts.forEach(function(part) {
+  applyStoredInputs(part, storedParts[part.key], storedDisplayParts[part.key])
 })
 
 parts.forEach(function(part) {
@@ -144,7 +201,7 @@ parts.forEach(function(part) {
     document.querySelector(`#${part.id}${i}`).addEventListener('input', function(e) {
       const target = e.target
       target.dataset.touched = '1'
-      const resolvedSrc = resolveInputSrc(part, target.value)
+      const resolvedSrc = resolveInputValue(part, target)
       document.querySelector(`#${part.id}_img${i}`).setAttribute('src', resolvedSrc)
     })
   }
@@ -168,18 +225,27 @@ for (let i = 0; i < SLOT_COUNT; i++) {
 document.querySelector('#submit').addEventListener('click', function() {
   parts.forEach(function(part) {
     const storageKey = `ft${part.key}`
+    const displayKey = `ft${part.key}Display`
     const currentValues = storedParts[part.key] || new Array(SLOT_COUNT).fill(part.defaultSrc)
+    const currentDisplayValues = storedDisplayParts[part.key] || currentValues
     const values = new Array(SLOT_COUNT)
+    const displayValues = new Array(SLOT_COUNT)
 
     for (let i = 0; i < SLOT_COUNT; i++) {
       const id = slotId(i)
       const input = document.querySelector(`#${part.id}${id}`)
-      const inputValue = input.value
       const touched = input.dataset.touched === '1'
-      values[i] = touched ? resolveInputSrc(part, inputValue) : currentValues[i]
+      if (touched) {
+        values[i] = resolveInputValue(part, input)
+        displayValues[i] = input.value
+      } else {
+        values[i] = currentValues[i]
+        displayValues[i] = currentDisplayValues[i]
+      }
     }
 
     localStorage.setItem(storageKey, JSON.stringify(values))
+    localStorage.setItem(displayKey, JSON.stringify(displayValues))
   })
 
   location.href = 'live.html'
