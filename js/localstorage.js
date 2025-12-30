@@ -60,9 +60,32 @@ function loadPartArray(part) {
   return normalized
 }
 
+function applyStoredInputs(part, values) {
+  if (!Array.isArray(values)) {
+    return
+  }
+  for (let i = 0; i < SLOT_COUNT; i++) {
+    const id = slotId(i)
+    const input = document.querySelector(`#${part.id}${id}`)
+    if (!input) {
+      continue
+    }
+    const normalizedValue = normalizeAssetPath(values[i])
+    if (normalizedValue && normalizedValue !== part.defaultSrc) {
+      input.value = normalizedValue
+    } else {
+      input.value = ''
+    }
+  }
+}
+
 const storedParts = {}
 parts.forEach(function(part) {
   storedParts[part.key] = loadPartArray(part)
+})
+
+parts.forEach(function(part) {
+  applyStoredInputs(part, storedParts[part.key])
 })
 
 parts.forEach(function(part) {
