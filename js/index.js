@@ -449,8 +449,8 @@ audio()
 
 let lastX = 0
 let lastY = 0
-var stiffness = 0.07; // 강도 (?�을?�록 빠름)
-var damping = 0.8;   // 감쇠 (??��?�록 ??많이 출렁??
+var stiffness = 0.07; // 강도 (높을수록 빠름)
+var damping = 0.8;   // 감쇠 (낮을수록 더 많이 출렁임)
 let X = lastX
 let Y = lastY
 let velocity = 0
@@ -480,11 +480,11 @@ function scheduleAutoRigFromPointer(fallbackX, fallbackY) {
     velocityY = (randomY - Y) * stiffness * damping;
     X += velocity;
     Y += velocityY;
-    var squashStretch = Math.abs(velocity) * 0.0005; // 0.1???ê°?�ë�?ì¡°ì ???
-    var currentScaleY = 1 + 0.5*squashStretch; // ??�ì•�??ë¡œ ?©ìž??´ì§
-    var currentScaleNegY = 1 - 0.5*squashStretch; // ??�ì•�??ë¡œ ?©ìž??´ì§
-    var currentScaleX = 1 - squashStretch; // ì¢Œìš°ë¡???ì?��??(ë¶???? ì?)
-    var currentScaleNegX = 1 + squashStretch; // ì¢Œìš°ë¡???ì?��??(ë¶???? ì?)
+    var squashStretch = Math.abs(velocity) * 0.0005; // 0.1 강도 조절값
+    var currentScaleY = 1 + 0.5*squashStretch; // 위아래로 늘어짐
+    var currentScaleNegY = 1 - 0.5*squashStretch; // 위아래로 줄어듦
+    var currentScaleX = 1 - squashStretch; // 좌우로 줄어듦(부피 보존)
+    var currentScaleNegX = 1 + squashStretch; // 좌우로 늘어남(부피 보존)
     
     document.querySelector('#back').setAttribute('style', `height: ${100*currentScaleY}dvh; left: min(${50 - 50*currentScaleX}vw, ${50 - 50*currentScaleX}dvh); width: min(${100*currentScaleX}vw, ${100*currentScaleX}dvh); top: ${(5 - (Y / document.body.clientHeight) * 10)*rig/100}px`)
 
@@ -535,11 +535,11 @@ document.addEventListener('mousemove',function(e){
     Y = e.clientY
     velocity = (lastX - X) * stiffness * damping;
     
-    var squashStretchM = Math.abs(velocity) * 0.0005; // 0.1?� 강도 조절??
-    var currentScaleYM = 1 + 2*squashStretchM; // ?�아?�로 ?�작?�짐
-    var currentScaleNegYM = 1 - 2*squashStretchM; // ?�아?�로 ?�작?�짐
-    var currentScaleXM = 1 - 4* squashStretchM; // 좌우�??�어??(부???��?)
-    var currentScaleNegXM = 1 + 4* squashStretchM; // 좌우�??�어??(부???��?)
+    var squashStretchM = Math.abs(velocity) * 0.0005; // 0.1 강도 조절값
+    var currentScaleYM = 1 + 2*squashStretchM; // 위아래로 늘어짐
+    var currentScaleNegYM = 1 - 2*squashStretchM; // 위아래로 줄어듦
+    var currentScaleXM = 1 - 4* squashStretchM; // 좌우로 줄어듦(부피 보존)
+    var currentScaleNegXM = 1 + 4* squashStretchM; // 좌우로 늘어남(부피 보존)
 
       document.querySelector('#back').setAttribute('style', `height: ${100*currentScaleYM}dvh; left: min(${50 - 50*currentScaleXM}vw, ${50 - 50*currentScaleXM}dvh); width: min(${100*currentScaleXM}vw, ${100*currentScaleXM}dvh); top: ${(5 - (Y / document.body.clientHeight) * 10)*rig/100}px;`)
 
