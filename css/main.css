@@ -21,6 +21,48 @@ body {
     color: #444;
 }
 
+#settings {
+  position: relative;
+  z-index: 999;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+#settings-toggle {
+  border: 0;
+  background: transparent;
+  color: #444;
+  padding: 0;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+#settings-toggle:focus-visible {
+  outline: 2px solid #444;
+  outline-offset: 2px;
+}
+
+.settings-icon {
+  width: 36px;
+  height: 36px;
+  display: block;
+  opacity: 0.5;
+}
+
+#settings-panel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+#settings-panel[hidden] {
+  display: none;
+}
+
 #character {
     position: fixed;
     top: 3rem;

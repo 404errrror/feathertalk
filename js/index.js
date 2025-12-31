@@ -95,6 +95,8 @@ var intervalDisplay = document.querySelector('#interval-values')
 var intervalRangeFill = document.querySelector('#interval-range-fill')
 var intervalRange = document.querySelector('#interval-range')
 var activeIntervalHandle = 'max'
+var settingsToggle = document.querySelector('#settings-toggle')
+var settingsPanel = document.querySelector('#settings-panel')
 
 function formatIntervalMs(value) {
   return (value / 1000).toFixed(1)
@@ -175,6 +177,18 @@ if (storedInterval && (!localStorage.getItem('ftIntervalMin') || !localStorage.g
 bindIntervalHandleEvents(intervalMinInput, 'min')
 bindIntervalHandleEvents(intervalMaxInput, 'max')
 updateIntervalUI()
+
+if (settingsToggle && settingsPanel) {
+  settingsToggle.addEventListener('click', function() {
+    var willOpen = settingsPanel.hasAttribute('hidden')
+    if (willOpen) {
+      settingsPanel.removeAttribute('hidden')
+    } else {
+      settingsPanel.setAttribute('hidden', '')
+    }
+    settingsToggle.setAttribute('aria-expanded', String(willOpen))
+  })
+}
 
 var randomX = document.body.clientWidth/2; 
 var randomY= document.body.clientHeight/2;
