@@ -65,10 +65,16 @@ body {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 12px;
+  gap: 30px;
 }
 
-#settings-panel > span {
+#settings-panel .setting-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#settings-panel .setting-item span {
   font-size: 0.9rem;
 }
 

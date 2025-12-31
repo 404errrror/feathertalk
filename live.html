@@ -15,29 +15,38 @@
 </head>
 <body>
 
-    <div id="settings">
-      <button id="settings-toggle" type="button" aria-expanded="false" aria-controls="settings-panel" aria-label="설정">
-        <img class="settings-icon" src="assets/Icons/LiveSetting.png" alt="" />
-      </button>
-      <div id="settings-panel" class="settings-panel" hidden>
-        <span>마이크 민감도</span><input class="reverseInput" id="threshold" type="range" value="30" min="0" max="100">
-        <span>리깅 강도</span><input id="rig" type="range" value="100" min="0" max="200">
-        <div class="range-wrap" id="interval-range-wrap">
-          <div class="range-header">
-            <span>자동 모션 속도</span>
-            <div class="range-values" id="interval-values">[1.5]~[1.5]s</div>
-          </div>
-          <div class="range-slider" id="interval-range">
-            <div class="range-track">
-              <div class="range-track__range" id="interval-range-fill"></div>
-            </div>
-            <input id="interval-min" type="range" value="1500" min="200" max="3000">
-            <input id="interval-max" type="range" value="1500" min="200" max="3000">
-          </div>
+<div id="settings">
+  <button id="settings-toggle" type="button" aria-expanded="false" aria-controls="settings-panel" aria-label="설정">
+    <img class="settings-icon" src="assets/Icons/LiveSetting.png" alt="" />
+  </button>
+  <div id="settings-panel" class="settings-panel" hidden>
+    <div class="setting-item">
+      <span>마이크 민감도</span>
+      <input class="reverseInput" id="threshold" type="range" value="30" min="0" max="100">
+    </div>
+    <div class="setting-item">
+      <span>리깅 강도</span>
+      <input id="rig" type="range" value="100" min="0" max="200">
+    </div>
+    <div class="setting-item range-wrap" id="interval-range-wrap">
+      <div class="range-header">
+        <span>자동 모션 속도</span>
+        <div class="range-values" id="interval-values">[1.5]~[1.5]s</div>
+      </div>
+      <div class="range-slider" id="interval-range">
+        <div class="range-track">
+          <div class="range-track__range" id="interval-range-fill"></div>
         </div>
-        <span>배경색</span><input id="color" type="color" value="#00ff00">
+        <input id="interval-min" type="range" value="1500" min="200" max="3000">
+        <input id="interval-max" type="range" value="1500" min="200" max="3000">
       </div>
     </div>
+    <div class="setting-item">
+      <span>배경색</span>
+      <input id="color" type="color" value="#00ff00">
+    </div>
+  </div>
+</div>
 
 <div id="character">
     <div class="live2dleft" id="bangdivl">
