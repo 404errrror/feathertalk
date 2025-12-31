@@ -17,6 +17,22 @@ if (localStorage.getItem('ftColor')) {
 }
 document.body.setAttribute('style', `background: ${color};`)
 
+var offsetX = 0
+if (localStorage.getItem('ftOffsetX')) {
+  offsetX = parseInt(localStorage.getItem('ftOffsetX'), 10)
+}
+if (!Number.isFinite(offsetX)) {
+  offsetX = 0
+}
+
+var offsetY = 0
+if (localStorage.getItem('ftOffsetY')) {
+  offsetY = parseInt(localStorage.getItem('ftOffsetY'), 10)
+}
+if (!Number.isFinite(offsetY)) {
+  offsetY = 0
+}
+
 var intervalLimitMin = 200
 var intervalLimitMax = 3000
 var intervalMin = 1500
@@ -97,6 +113,12 @@ var intervalRange = document.querySelector('#interval-range')
 var activeIntervalHandle = 'max'
 var settingsToggle = document.querySelector('#settings-toggle')
 var settingsPanel = document.querySelector('#settings-panel')
+var offsetXInput = document.querySelector('#offset-x')
+var offsetYInput = document.querySelector('#offset-y')
+var offsetXValue = document.querySelector('#offset-x-value')
+var offsetYValue = document.querySelector('#offset-y-value')
+var character = document.querySelector('#character')
+var currentRotate = 0
 
 function formatIntervalMs(value) {
   return (value / 1000).toFixed(1)
@@ -169,6 +191,33 @@ function updateIntervalUI() {
   updateIntervalHandleZ()
 }
 
+function updateOffsetUI() {
+  if (offsetXInput) {
+    offsetXInput.value = offsetX
+  }
+  if (offsetYInput) {
+    offsetYInput.value = offsetY
+  }
+  if (offsetXValue) {
+    offsetXValue.textContent = `${offsetX}px`
+  }
+  if (offsetYValue) {
+    offsetYValue.textContent = `${offsetY}px`
+  }
+}
+
+function applyCharacterTransform() {
+  if (!character) {
+    return
+  }
+  character.style.transform = `translate(${offsetX}px, ${offsetY}px) rotate(${currentRotate}deg)`
+}
+
+function setCharacterTransform(rotateDeg) {
+  currentRotate = rotateDeg
+  applyCharacterTransform()
+}
+
 if (storedInterval && (!localStorage.getItem('ftIntervalMin') || !localStorage.getItem('ftIntervalMax'))) {
   localStorage.setItem('ftIntervalMin', intervalMin)
   localStorage.setItem('ftIntervalMax', intervalMax)
@@ -177,6 +226,8 @@ if (storedInterval && (!localStorage.getItem('ftIntervalMin') || !localStorage.g
 bindIntervalHandleEvents(intervalMinInput, 'min')
 bindIntervalHandleEvents(intervalMaxInput, 'max')
 updateIntervalUI()
+updateOffsetUI()
+applyCharacterTransform()
 
 if (settingsToggle && settingsPanel) {
   settingsToggle.addEventListener('click', function() {
@@ -208,6 +259,26 @@ document.querySelector('#color').addEventListener('change', function(e){
   color = e.target.value
   localStorage.setItem('ftColor', color)
 })
+
+if (offsetXInput) {
+  offsetXInput.addEventListener('input', function(e) {
+    var nextValue = parseInt(e.target.value, 10)
+    offsetX = Number.isFinite(nextValue) ? nextValue : 0
+    localStorage.setItem('ftOffsetX', offsetX)
+    updateOffsetUI()
+    applyCharacterTransform()
+  })
+}
+
+if (offsetYInput) {
+  offsetYInput.addEventListener('input', function(e) {
+    var nextValue = parseInt(e.target.value, 10)
+    offsetY = Number.isFinite(nextValue) ? nextValue : 0
+    localStorage.setItem('ftOffsetY', offsetY)
+    updateOffsetUI()
+    applyCharacterTransform()
+  })
+}
 
 if (intervalMinInput) {
   intervalMinInput.addEventListener('input', function(e){
@@ -451,7 +522,7 @@ async function audio () {
 
       document.querySelector('#facer').setAttribute('style', `width: min(${100 - (X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100}vw, ${100 - (X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100}dvh);top: ${(-5 + (Y / document.body.clientHeight) * 10)*rig/100}px;`)
 
-      document.querySelector('#character').setAttribute('style', `transform: rotate(${(X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100}deg);`)
+      setCharacterTransform((X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)
       }, i*12/20);
     }
     autoRig = setTimeout(scheduleAutoRig, currentInterval)
@@ -534,7 +605,7 @@ function scheduleAutoRigFromPointer(fallbackX, fallbackY) {
 
     document.querySelector('#facer').setAttribute('style', `height: ${100*currentScaleY}dvh; width: min(${(100 - (X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)*currentScaleX}vw, ${(100 - (X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)*currentScaleX}dvh);top: ${(-5 + (Y / document.body.clientHeight) * 10)*rig/100}px;`)
 
-    document.querySelector('#character').setAttribute('style', `transform: rotate(${(X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100}deg);`)
+    setCharacterTransform((X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)
     }, i*12/20);
   }
   autoRig = setTimeout(() => {
@@ -589,7 +660,7 @@ document.addEventListener('mousemove',function(e){
 
       document.querySelector('#facer').setAttribute('style', `height: ${100*currentScaleYM}dvh; width: min(${(100 - (X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)*currentScaleXM}vw, ${(100 - (X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)*currentScaleXM}dvh);top: ${(-5 + (Y / document.body.clientHeight) * 10)*rig/100}px;`)
 
-    document.querySelector('#character').setAttribute('style', `transform: rotate(${(e.clientX - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100}deg);`)
+    setCharacterTransform((e.clientX - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)
 
 
     lastX = e.clientX
