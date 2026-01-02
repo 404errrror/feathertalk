@@ -20,81 +20,89 @@
     <img class="settings-icon" src="assets/Icons/LiveSetting.png" alt="" />
   </button>
   <div id="settings-panel" class="settings-panel" hidden>
-    <div class="setting-item">
-      <span>마이크 민감도</span>
-      <input class="reverseInput" id="threshold" type="range" value="30" min="0" max="100">
+    <div class="settings-tabs" role="tablist" aria-label="설정 카테고리">
+      <button class="settings-tab is-active" type="button" data-settings-tab="character" role="tab" aria-selected="true" aria-controls="settings-character">캐릭터</button>
+      <button class="settings-tab" type="button" data-settings-tab="camera" role="tab" aria-selected="false" aria-controls="settings-camera">카메라</button>
     </div>
-    <div class="setting-item">
-      <span>리깅 강도</span>
-      <input id="rig" type="range" value="100" min="0" max="200">
-    </div>
-    <div class="setting-item">
-      <span>카메라 추적</span>
-      <select id="camera-toggle">
-        <option value="off">끄기</option>
-        <option value="on">켜기</option>
-      </select>
-      <div class="range-values" id="camera-status"></div>
-    </div>
-    <div class="setting-item">
-      <span>카메라 미리보기</span>
-      <select id="camera-preview-mode">
-        <option value="off">끄기</option>
-        <option value="video">영상만</option>
-        <option value="facemesh">FaceMesh 표시</option>
-      </select>
-    </div>
-    <div class="setting-item">
-      <div class="range-header">
-        <span>카메라 감도</span>
-        <div class="range-values" id="camera-range-value">100%</div>
+    <div id="settings-character" class="settings-group" data-settings-group="character" role="tabpanel">
+      <div class="setting-item">
+        <span>마이크 민감도</span>
+        <input class="reverseInput" id="threshold" type="range" value="30" min="0" max="100">
       </div>
-      <input id="camera-range" type="range" value="100" min="50" max="200">
-    </div>
-    <div class="setting-item">
-      <div class="range-header">
-        <span>카메라 X 오프셋</span>
-        <div class="range-values" id="camera-offset-x-value">0%</div>
+      <div class="setting-item">
+        <span>리깅 강도</span>
+        <input id="rig" type="range" value="100" min="0" max="200">
       </div>
-      <input id="camera-offset-x" type="range" value="0" min="-100" max="100">
-    </div>
-    <div class="setting-item">
-      <div class="range-header">
-        <span>카메라 Y 오프셋</span>
-        <div class="range-values" id="camera-offset-y-value">0%</div>
-      </div>
-      <input id="camera-offset-y" type="range" value="0" min="-100" max="100">
-    </div>
-    <div class="setting-item">
-      <div class="range-header">
-        <span>X 위치</span>
-        <div class="range-values" id="offset-x-value">0px</div>
-      </div>
-      <input id="offset-x" type="range" value="0" min="-500" max="500">
-    </div>
-    <div class="setting-item">
-      <div class="range-header">
-        <span>Y 위치</span>
-        <div class="range-values" id="offset-y-value">0px</div>
-      </div>
-      <input id="offset-y" type="range" value="0" min="-500" max="500">
-    </div>
-    <div class="setting-item range-wrap" id="interval-range-wrap">
-      <div class="range-header">
-        <span>자동 모션 속도</span>
-        <div class="range-values" id="interval-values">[1.5]~[1.5]s</div>
-      </div>
-      <div class="range-slider" id="interval-range">
-        <div class="range-track">
-          <div class="range-track__range" id="interval-range-fill"></div>
+      <div class="setting-item">
+        <div class="range-header">
+          <span>X 위치</span>
+          <div class="range-values" id="offset-x-value">0px</div>
         </div>
-        <input id="interval-min" type="range" value="1500" min="200" max="3000">
-        <input id="interval-max" type="range" value="1500" min="200" max="3000">
+        <input id="offset-x" type="range" value="0" min="-500" max="500">
+      </div>
+      <div class="setting-item">
+        <div class="range-header">
+          <span>Y 위치</span>
+          <div class="range-values" id="offset-y-value">0px</div>
+        </div>
+        <input id="offset-y" type="range" value="0" min="-500" max="500">
+      </div>
+      <div class="setting-item range-wrap" id="interval-range-wrap">
+        <div class="range-header">
+          <span>자동 모션 속도</span>
+          <div class="range-values" id="interval-values">[1.5]~[1.5]s</div>
+        </div>
+        <div class="range-slider" id="interval-range">
+          <div class="range-track">
+            <div class="range-track__range" id="interval-range-fill"></div>
+          </div>
+          <input id="interval-min" type="range" value="1500" min="200" max="3000">
+          <input id="interval-max" type="range" value="1500" min="200" max="3000">
+        </div>
+      </div>
+      <div class="setting-item">
+        <span>배경색</span>
+        <input id="color" type="color" value="#00ff00">
       </div>
     </div>
-    <div class="setting-item">
-      <span>배경색</span>
-      <input id="color" type="color" value="#00ff00">
+    <div id="settings-camera" class="settings-group" data-settings-group="camera" role="tabpanel" hidden>
+      <div class="setting-item">
+        <span>카메라 추적</span>
+        <select id="camera-toggle">
+          <option value="off">끄기</option>
+          <option value="on">켜기</option>
+        </select>
+        <div class="range-values" id="camera-status"></div>
+      </div>
+      <div class="setting-item">
+        <span>카메라 미리보기</span>
+        <select id="camera-preview-mode">
+          <option value="off">끄기</option>
+          <option value="video">영상만</option>
+          <option value="facemesh">FaceMesh 표시</option>
+        </select>
+      </div>
+      <div class="setting-item">
+        <div class="range-header">
+          <span>카메라 감도</span>
+          <div class="range-values" id="camera-range-value">100%</div>
+        </div>
+        <input id="camera-range" type="range" value="100" min="50" max="200">
+      </div>
+      <div class="setting-item">
+        <div class="range-header">
+          <span>카메라 X 오프셋</span>
+          <div class="range-values" id="camera-offset-x-value">0%</div>
+        </div>
+        <input id="camera-offset-x" type="range" value="0" min="-100" max="100">
+      </div>
+      <div class="setting-item">
+        <div class="range-header">
+          <span>카메라 Y 오프셋</span>
+          <div class="range-values" id="camera-offset-y-value">0%</div>
+        </div>
+        <input id="camera-offset-y" type="range" value="0" min="-100" max="100">
+      </div>
     </div>
   </div>
 </div>

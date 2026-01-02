@@ -65,7 +65,47 @@ body {
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+#settings-panel .settings-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 999px;
+}
+
+#settings-panel .settings-tab {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: #444;
+  font-size: 0.85rem;
+  padding: 6px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+#settings-panel .settings-tab.is-active {
+  background: #444;
+  color: #fff;
+}
+
+#settings-panel .settings-tab:focus-visible {
+  outline: 2px solid #444;
+  outline-offset: 2px;
+}
+
+#settings-panel .settings-group {
+  display: flex;
+  flex-direction: column;
   gap: 30px;
+}
+
+#settings-panel .settings-group[hidden] {
+  display: none;
 }
 
 #settings-panel .setting-item {

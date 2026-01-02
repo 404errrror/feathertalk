@@ -163,6 +163,8 @@ var intervalRange = document.querySelector('#interval-range')
 var activeIntervalHandle = 'max'
 var settingsToggle = document.querySelector('#settings-toggle')
 var settingsPanel = document.querySelector('#settings-panel')
+var settingsTabs = document.querySelectorAll('[data-settings-tab]')
+var settingsGroups = document.querySelectorAll('[data-settings-group]')
 var offsetXInput = document.querySelector('#offset-x')
 var offsetYInput = document.querySelector('#offset-y')
 var offsetXValue = document.querySelector('#offset-x-value')
@@ -423,6 +425,34 @@ function setCharacterTransform(rotateDeg) {
   applyCharacterTransform()
 }
 
+function setSettingsTab(nextTab) {
+  if (!nextTab) {
+    return
+  }
+  for (var i = 0; i < settingsTabs.length; i++) {
+    var tab = settingsTabs[i]
+    var isActive = tab.getAttribute('data-settings-tab') === nextTab
+    if (isActive) {
+      tab.classList.add('is-active')
+      tab.setAttribute('aria-selected', 'true')
+      tab.setAttribute('tabindex', '0')
+    } else {
+      tab.classList.remove('is-active')
+      tab.setAttribute('aria-selected', 'false')
+      tab.setAttribute('tabindex', '-1')
+    }
+  }
+  for (var j = 0; j < settingsGroups.length; j++) {
+    var group = settingsGroups[j]
+    var isActiveGroup = group.getAttribute('data-settings-group') === nextTab
+    if (isActiveGroup) {
+      group.removeAttribute('hidden')
+    } else {
+      group.setAttribute('hidden', '')
+    }
+  }
+}
+
 if (storedInterval && (!localStorage.getItem('ftIntervalMin') || !localStorage.getItem('ftIntervalMax'))) {
   localStorage.setItem('ftIntervalMin', intervalMin)
   localStorage.setItem('ftIntervalMax', intervalMax)
@@ -445,6 +475,25 @@ if (settingsToggle && settingsPanel) {
     }
     settingsToggle.setAttribute('aria-expanded', String(willOpen))
   })
+}
+
+if (settingsTabs.length && settingsGroups.length) {
+  var initialSettingsTab = null
+  for (var i = 0; i < settingsTabs.length; i++) {
+    if (settingsTabs[i].classList.contains('is-active')) {
+      initialSettingsTab = settingsTabs[i].getAttribute('data-settings-tab')
+      break
+    }
+  }
+  if (!initialSettingsTab && settingsTabs.length) {
+    initialSettingsTab = settingsTabs[0].getAttribute('data-settings-tab')
+  }
+  setSettingsTab(initialSettingsTab)
+  for (var j = 0; j < settingsTabs.length; j++) {
+    settingsTabs[j].addEventListener('click', function(e) {
+      setSettingsTab(e.currentTarget.getAttribute('data-settings-tab'))
+    })
+  }
 }
 
 var randomX = document.body.clientWidth/2; 
