@@ -68,7 +68,7 @@
     <div id="settings-camera" class="settings-group" data-settings-group="camera" role="tabpanel" hidden>
       <div class="setting-item setting-item--inline">
         <span>카메라 추적</span>
-        <button class="toggle-button" id="camera-toggle" type="button" aria-pressed="false">꺼짐</button>
+        <button class="toggle-button" id="camera-toggle" type="button" aria-pressed="false" data-off-label="꺼짐" data-on-label="켜짐">꺼짐</button>
         <div class="range-values" id="camera-status"></div>
       </div>
       <div class="setting-item">
@@ -81,7 +81,7 @@
       </div>
       <div class="setting-item setting-item--inline">
         <span>눈 깜빡임 추적</span>
-        <button class="toggle-button" id="camera-blink-toggle" type="button" aria-pressed="false">꺼짐</button>
+        <button class="toggle-button" id="camera-blink-toggle" type="button" aria-pressed="false" data-off-label="자동" data-on-label="카메라">자동</button>
       </div>
       <div class="setting-item">
         <div class="range-header">
@@ -89,6 +89,17 @@
           <div class="range-values" id="camera-blink-sensitivity-value">100%</div>
         </div>
         <input id="camera-blink-sensitivity" type="range" value="100" min="60" max="140">
+      </div>
+      <div class="setting-item setting-item--inline">
+        <span>입 추적</span>
+        <button class="toggle-button" id="camera-mouth-toggle" type="button" aria-pressed="false" data-off-label="마이크" data-on-label="카메라">마이크</button>
+      </div>
+      <div class="setting-item">
+        <div class="range-header">
+          <span>입 추적 민감도</span>
+          <div class="range-values" id="camera-mouth-sensitivity-value">100%</div>
+        </div>
+        <input id="camera-mouth-sensitivity" type="range" value="100" min="60" max="140">
       </div>
       <div class="setting-item">
         <div class="range-header">

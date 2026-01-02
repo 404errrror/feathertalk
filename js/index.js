@@ -92,6 +92,19 @@ if (!Number.isFinite(cameraBlinkSensitivity)) {
   cameraBlinkSensitivity = 100
 }
 
+var cameraMouthEnabled = false
+if (localStorage.getItem('ftCameraMouthEnabled')) {
+  cameraMouthEnabled = localStorage.getItem('ftCameraMouthEnabled') === 'true'
+}
+
+var cameraMouthSensitivity = 100
+if (localStorage.getItem('ftCameraMouthSensitivity')) {
+  cameraMouthSensitivity = parseInt(localStorage.getItem('ftCameraMouthSensitivity'), 10)
+}
+if (!Number.isFinite(cameraMouthSensitivity)) {
+  cameraMouthSensitivity = 100
+}
+
 var cameraSupported = navigator.mediaDevices && navigator.mediaDevices.getUserMedia
 var cameraMode = 'motion'
 var cameraStatusMessage = ''
@@ -104,6 +117,13 @@ var cameraBlinkBaseline = 0
 var cameraBlinkBaselineAlpha = 0.08
 var cameraBlinkCloseRatio = 0.8
 var cameraBlinkOpenRatio = 0.93
+var cameraMouthActive = false
+var cameraMouthLastUpdate = 0
+var cameraMouthStaleMs = 800
+var cameraMouthBaseline = 0
+var cameraMouthBaselineAlpha = 0.08
+var cameraMouthOpenRatio = 1.7
+var cameraMouthCloseRatio = 1.4
 var lastVolumeValue = 0
 
 function updateCameraBlinkSettings() {
@@ -116,6 +136,18 @@ function updateCameraBlinkSettings() {
 }
 
 updateCameraBlinkSettings()
+
+function updateCameraMouthSettings() {
+  if (!Number.isFinite(cameraMouthSensitivity)) {
+    cameraMouthSensitivity = 100
+  }
+  var clamped = Math.min(140, Math.max(60, cameraMouthSensitivity))
+  var adjusted = 3.1 - (clamped - 60) * 0.0125
+  cameraMouthOpenRatio = Math.min(3.1, Math.max(1.2, adjusted))
+  cameraMouthCloseRatio = Math.max(1.05, cameraMouthOpenRatio - 0.3)
+}
+
+updateCameraMouthSettings()
 
 var intervalLimitMin = 200
 var intervalLimitMax = 3000
@@ -211,6 +243,9 @@ var cameraPreviewModeSelect = document.querySelector('#camera-preview-mode')
 var cameraBlinkToggle = document.querySelector('#camera-blink-toggle')
 var cameraBlinkSensitivityInput = document.querySelector('#camera-blink-sensitivity')
 var cameraBlinkSensitivityValue = document.querySelector('#camera-blink-sensitivity-value')
+var cameraMouthToggle = document.querySelector('#camera-mouth-toggle')
+var cameraMouthSensitivityInput = document.querySelector('#camera-mouth-sensitivity')
+var cameraMouthSensitivityValue = document.querySelector('#camera-mouth-sensitivity-value')
 var cameraOffsetXInput = document.querySelector('#camera-offset-x')
 var cameraOffsetYInput = document.querySelector('#camera-offset-y')
 var cameraOffsetXValue = document.querySelector('#camera-offset-x-value')
@@ -311,8 +346,10 @@ function updateToggleButton(button, enabled) {
   if (!button) {
     return
   }
+  var onLabel = button.getAttribute('data-on-label') || '켜짐'
+  var offLabel = button.getAttribute('data-off-label') || '꺼짐'
   button.setAttribute('aria-pressed', enabled ? 'true' : 'false')
-  button.textContent = enabled ? '켜짐' : '꺼짐'
+  button.textContent = enabled ? onLabel : offLabel
 }
 
 function setCameraStatus(message) {
@@ -456,6 +493,17 @@ function updateCameraUI() {
   }
   if (cameraBlinkSensitivityValue) {
     cameraBlinkSensitivityValue.textContent = `${cameraBlinkSensitivity}%`
+  }
+  if (cameraMouthToggle) {
+    updateToggleButton(cameraMouthToggle, cameraMouthEnabled)
+    cameraMouthToggle.disabled = !cameraSupported
+  }
+  if (cameraMouthSensitivityInput) {
+    cameraMouthSensitivityInput.value = cameraMouthSensitivity
+    cameraMouthSensitivityInput.disabled = !cameraSupported
+  }
+  if (cameraMouthSensitivityValue) {
+    cameraMouthSensitivityValue.textContent = `${cameraMouthSensitivity}%`
   }
   if (cameraStatus) {
     if (cameraStatusMessage) {
@@ -672,6 +720,34 @@ if (cameraBlinkSensitivityInput) {
     localStorage.setItem('ftCameraBlinkSensitivity', cameraBlinkSensitivity)
     cameraBlinkBaseline = 0
     updateCameraBlinkSettings()
+    updateCameraUI()
+  })
+}
+
+if (cameraMouthToggle) {
+  cameraMouthToggle.addEventListener('click', function() {
+    if (cameraMouthToggle.disabled) {
+      return
+    }
+    cameraMouthEnabled = !cameraMouthEnabled
+    localStorage.setItem('ftCameraMouthEnabled', String(cameraMouthEnabled))
+    if (!cameraMouthEnabled) {
+      cameraMouthActive = false
+      cameraMouthLastUpdate = 0
+      cameraMouthBaseline = 0
+    }
+    updateCameraUI()
+    updateExpression(lastVolumeValue)
+  })
+}
+
+if (cameraMouthSensitivityInput) {
+  cameraMouthSensitivityInput.addEventListener('input', function(e) {
+    var nextValue = parseInt(e.target.value, 10)
+    cameraMouthSensitivity = Number.isFinite(nextValue) ? nextValue : 100
+    localStorage.setItem('ftCameraMouthSensitivity', cameraMouthSensitivity)
+    cameraMouthBaseline = 0
+    updateCameraMouthSettings()
     updateCameraUI()
   })
 }
@@ -1002,7 +1078,8 @@ window.addEventListener('keydown', function(e) {
 
 function updateExpression(volume) {
   const now = Date.now()
-  const mouthActive = volume >= thres && now % 400 >= 200
+  const useCameraMouth = cameraMouthEnabled && cameraEnabled && cameraMode === 'face-mesh' && faceMeshReady && now - cameraMouthLastUpdate <= cameraMouthStaleMs
+  const mouthActive = useCameraMouth ? cameraMouthActive : volume >= thres && now % 400 >= 200
   const useCameraBlink = cameraBlinkEnabled && cameraEnabled && cameraMode === 'face-mesh' && faceMeshReady && now - cameraBlinkLastUpdate <= cameraBlinkStaleMs
   const blinkActive = useCameraBlink ? cameraBlinkActive : now % 3000 >= 2800
 
@@ -1430,6 +1507,9 @@ function stopCameraTracking() {
   cameraBlinkActive = false
   cameraBlinkLastUpdate = 0
   cameraBlinkBaseline = 0
+  cameraMouthActive = false
+  cameraMouthLastUpdate = 0
+  cameraMouthBaseline = 0
   stopCameraAnimation()
   if (cameraStream) {
     cameraStream.getTracks().forEach(function(track) {
@@ -1655,6 +1735,25 @@ function getEyeAspectRatio(landmarks, outerIdx, innerIdx, topIdx, bottomIdx) {
   return vertical / horizontal
 }
 
+function getMouthAspectRatio(landmarks, leftIdx, rightIdx, topIdx, bottomIdx) {
+  var left = landmarks[leftIdx]
+  var right = landmarks[rightIdx]
+  var top = landmarks[topIdx]
+  var bottom = landmarks[bottomIdx]
+  if (!left || !right || !top || !bottom) {
+    return null
+  }
+  var horizontal = getLandmarkDistance(left, right)
+  if (!horizontal) {
+    return null
+  }
+  var vertical = getLandmarkDistance(top, bottom)
+  if (!vertical) {
+    return null
+  }
+  return vertical / horizontal
+}
+
 function updateCameraBlinkState(landmarks) {
   if (!cameraBlinkEnabled) {
     return
@@ -1698,6 +1797,43 @@ function updateCameraBlinkState(landmarks) {
   }
 }
 
+function updateCameraMouthState(landmarks, yawValue) {
+  if (!cameraMouthEnabled) {
+    return
+  }
+  var ratio = getMouthAspectRatio(landmarks, 61, 291, 13, 14)
+  if (!Number.isFinite(ratio)) {
+    return
+  }
+  var adjustedRatio = ratio
+  if (Number.isFinite(yawValue)) {
+    var yawAbs = Math.abs(yawValue)
+    var yawScale = 1 + Math.min(1, yawAbs * 1.6) * 1.4
+    adjustedRatio = ratio / yawScale
+  }
+  cameraMouthLastUpdate = Date.now()
+  if (!cameraMouthBaseline) {
+    cameraMouthBaseline = adjustedRatio
+  }
+  if (!cameraMouthActive) {
+    cameraMouthBaseline = cameraMouthBaseline * (1 - cameraMouthBaselineAlpha) + adjustedRatio * cameraMouthBaselineAlpha
+  }
+  var openThreshold = cameraMouthBaseline * cameraMouthOpenRatio
+  var closeThreshold = cameraMouthBaseline * cameraMouthCloseRatio
+  var nextMouthActive = cameraMouthActive
+  if (cameraMouthActive) {
+    if (adjustedRatio < closeThreshold) {
+      nextMouthActive = false
+    }
+  } else if (adjustedRatio > openThreshold) {
+    nextMouthActive = true
+  }
+  if (nextMouthActive !== cameraMouthActive) {
+    cameraMouthActive = nextMouthActive
+    updateExpression(lastVolumeValue)
+  }
+}
+
 function onFaceMeshResults(results) {
   if (!cameraEnabled || cameraMode !== 'face-mesh') {
     return
@@ -1723,6 +1859,7 @@ function onFaceMeshResults(results) {
   var offsetY = Math.max(-1, Math.min(1, rawY * faceMeshPitchGain))
   updateCameraTarget(offsetX, offsetY)
   updateCameraBlinkState(landmarks)
+  updateCameraMouthState(landmarks, rawX)
   drawFaceMeshOverlay(landmarks)
 }
 
