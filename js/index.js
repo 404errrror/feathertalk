@@ -38,9 +38,21 @@ if (localStorage.getItem('ftCameraEnabled')) {
   cameraEnabled = localStorage.getItem('ftCameraEnabled') === 'true'
 }
 
-var cameraPreviewEnabled = false
-if (localStorage.getItem('ftCameraPreviewEnabled')) {
-  cameraPreviewEnabled = localStorage.getItem('ftCameraPreviewEnabled') === 'true'
+var cameraPreviewMode = 'off'
+var storedPreviewMode = localStorage.getItem('ftCameraPreviewMode')
+if (storedPreviewMode) {
+  cameraPreviewMode = storedPreviewMode
+} else {
+  var legacyPreviewEnabled = localStorage.getItem('ftCameraPreviewEnabled') === 'true'
+  var legacyOverlayEnabled = localStorage.getItem('ftCameraOverlayEnabled') === 'true'
+  if (legacyPreviewEnabled && legacyOverlayEnabled) {
+    cameraPreviewMode = 'facemesh'
+  } else if (legacyPreviewEnabled) {
+    cameraPreviewMode = 'video'
+  }
+}
+if (['off', 'video', 'facemesh'].indexOf(cameraPreviewMode) === -1) {
+  cameraPreviewMode = 'off'
 }
 
 var cameraStrength = 100
@@ -159,13 +171,14 @@ var cameraToggle = document.querySelector('#camera-toggle')
 var cameraRange = document.querySelector('#camera-range')
 var cameraRangeValue = document.querySelector('#camera-range-value')
 var cameraStatus = document.querySelector('#camera-status')
-var cameraPreviewToggle = document.querySelector('#camera-preview-toggle')
+var cameraPreviewModeSelect = document.querySelector('#camera-preview-mode')
 var cameraOffsetXInput = document.querySelector('#camera-offset-x')
 var cameraOffsetYInput = document.querySelector('#camera-offset-y')
 var cameraOffsetXValue = document.querySelector('#camera-offset-x-value')
 var cameraOffsetYValue = document.querySelector('#camera-offset-y-value')
 var cameraPreview = document.querySelector('#camera-preview')
 var cameraPreviewVideo = document.querySelector('#camera-preview-video')
+var cameraPreviewOverlay = document.querySelector('#camera-preview-overlay')
 var character = document.querySelector('#character')
 var currentRotate = 0
 
@@ -266,10 +279,96 @@ function updateCameraPreviewVisibility() {
   if (!cameraPreview) {
     return
   }
-  if (cameraEnabled && cameraStream && cameraPreviewEnabled) {
+  if (cameraEnabled && cameraStream && cameraPreviewMode !== 'off') {
     cameraPreview.removeAttribute('hidden')
   } else {
     cameraPreview.setAttribute('hidden', '')
+  }
+  updateCameraOverlayVisibility()
+}
+
+function clearCameraOverlay() {
+  if (!cameraPreviewOverlay) {
+    return
+  }
+  var ctx = cameraPreviewOverlay.getContext('2d')
+  if (!ctx) {
+    return
+  }
+  ctx.clearRect(0, 0, cameraPreviewOverlay.width, cameraPreviewOverlay.height)
+}
+
+function updateCameraOverlayVisibility() {
+  if (!cameraPreviewOverlay) {
+    return
+  }
+  var shouldShow = cameraEnabled && cameraStream && cameraPreviewMode === 'facemesh' && cameraMode === 'face-mesh'
+  if (shouldShow) {
+    cameraPreviewOverlay.removeAttribute('hidden')
+  } else {
+    cameraPreviewOverlay.setAttribute('hidden', '')
+    clearCameraOverlay()
+  }
+}
+
+function syncCameraOverlaySize() {
+  if (!cameraPreviewOverlay) {
+    return
+  }
+  var width = cameraPreviewOverlay.clientWidth
+  var height = cameraPreviewOverlay.clientHeight
+  if (!width || !height) {
+    return
+  }
+  var dpr = window.devicePixelRatio || 1
+  var scaledWidth = Math.floor(width * dpr)
+  var scaledHeight = Math.floor(height * dpr)
+  if (cameraPreviewOverlay.width !== scaledWidth) {
+    cameraPreviewOverlay.width = scaledWidth
+  }
+  if (cameraPreviewOverlay.height !== scaledHeight) {
+    cameraPreviewOverlay.height = scaledHeight
+  }
+}
+
+function getOverlayContext() {
+  if (!cameraPreviewOverlay) {
+    return null
+  }
+  var width = cameraPreviewOverlay.clientWidth
+  var height = cameraPreviewOverlay.clientHeight
+  if (!width || !height) {
+    return null
+  }
+  var dpr = window.devicePixelRatio || 1
+  var scaledWidth = Math.floor(width * dpr)
+  var scaledHeight = Math.floor(height * dpr)
+  if (cameraPreviewOverlay.width !== scaledWidth) {
+    cameraPreviewOverlay.width = scaledWidth
+  }
+  if (cameraPreviewOverlay.height !== scaledHeight) {
+    cameraPreviewOverlay.height = scaledHeight
+  }
+  var ctx = cameraPreviewOverlay.getContext('2d')
+  if (!ctx) {
+    return null
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  return { ctx, width, height }
+}
+
+function getCoverTransform(sourceWidth, sourceHeight, boxWidth, boxHeight) {
+  var scale = Math.max(boxWidth / sourceWidth, boxHeight / sourceHeight)
+  var displayWidth = sourceWidth * scale
+  var displayHeight = sourceHeight * scale
+  var offsetX = (boxWidth - displayWidth) / 2
+  var offsetY = (boxHeight - displayHeight) / 2
+  return {
+    scale,
+    displayWidth,
+    displayHeight,
+    offsetX,
+    offsetY
   }
 }
 
@@ -296,9 +395,9 @@ function updateCameraUI() {
     cameraToggle.value = cameraEnabled ? 'on' : 'off'
     cameraToggle.disabled = !cameraSupported
   }
-  if (cameraPreviewToggle) {
-    cameraPreviewToggle.value = cameraPreviewEnabled ? 'on' : 'off'
-    cameraPreviewToggle.disabled = !cameraSupported
+  if (cameraPreviewModeSelect) {
+    cameraPreviewModeSelect.value = cameraPreviewMode
+    cameraPreviewModeSelect.disabled = !cameraSupported
   }
   if (cameraStatus) {
     if (cameraStatusMessage) {
@@ -420,23 +519,24 @@ if (cameraToggle) {
   })
 }
 
-if (cameraPreviewToggle) {
-  cameraPreviewToggle.addEventListener('change', function(e) {
-    if (e.target.value === 'on') {
+if (cameraPreviewModeSelect) {
+  cameraPreviewModeSelect.addEventListener('change', function(e) {
+    var nextMode = e.target.value
+    if (nextMode !== 'off' && cameraPreviewMode === 'off') {
       var confirmed = window.confirm('화면에 실제 얼굴이 표시됩니다!!!\n활성화 시키겠습니까?!')
       if (!confirmed) {
-        cameraPreviewEnabled = false
-        localStorage.setItem('ftCameraPreviewEnabled', 'false')
-        cameraPreviewToggle.value = 'off'
+        cameraPreviewMode = 'off'
+        localStorage.setItem('ftCameraPreviewMode', cameraPreviewMode)
+        cameraPreviewModeSelect.value = 'off'
         updateCameraPreviewVisibility()
         return
       }
-      cameraPreviewEnabled = true
-      localStorage.setItem('ftCameraPreviewEnabled', 'true')
-    } else {
-      cameraPreviewEnabled = false
-      localStorage.setItem('ftCameraPreviewEnabled', 'false')
     }
+    if (['off', 'video', 'facemesh'].indexOf(nextMode) === -1) {
+      nextMode = 'off'
+    }
+    cameraPreviewMode = nextMode
+    localStorage.setItem('ftCameraPreviewMode', cameraPreviewMode)
     updateCameraPreviewVisibility()
   })
 }
@@ -1083,11 +1183,17 @@ var faceMeshYawGain = 2.2
 var faceMeshPitchGain = 3.4
 var faceMeshMinConfidence = 0.5
 var faceMeshTrackingConfidence = 0.5
+var faceMeshOverlayStep = 2
+var faceMeshOverlaySize = 2
+var faceMeshOverlayLineWidth = 1
+var faceMeshOverlayLineColor = 'rgba(0, 255, 220, 0.85)'
+var faceMeshOverlayPointColor = 'rgba(255, 255, 255, 0.85)'
 var cameraAnimationId = null
 var cameraTargetOffsetX = 0
 var cameraTargetOffsetY = 0
 var cameraTargetReady = false
 var cameraLastApplyTime = 0
+var cameraPreviewBound = false
 
 function setCameraEnabled(enabled) {
   var nextEnabled = Boolean(enabled)
@@ -1145,6 +1251,12 @@ async function startCameraTracking() {
     cameraVideo.muted = true
   }
   cameraVideo.srcObject = cameraStream
+  if (!cameraPreviewBound) {
+    cameraVideo.addEventListener('loadedmetadata', function() {
+      syncCameraOverlaySize()
+    })
+    cameraPreviewBound = true
+  }
   try {
     await cameraVideo.play()
   } catch (error) {
@@ -1398,6 +1510,7 @@ function onFaceMeshResults(results) {
   var offsetX = Math.max(-1, Math.min(1, rawX * faceMeshYawGain))
   var offsetY = Math.max(-1, Math.min(1, rawY * faceMeshPitchGain))
   updateCameraTarget(offsetX, offsetY)
+  drawFaceMeshOverlay(landmarks)
 }
 
 function detectMotionFrame() {
@@ -1433,6 +1546,61 @@ function detectMotionFrame() {
   var offsetX = (centerX / motionWidth - 0.5) * 2
   var offsetY = (centerY / motionHeight - 0.5) * 2
   updateCameraTarget(offsetX, offsetY)
+}
+
+function drawFaceMeshOverlay(landmarks) {
+  if (cameraPreviewMode !== 'facemesh' || !cameraPreviewOverlay || cameraMode !== 'face-mesh') {
+    return
+  }
+  if (!cameraPreviewVideo || !cameraPreviewVideo.videoWidth || !cameraPreviewVideo.videoHeight) {
+    return
+  }
+  var overlay = getOverlayContext()
+  if (!overlay) {
+    return
+  }
+  var width = overlay.width
+  var height = overlay.height
+  if (!width || !height) {
+    return
+  }
+  var ctx = overlay.ctx
+  var transform = getCoverTransform(cameraPreviewVideo.videoWidth, cameraPreviewVideo.videoHeight, width, height)
+  var offsetX = transform.offsetX
+  var offsetY = transform.offsetY
+  var displayWidth = transform.displayWidth
+  var displayHeight = transform.displayHeight
+  ctx.clearRect(0, 0, width, height)
+  var connections = typeof FACEMESH_TESSELATION !== 'undefined' ? FACEMESH_TESSELATION : null
+  if (connections && connections.length) {
+    ctx.strokeStyle = faceMeshOverlayLineColor
+    ctx.lineWidth = faceMeshOverlayLineWidth
+    ctx.beginPath()
+    for (var c = 0; c < connections.length; c++) {
+      var connection = connections[c]
+      var a = connection[0]
+      var b = connection[1]
+      var pointA = landmarks[a]
+      var pointB = landmarks[b]
+      if (!pointA || !pointB) {
+        continue
+      }
+      ctx.moveTo(pointA.x * displayWidth + offsetX, pointA.y * displayHeight + offsetY)
+      ctx.lineTo(pointB.x * displayWidth + offsetX, pointB.y * displayHeight + offsetY)
+    }
+    ctx.stroke()
+  }
+
+  ctx.fillStyle = faceMeshOverlayPointColor
+  for (var i = 0; i < landmarks.length; i += faceMeshOverlayStep) {
+    var point = landmarks[i]
+    if (!point) {
+      continue
+    }
+    var x = point.x * displayWidth + offsetX
+    var y = point.y * displayHeight + offsetY
+    ctx.fillRect(x - faceMeshOverlaySize / 2, y - faceMeshOverlaySize / 2, faceMeshOverlaySize, faceMeshOverlaySize)
+  }
 }
 
 function detectCameraFrame() {

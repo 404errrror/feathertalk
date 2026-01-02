@@ -38,9 +38,10 @@
     </div>
     <div class="setting-item">
       <span>카메라 미리보기</span>
-      <select id="camera-preview-toggle">
+      <select id="camera-preview-mode">
         <option value="off">끄기</option>
-        <option value="on">켜기</option>
+        <option value="video">영상만</option>
+        <option value="facemesh">FaceMesh 표시</option>
       </select>
     </div>
     <div class="setting-item">
@@ -102,6 +103,7 @@
 <div id="camera-preview" hidden>
   <div class="camera-preview__label">Camera</div>
   <video id="camera-preview-video" autoplay muted playsinline></video>
+  <canvas id="camera-preview-overlay" hidden></canvas>
 </div>
 
 <script src="./js/index.js?v=0.0.6"></script>
