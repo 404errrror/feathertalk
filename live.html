@@ -66,12 +66,9 @@
       </div>
     </div>
     <div id="settings-camera" class="settings-group" data-settings-group="camera" role="tabpanel" hidden>
-      <div class="setting-item">
+      <div class="setting-item setting-item--inline">
         <span>카메라 추적</span>
-        <select id="camera-toggle">
-          <option value="off">끄기</option>
-          <option value="on">켜기</option>
-        </select>
+        <button class="toggle-button" id="camera-toggle" type="button" aria-pressed="false">꺼짐</button>
         <div class="range-values" id="camera-status"></div>
       </div>
       <div class="setting-item">
@@ -82,12 +79,9 @@
           <option value="facemesh">FaceMesh 표시</option>
         </select>
       </div>
-      <div class="setting-item">
-        <span>눈 깜빡임</span>
-        <select id="camera-blink-toggle">
-          <option value="off">자동</option>
-          <option value="on">카메라</option>
-        </select>
+      <div class="setting-item setting-item--inline">
+        <span>눈 깜빡임 추적</span>
+        <button class="toggle-button" id="camera-blink-toggle" type="button" aria-pressed="false">꺼짐</button>
       </div>
       <div class="setting-item">
         <div class="range-header">

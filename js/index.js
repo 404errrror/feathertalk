@@ -307,6 +307,14 @@ function updateOffsetUI() {
   }
 }
 
+function updateToggleButton(button, enabled) {
+  if (!button) {
+    return
+  }
+  button.setAttribute('aria-pressed', enabled ? 'true' : 'false')
+  button.textContent = enabled ? '켜짐' : '꺼짐'
+}
+
 function setCameraStatus(message) {
   cameraStatusMessage = message || ''
   if (cameraStatus) {
@@ -431,7 +439,7 @@ function updateCameraUI() {
     cameraOffsetYValue.textContent = `${cameraOffsetY}%`
   }
   if (cameraToggle) {
-    cameraToggle.value = cameraEnabled ? 'on' : 'off'
+    updateToggleButton(cameraToggle, cameraEnabled)
     cameraToggle.disabled = !cameraSupported
   }
   if (cameraPreviewModeSelect) {
@@ -439,7 +447,7 @@ function updateCameraUI() {
     cameraPreviewModeSelect.disabled = !cameraSupported
   }
   if (cameraBlinkToggle) {
-    cameraBlinkToggle.value = cameraBlinkEnabled ? 'on' : 'off'
+    updateToggleButton(cameraBlinkToggle, cameraBlinkEnabled)
     cameraBlinkToggle.disabled = !cameraSupported
   }
   if (cameraBlinkSensitivityInput) {
@@ -611,8 +619,11 @@ if (cameraOffsetYInput) {
 }
 
 if (cameraToggle) {
-  cameraToggle.addEventListener('change', function(e) {
-    setCameraEnabled(e.target.value === 'on')
+  cameraToggle.addEventListener('click', function() {
+    if (cameraToggle.disabled) {
+      return
+    }
+    setCameraEnabled(!cameraEnabled)
   })
 }
 
@@ -639,14 +650,18 @@ if (cameraPreviewModeSelect) {
 }
 
 if (cameraBlinkToggle) {
-  cameraBlinkToggle.addEventListener('change', function(e) {
-    cameraBlinkEnabled = e.target.value === 'on'
+  cameraBlinkToggle.addEventListener('click', function() {
+    if (cameraBlinkToggle.disabled) {
+      return
+    }
+    cameraBlinkEnabled = !cameraBlinkEnabled
     localStorage.setItem('ftCameraBlinkEnabled', String(cameraBlinkEnabled))
     if (!cameraBlinkEnabled) {
       cameraBlinkActive = false
       cameraBlinkLastUpdate = 0
       cameraBlinkBaseline = 0
     }
+    updateCameraUI()
   })
 }
 
@@ -1475,7 +1490,7 @@ function loadExternalScript(src, id) {
 function loadFaceMesh() {
   if (faceMeshReady) {
     cameraMode = 'face-mesh'
-    setCameraStatus('얼굴 추적 사용')
+    setCameraStatus('')
     updateCameraUI()
     return Promise.resolve(true)
   }
@@ -1506,7 +1521,7 @@ function loadFaceMesh() {
       faceMesh.onResults(onFaceMeshResults)
       faceMeshReady = true
       cameraMode = 'face-mesh'
-      setCameraStatus('얼굴 추적 사용')
+      setCameraStatus('')
       updateCameraUI()
       return true
     })
