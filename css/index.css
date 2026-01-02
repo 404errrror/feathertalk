@@ -152,18 +152,24 @@ input {
 .layer-fields {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
 }
 
 .layer-row {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 8px;
+    align-items: center;
 }
 
 .layer-row label {
     font-size: 0.8em;
     color: #777;
+    margin: 0;
+}
+
+.layer-row .input-row {
+    width: 100%;
 }
 
 .layer-row.is-hidden {
