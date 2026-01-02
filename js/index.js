@@ -333,6 +333,14 @@ function readAssetArray(key, fallback) {
 
 const LAYER_STORAGE_KEY = 'ftLayers'
 const DEFAULT_LAYER_SRC = 'assets/transparent.png'
+const RIG_DEFAULT_SRC = {
+  bang: 'assets/bang.png',
+  eyes: 'assets/eyes.png',
+  mouth: 'assets/mouth.png',
+  face: 'assets/face.png',
+  body: 'assets/body.png',
+  back: 'assets/back.png'
+}
 const rigOptions = ['bang', 'eyes', 'mouth', 'face', 'body', 'back']
 const splitRigOptions = ['bang', 'eyes', 'mouth', 'face']
 const roleOptions = ['none', 'blink', 'mouth']
@@ -342,6 +350,10 @@ let layerIdSeed = Date.now()
 function createLayerId() {
   layerIdSeed += 1
   return `layer-${layerIdSeed}`
+}
+
+function getDefaultRigSrc(rig) {
+  return RIG_DEFAULT_SRC[rig] || DEFAULT_LAYER_SRC
 }
 
 function resolveLayerSrc(value, fallback) {
@@ -363,11 +375,13 @@ function normalizeLayer(layer, fallback) {
   if (roleOptions.indexOf(role) === -1) {
     role = fallbackLayer.role || 'none'
   }
+  const srcFallback = typeof fallbackLayer.src === 'string' ? fallbackLayer.src : getDefaultRigSrc(rig)
+  const altFallback = typeof fallbackLayer.altSrc === 'string' ? fallbackLayer.altSrc : ''
   return {
     id: typeof base.id === 'string' ? base.id : (fallbackLayer.id || createLayerId()),
-    src: resolveLayerSrc(base.src, fallbackLayer.src || DEFAULT_LAYER_SRC),
+    src: resolveLayerSrc(base.src, srcFallback),
     display: typeof base.display === 'string' ? base.display : (fallbackLayer.display || ''),
-    altSrc: resolveLayerSrc(base.altSrc, fallbackLayer.altSrc || ''),
+    altSrc: resolveLayerSrc(base.altSrc, altFallback),
     altDisplay: typeof base.altDisplay === 'string' ? base.altDisplay : (fallbackLayer.altDisplay || ''),
     rig,
     role
@@ -415,7 +429,7 @@ function loadLayerSlots() {
       return normalizeLayer(layer)
     })
     if (!normalizedSlots[i].length) {
-      normalizedSlots[i] = [normalizeLayer({ src: DEFAULT_LAYER_SRC, rig: 'face', role: 'none' })]
+      normalizedSlots[i] = [normalizeLayer({ rig: 'face', role: 'none' })]
     }
   }
   localStorage.setItem(LAYER_STORAGE_KEY, JSON.stringify(normalizedSlots))

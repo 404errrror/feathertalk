@@ -1,6 +1,14 @@
 const SLOT_COUNT = 10
 const STORAGE_KEY = 'ftLayers'
 const DEFAULT_SRC = 'assets/transparent.png'
+const RIG_DEFAULT_SRC = {
+  bang: 'assets/bang.png',
+  eyes: 'assets/eyes.png',
+  mouth: 'assets/mouth.png',
+  face: 'assets/face.png',
+  body: 'assets/body.png',
+  back: 'assets/back.png'
+}
 
 const slotId = (index) => (index + 1) % SLOT_COUNT
 const rigOptions = ['bang', 'eyes', 'mouth', 'face', 'body', 'back']
@@ -20,6 +28,10 @@ let layerIdSeed = Date.now()
 function createLayerId() {
   layerIdSeed += 1
   return `layer-${layerIdSeed}`
+}
+
+function getDefaultRigSrc(rig) {
+  return RIG_DEFAULT_SRC[rig] || DEFAULT_SRC
 }
 
 function normalizeAssetPath(value) {
@@ -82,8 +94,6 @@ function readLegacyDisplayArray(key) {
 function normalizeLayer(layer, fallback) {
   const base = layer || {}
   const fallbackLayer = fallback || {}
-  const src = resolveInputSrc(base.src, fallbackLayer.src || DEFAULT_SRC)
-  const altSrc = resolveInputSrc(base.altSrc, fallbackLayer.altSrc || '')
   let rig = typeof base.rig === 'string' ? base.rig : fallbackLayer.rig
   if (rigOptions.indexOf(rig) === -1) {
     rig = fallbackLayer.rig || 'face'
@@ -92,6 +102,10 @@ function normalizeLayer(layer, fallback) {
   if (roleOptions.indexOf(role) === -1) {
     role = fallbackLayer.role || 'none'
   }
+  const srcFallback = typeof fallbackLayer.src === 'string' ? fallbackLayer.src : getDefaultRigSrc(rig)
+  const altFallback = typeof fallbackLayer.altSrc === 'string' ? fallbackLayer.altSrc : ''
+  const src = resolveInputSrc(base.src, srcFallback)
+  const altSrc = resolveInputSrc(base.altSrc, altFallback)
   return {
     id: typeof base.id === 'string' ? base.id : (fallbackLayer.id || createLayerId()),
     src,
@@ -193,20 +207,21 @@ function loadLayerSlots() {
       return normalizeLayer(layer)
     })
     if (!normalizedSlots[i].length) {
-      normalizedSlots[i] = [normalizeLayer({ src: DEFAULT_SRC, rig: 'face', role: 'none' })]
+      normalizedSlots[i] = [normalizeLayer({ rig: 'face', role: 'none' })]
     }
   }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizedSlots))
   return normalizedSlots
 }
 
-function setInputFromLayer(input, src, display) {
+function setInputFromLayer(input, src, display, fallbackSrc) {
+  const resolvedFallback = typeof fallbackSrc === 'string' ? fallbackSrc : DEFAULT_SRC
   const hasDisplay = typeof display === 'string' && display.trim()
   if (hasDisplay && display !== src) {
     input.value = display
     input.dataset.actualSrc = src
     input.dataset.displayValue = display
-  } else if (src && src !== DEFAULT_SRC) {
+  } else if (src && src !== resolvedFallback) {
     input.value = src
     delete input.dataset.actualSrc
     delete input.dataset.displayValue
@@ -327,7 +342,7 @@ function buildLayerItem(slotIndex, layer, layerIndex, slotLayers) {
   const srcInput = document.createElement('input')
   srcInput.type = 'text'
   srcInput.placeholder = '이미지 주소'
-  setInputFromLayer(srcInput, layer.src, layer.display)
+  setInputFromLayer(srcInput, layer.src, layer.display, getDefaultRigSrc(layer.rig))
   srcInputRow.appendChild(srcInput)
   srcRow.appendChild(srcLabel)
   srcRow.appendChild(srcInputRow)
@@ -345,7 +360,7 @@ function buildLayerItem(slotIndex, layer, layerIndex, slotLayers) {
   const altInput = document.createElement('input')
   altInput.type = 'text'
   altInput.placeholder = '표정 이미지 주소'
-  setInputFromLayer(altInput, layer.altSrc, layer.altDisplay)
+  setInputFromLayer(altInput, layer.altSrc, layer.altDisplay, '')
   altInputRow.appendChild(altInput)
   altRow.appendChild(altLabel)
   altRow.appendChild(altInputRow)
@@ -383,7 +398,7 @@ function buildLayerItem(slotIndex, layer, layerIndex, slotLayers) {
   item.appendChild(fields)
 
   srcInput.addEventListener('input', function() {
-    const resolved = readInputValue(srcInput, DEFAULT_SRC)
+    const resolved = readInputValue(srcInput, getDefaultRigSrc(layer.rig))
     layer.src = resolved.actual
     layer.display = resolved.display
     preview.src = layer.src || DEFAULT_SRC
@@ -396,7 +411,16 @@ function buildLayerItem(slotIndex, layer, layerIndex, slotLayers) {
   })
 
   rigSelect.select.addEventListener('change', function() {
+    const previousRig = layer.rig
     layer.rig = rigSelect.select.value
+    const previousDefault = getDefaultRigSrc(previousRig)
+    const nextDefault = getDefaultRigSrc(layer.rig)
+    if (!srcInput.value || layer.src === previousDefault) {
+      layer.src = nextDefault
+      layer.display = ''
+      setInputFromLayer(srcInput, layer.src, layer.display, nextDefault)
+      preview.src = layer.src || DEFAULT_SRC
+    }
   })
 
   roleSelect.select.addEventListener('change', function() {
@@ -427,7 +451,7 @@ function buildLayerItem(slotIndex, layer, layerIndex, slotLayers) {
   deleteButton.addEventListener('click', function() {
     slotLayers.splice(layerIndex, 1)
     if (!slotLayers.length) {
-      slotLayers.push(normalizeLayer({ src: DEFAULT_SRC, rig: 'face', role: 'none' }))
+      slotLayers.push(normalizeLayer({ rig: 'face', role: 'none' }))
     }
     renderSlot(slotIndex)
   })
@@ -468,7 +492,7 @@ renderAllSlots()
 document.querySelectorAll('.layer-add').forEach(function(button) {
   button.addEventListener('click', function() {
     const slotIndex = slotIndexFromId(button.dataset.slot)
-    const newLayer = normalizeLayer({ src: DEFAULT_SRC, rig: 'face', role: 'none' })
+    const newLayer = normalizeLayer({ rig: 'face', role: 'none' })
     layerSlots[slotIndex].unshift(newLayer)
     renderSlot(slotIndex)
   })
