@@ -1004,6 +1004,9 @@ function setCameraEnabled(enabled) {
     return
   }
   if (cameraEnabled === nextEnabled) {
+    if (cameraEnabled && !cameraStream) {
+      startCameraTracking()
+    }
     updateCameraUI()
     return
   }
