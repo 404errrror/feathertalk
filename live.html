@@ -29,6 +29,21 @@
       <input id="rig" type="range" value="100" min="0" max="200">
     </div>
     <div class="setting-item">
+      <span>카메라 추적</span>
+      <select id="camera-toggle">
+        <option value="off">끄기</option>
+        <option value="on">켜기</option>
+      </select>
+      <div class="range-values" id="camera-status"></div>
+    </div>
+    <div class="setting-item">
+      <div class="range-header">
+        <span>카메라 감도</span>
+        <div class="range-values" id="camera-range-value">100%</div>
+      </div>
+      <input id="camera-range" type="range" value="100" min="50" max="200">
+    </div>
+    <div class="setting-item">
       <div class="range-header">
         <span>X 위치</span>
         <div class="range-values" id="offset-x-value">0px</div>

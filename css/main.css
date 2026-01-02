@@ -82,6 +82,10 @@ body {
   width: 100%;
 }
 
+#settings-panel select {
+  width: 100%;
+}
+
 #settings-panel .range-wrap {
   display: flex;
   flex-direction: column;

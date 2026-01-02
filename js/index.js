@@ -33,6 +33,23 @@ if (!Number.isFinite(offsetY)) {
   offsetY = 0
 }
 
+var cameraEnabled = false
+if (localStorage.getItem('ftCameraEnabled')) {
+  cameraEnabled = localStorage.getItem('ftCameraEnabled') === 'true'
+}
+
+var cameraStrength = 100
+if (localStorage.getItem('ftCameraStrength')) {
+  cameraStrength = parseInt(localStorage.getItem('ftCameraStrength'), 10)
+}
+if (!Number.isFinite(cameraStrength)) {
+  cameraStrength = 100
+}
+
+var cameraSupported = navigator.mediaDevices && navigator.mediaDevices.getUserMedia
+var cameraMode = 'motion'
+var cameraStatusMessage = ''
+
 var intervalLimitMin = 200
 var intervalLimitMax = 3000
 var intervalMin = 1500
@@ -117,6 +134,10 @@ var offsetXInput = document.querySelector('#offset-x')
 var offsetYInput = document.querySelector('#offset-y')
 var offsetXValue = document.querySelector('#offset-x-value')
 var offsetYValue = document.querySelector('#offset-y-value')
+var cameraToggle = document.querySelector('#camera-toggle')
+var cameraRange = document.querySelector('#camera-range')
+var cameraRangeValue = document.querySelector('#camera-range-value')
+var cameraStatus = document.querySelector('#camera-status')
 var character = document.querySelector('#character')
 var currentRotate = 0
 
@@ -206,6 +227,35 @@ function updateOffsetUI() {
   }
 }
 
+function setCameraStatus(message) {
+  cameraStatusMessage = message || ''
+  if (cameraStatus) {
+    cameraStatus.textContent = cameraStatusMessage
+  }
+}
+
+function updateCameraUI() {
+  if (cameraRange) {
+    cameraRange.value = cameraStrength
+  }
+  if (cameraRangeValue) {
+    cameraRangeValue.textContent = `${cameraStrength}%`
+  }
+  if (cameraToggle) {
+    cameraToggle.value = cameraEnabled ? 'on' : 'off'
+    cameraToggle.disabled = !cameraSupported
+  }
+  if (cameraStatus) {
+    if (cameraStatusMessage) {
+      cameraStatus.textContent = cameraStatusMessage
+    } else if (!cameraSupported) {
+      cameraStatus.textContent = '브라우저 미지원'
+    } else {
+      cameraStatus.textContent = ''
+    }
+  }
+}
+
 function applyCharacterTransform() {
   if (!character) {
     return
@@ -227,6 +277,7 @@ bindIntervalHandleEvents(intervalMinInput, 'min')
 bindIntervalHandleEvents(intervalMaxInput, 'max')
 updateIntervalUI()
 updateOffsetUI()
+updateCameraUI()
 applyCharacterTransform()
 
 if (settingsToggle && settingsPanel) {
@@ -277,6 +328,21 @@ if (offsetYInput) {
     localStorage.setItem('ftOffsetY', offsetY)
     updateOffsetUI()
     applyCharacterTransform()
+  })
+}
+
+if (cameraRange) {
+  cameraRange.addEventListener('input', function(e) {
+    var nextValue = parseInt(e.target.value, 10)
+    cameraStrength = Number.isFinite(nextValue) ? nextValue : 100
+    localStorage.setItem('ftCameraStrength', cameraStrength)
+    updateCameraUI()
+  })
+}
+
+if (cameraToggle) {
+  cameraToggle.addEventListener('change', function(e) {
+    setCameraEnabled(e.target.value === 'on')
   })
 }
 
@@ -695,7 +761,10 @@ async function audio () {
     }, pointerIdleDelay)
   }
 
-  function scheduleAutoRig() {
+function scheduleAutoRig() {
+    if (cameraEnabled) {
+      return
+    }
     clearAutoFrameTimers()
     var currentInterval = pickRandomInterval()
     var intervals = buildIntervals(currentInterval)
@@ -747,7 +816,9 @@ async function audio () {
       setCharacterTransform((X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)
       }, i*12/20);
     }
-    autoRig = setTimeout(scheduleAutoRig, currentInterval)
+    if (!cameraEnabled) {
+      autoRig = setTimeout(scheduleAutoRig, currentInterval)
+    }
   }
 
   scheduleAutoRig()
@@ -763,6 +834,9 @@ let Y = lastY
 let velocity = 0
 
 function scheduleAutoRigFromPointer(fallbackX, fallbackY) {
+  if (cameraEnabled) {
+    return
+  }
   clearAutoFrameTimers()
   var currentInterval = pickRandomInterval()
   var intervals = buildIntervals(currentInterval)
@@ -824,60 +898,471 @@ function scheduleAutoRigFromPointer(fallbackX, fallbackY) {
     setCharacterTransform((X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)
     }, i*12/20);
   }
-  autoRig = setTimeout(() => {
-    scheduleAutoRigFromPointer(fallbackX, fallbackY)
-  }, currentInterval)
+  if (!cameraEnabled) {
+    autoRig = setTimeout(() => {
+      scheduleAutoRigFromPointer(fallbackX, fallbackY)
+    }, currentInterval)
+  }
 }
 
-document.addEventListener('mousemove',function(e){
-    stopAutoRig()
+function applyRigFromPoint(pointX, pointY, velocityX) {
+  var squashStretchM = Math.abs(velocityX) * 0.0005; // 0.1 강도 조절값
+  var currentScaleYM = 1 + 2 * squashStretchM; // 위아래로 늘어짐
+  var currentScaleNegYM = 1 - 2 * squashStretchM; // 위아래로 줄어듦
+  var currentScaleXM = 1 - 4 * squashStretchM; // 좌우로 줄어듦(부피 보존)
+  var currentScaleNegXM = 1 + 4 * squashStretchM; // 좌우로 늘어남(부피 보존)
 
-    X = e.clientX
-    Y = e.clientY
-    velocity = (lastX - X) * stiffness * damping;
+  var backStyle = `height: ${100 * currentScaleYM}dvh; left: min(${50 - 50 * currentScaleXM}vw, ${50 - 50 * currentScaleXM}dvh); width: min(${100 * currentScaleXM}vw, ${100 * currentScaleXM}dvh); top: ${(5 - (pointY / document.body.clientHeight) * 10) * rig / 100}px;`
+  applyRigStyles('back', { img: backStyle })
 
-    var squashStretchM = Math.abs(velocity) * 0.0005; // 0.1 강도 조절값
-    var currentScaleYM = 1 + 2 * squashStretchM; // 위아래로 늘어짐
-    var currentScaleNegYM = 1 - 2 * squashStretchM; // 위아래로 줄어듦
-    var currentScaleXM = 1 - 4 * squashStretchM; // 좌우로 줄어듦(부피 보존)
-    var currentScaleNegXM = 1 + 4 * squashStretchM; // 좌우로 늘어남(부피 보존)
+  var bangDivLStyle = `width: min(${50 + (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 5 * rig / 50}vw, ${50 + (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 5 * rig / 50}dvh);`
+  var bangDivRStyle = `width: min(${50 - (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 5 * rig / 50}vw, ${50 - (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 5 * rig / 50}dvh); left: min(${50 + (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 5 * rig / 50}vw, ${50 + (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 5 * rig / 50}dvh);`
+  var bangImgLStyle = `height: ${100 * currentScaleYM}dvh; width: min(${(100 + (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleNegXM}vw, ${(100 + (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleNegXM}dvh); top: ${(-10 + (pointY / document.body.clientHeight) * 20) * rig / 100}px;`
+  var bangImgRStyle = `height: ${100 * currentScaleYM}dvh; width: min(${(100 - (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleXM}vw, ${(100 - (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleXM}dvh);top: ${(-10 + (pointY / document.body.clientHeight) * 20) * rig / 100}px;`
+  applyRigStyles('bang', { divL: bangDivLStyle, divR: bangDivRStyle, imgL: bangImgLStyle, imgR: bangImgRStyle })
 
-      var backStyle = `height: ${100 * currentScaleYM}dvh; left: min(${50 - 50 * currentScaleXM}vw, ${50 - 50 * currentScaleXM}dvh); width: min(${100 * currentScaleXM}vw, ${100 * currentScaleXM}dvh); top: ${(5 - (Y / document.body.clientHeight) * 10) * rig / 100}px;`
-      applyRigStyles('back', { img: backStyle })
+  var eyesDivLStyle = `width: min(${50 + (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 + (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh);`
+  var eyesDivRStyle = `width: min(${50 - (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 - (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh); left: min(${50 + (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 + (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh);`
+  var eyesImgLStyle = `height: ${100 * currentScaleYM}dvh; width: min(${(100 + (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleNegXM}vw, ${(100 + (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleNegXM}dvh);top: ${(-15 + (pointY / document.body.clientHeight) * 30) * rig / 100}px;`
+  var eyesImgRStyle = `height: ${100 * currentScaleYM}dvh; width: min(${(100 - (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleXM}vw, ${(100 - (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleXM}dvh);top: ${(-15 + (pointY / document.body.clientHeight) * 30) * rig / 100}px;`
+  applyRigStyles('eyes', { divL: eyesDivLStyle, divR: eyesDivRStyle, imgL: eyesImgLStyle, imgR: eyesImgRStyle })
 
-      var bangDivLStyle = `width: min(${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 5 * rig / 50}vw, ${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 5 * rig / 50}dvh);`
-      var bangDivRStyle = `width: min(${50 - (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 5 * rig / 50}vw, ${50 - (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 5 * rig / 50}dvh); left: min(${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 5 * rig / 50}vw, ${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 5 * rig / 50}dvh);`
-      var bangImgLStyle = `height: ${100 * currentScaleYM}dvh; width: min(${(100 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleNegXM}vw, ${(100 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleNegXM}dvh); top: ${(-10 + (Y / document.body.clientHeight) * 20) * rig / 100}px;`
-      var bangImgRStyle = `height: ${100 * currentScaleYM}dvh; width: min(${(100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleXM}vw, ${(100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleXM}dvh);top: ${(-10 + (Y / document.body.clientHeight) * 20) * rig / 100}px;`
-      applyRigStyles('bang', { divL: bangDivLStyle, divR: bangDivRStyle, imgL: bangImgLStyle, imgR: bangImgRStyle })
+  var mouthDivLStyle = `width: min(${50 + (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 + (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh);`
+  var mouthDivRStyle = `width: min(${50 - (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 - (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh); left: min(${50 + (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 + (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh);`
+  var mouthImgLStyle = `height: ${100 * currentScaleYM}dvh; width: min(${100 + (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100}vw, ${100 + (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100}dvh);top: ${(-10 + (pointY / document.body.clientHeight) * 20) * rig / 100}px;`
+  var mouthImgRStyle = `height: ${100 * currentScaleYM}dvh; width: min(${100 - (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100}vw, ${100 - (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100}dvh);top: ${(-10 + (pointY / document.body.clientHeight) * 20) * rig / 100}px;`
+  applyRigStyles('mouth', { divL: mouthDivLStyle, divR: mouthDivRStyle, imgL: mouthImgLStyle, imgR: mouthImgRStyle })
 
-      var eyesDivLStyle = `width: min(${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh);`
-      var eyesDivRStyle = `width: min(${50 - (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 - (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh); left: min(${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh);`
-      var eyesImgLStyle = `height: ${100 * currentScaleYM}dvh; width: min(${(100 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleNegXM}vw, ${(100 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleNegXM}dvh);top: ${(-15 + (Y / document.body.clientHeight) * 30) * rig / 100}px;`
-      var eyesImgRStyle = `height: ${100 * currentScaleYM}dvh; width: min(${(100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleXM}vw, ${(100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleXM}dvh);top: ${(-15 + (Y / document.body.clientHeight) * 30) * rig / 100}px;`
-      applyRigStyles('eyes', { divL: eyesDivLStyle, divR: eyesDivRStyle, imgL: eyesImgLStyle, imgR: eyesImgRStyle })
+  var faceDivLStyle = `width: min(${50 + (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 + (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh);`
+  var faceDivRStyle = `width: min(${50 - (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 - (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh); left: min(${50 + (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 + (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh);`
+  var faceImgLStyle = `height: ${100 * currentScaleYM}dvh; width: min(${(100 + (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 15 * rig / 100) * currentScaleNegXM}vw, ${(100 + (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 15 * rig / 100) * currentScaleNegXM}dvh);top: ${(-5 + (pointY / document.body.clientHeight) * 10) * rig / 100}px;`
+  var faceImgRStyle = `height: ${100 * currentScaleYM}dvh; width: min(${(100 - (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 15 * rig / 100) * currentScaleXM}vw, ${(100 - (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 15 * rig / 100) * currentScaleXM}dvh);top: ${(-5 + (pointY / document.body.clientHeight) * 10) * rig / 100}px;`
+  applyRigStyles('face', { divL: faceDivLStyle, divR: faceDivRStyle, imgL: faceImgLStyle, imgR: faceImgRStyle })
 
-      var mouthDivLStyle = `width: min(${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh);`
-      var mouthDivRStyle = `width: min(${50 - (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 - (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh); left: min(${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh);`
-      var mouthImgLStyle = `height: ${100 * currentScaleYM}dvh; width: min(${100 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100}vw, ${100 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100}dvh);top: ${(-10 + (e.clientY / document.body.clientHeight) * 20) * rig / 100}px;`
-      var mouthImgRStyle = `height: ${100 * currentScaleYM}dvh; width: min(${100 - (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100}vw, ${100 - (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100}dvh);top: ${(-10 + (e.clientY / document.body.clientHeight) * 20) * rig / 100}px;`
-      applyRigStyles('mouth', { divL: mouthDivLStyle, divR: mouthDivRStyle, imgL: mouthImgLStyle, imgR: mouthImgRStyle })
+  setCharacterTransform((pointX - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)
+}
 
-      var faceDivLStyle = `width: min(${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh);`
-      var faceDivRStyle = `width: min(${50 - (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 - (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh); left: min(${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh);`
-      var faceImgLStyle = `height: ${100 * currentScaleYM}dvh; width: min(${(100 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 15 * rig / 100) * currentScaleNegXM}vw, ${(100 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 15 * rig / 100) * currentScaleNegXM}dvh);top: ${(-5 + (Y / document.body.clientHeight) * 10) * rig / 100}px;`
-      var faceImgRStyle = `height: ${100 * currentScaleYM}dvh; width: min(${(100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 15 * rig / 100) * currentScaleXM}vw, ${(100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 15 * rig / 100) * currentScaleXM}dvh);top: ${(-5 + (Y / document.body.clientHeight) * 10) * rig / 100}px;`
-      applyRigStyles('face', { divL: faceDivLStyle, divR: faceDivRStyle, imgL: faceImgLStyle, imgR: faceImgRStyle })
+document.addEventListener('mousemove', function(e) {
+  if (cameraEnabled) {
+    return
+  }
+  stopAutoRig()
 
-    setCharacterTransform((e.clientX - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)
+  X = e.clientX
+  Y = e.clientY
+  velocity = (lastX - X) * stiffness * damping
 
+  applyRigFromPoint(X, Y, velocity)
 
-    lastX = e.clientX
-    lastY = e.clientY
+  lastX = X
+  lastY = Y
 
-    randomX = 0
-    randomY = 0
+  randomX = 0
+  randomY = 0
 
-    scheduleAutoResume(e.clientX, e.clientY)
-
+  scheduleAutoResume(X, Y)
 })
+
+var cameraVideo = null
+var cameraStream = null
+var cameraTimer = null
+var cameraDetecting = false
+var cameraHasPosition = false
+var cameraLastX = 0
+var cameraLastY = 0
+var cameraIntervalMs = 60
+var cameraSmoothing = 0.18
+var cameraInvertX = false
+var motionCanvas = null
+var motionCtx = null
+var motionPrevFrame = null
+var motionWidth = 160
+var motionHeight = 120
+var motionThreshold = 28
+var motionMinPixels = 120
+var faceMesh = null
+var faceMeshReady = false
+var faceMeshLoading = false
+var faceMeshPromise = null
+var faceMeshYawGain = 2.2
+var faceMeshPitchGain = 3.4
+var faceMeshMinConfidence = 0.5
+var faceMeshTrackingConfidence = 0.5
+var cameraAnimationId = null
+var cameraTargetOffsetX = 0
+var cameraTargetOffsetY = 0
+var cameraTargetReady = false
+var cameraLastApplyTime = 0
+
+function setCameraEnabled(enabled) {
+  var nextEnabled = Boolean(enabled)
+  if (!cameraSupported) {
+    cameraEnabled = false
+    localStorage.setItem('ftCameraEnabled', 'false')
+    setCameraStatus('브라우저 미지원')
+    updateCameraUI()
+    return
+  }
+  if (cameraEnabled === nextEnabled) {
+    updateCameraUI()
+    return
+  }
+  cameraEnabled = nextEnabled
+  localStorage.setItem('ftCameraEnabled', String(cameraEnabled))
+  setCameraStatus('')
+  updateCameraUI()
+  if (cameraEnabled) {
+    startCameraTracking()
+  } else {
+    stopCameraTracking()
+    scheduleAutoRigFromPointer(lastX || document.body.clientWidth / 2, lastY || document.body.clientHeight / 2)
+  }
+}
+
+async function startCameraTracking() {
+  if (!cameraSupported || cameraStream) {
+    return
+  }
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user' }
+    })
+  } catch (error) {
+    cameraEnabled = false
+    localStorage.setItem('ftCameraEnabled', 'false')
+    setCameraStatus('카메라 권한 필요')
+    updateCameraUI()
+    scheduleAutoRigFromPointer(lastX || document.body.clientWidth / 2, lastY || document.body.clientHeight / 2)
+    return
+  }
+
+  if (!cameraEnabled) {
+    stopCameraTracking()
+    return
+  }
+
+  if (!cameraVideo) {
+    cameraVideo = document.createElement('video')
+    cameraVideo.setAttribute('playsinline', '')
+    cameraVideo.muted = true
+  }
+  cameraVideo.srcObject = cameraStream
+  try {
+    await cameraVideo.play()
+  } catch (error) {
+    console.warn('Camera play was blocked', error)
+  }
+
+  loadFaceMesh().then(function() {
+    if (!cameraEnabled) {
+      return
+    }
+    if (cameraMode === 'motion') {
+      ensureMotionCanvas()
+    }
+  })
+
+  stopAutoRig()
+  clearTimeout(autoResumeTimer)
+  cameraHasPosition = false
+  cameraTimer = setInterval(detectCameraFrame, cameraIntervalMs)
+  startCameraAnimation()
+}
+
+function stopCameraTracking() {
+  if (cameraTimer) {
+    clearInterval(cameraTimer)
+    cameraTimer = null
+  }
+  cameraDetecting = false
+  cameraHasPosition = false
+  motionPrevFrame = null
+  cameraTargetReady = false
+  stopCameraAnimation()
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(function(track) {
+      track.stop()
+    })
+    cameraStream = null
+  }
+  if (cameraVideo) {
+    cameraVideo.srcObject = null
+  }
+}
+
+function ensureMotionCanvas() {
+  if (motionCanvas && motionCtx && motionPrevFrame) {
+    return
+  }
+  motionCanvas = document.createElement('canvas')
+  motionCanvas.width = motionWidth
+  motionCanvas.height = motionHeight
+  motionCtx = motionCanvas.getContext('2d', { willReadFrequently: true })
+  motionPrevFrame = new Uint8ClampedArray(motionWidth * motionHeight)
+}
+
+function loadExternalScript(src, id) {
+  return new Promise(function(resolve, reject) {
+    var selector = `script[data-ft="${id}"]`
+    var existing = document.querySelector(selector)
+    if (existing) {
+      if (existing.getAttribute('data-loaded') === 'true') {
+        resolve()
+        return
+      }
+      existing.addEventListener('load', function() {
+        existing.setAttribute('data-loaded', 'true')
+        resolve()
+      })
+      existing.addEventListener('error', function() {
+        reject(new Error('Failed to load script'))
+      })
+      return
+    }
+    var script = document.createElement('script')
+    script.src = src
+    script.async = true
+    script.setAttribute('data-ft', id)
+    script.addEventListener('load', function() {
+      script.setAttribute('data-loaded', 'true')
+      resolve()
+    })
+    script.addEventListener('error', function() {
+      reject(new Error('Failed to load script'))
+    })
+    document.head.appendChild(script)
+  })
+}
+
+function loadFaceMesh() {
+  if (faceMeshReady) {
+    cameraMode = 'face-mesh'
+    setCameraStatus('얼굴 추적 사용')
+    updateCameraUI()
+    return Promise.resolve(true)
+  }
+  if (faceMeshLoading && faceMeshPromise) {
+    return faceMeshPromise
+  }
+  faceMeshLoading = true
+  setCameraStatus('얼굴 모델 불러오는 중')
+  updateCameraUI()
+  var baseUrl = 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh'
+  var scriptUrl = `${baseUrl}/face_mesh.js`
+  faceMeshPromise = loadExternalScript(scriptUrl, 'ft-face-mesh')
+    .then(function() {
+      if (typeof FaceMesh === 'undefined') {
+        throw new Error('FaceMesh not available')
+      }
+      faceMesh = new FaceMesh({
+        locateFile: function(file) {
+          return `${baseUrl}/${file}`
+        }
+      })
+      faceMesh.setOptions({
+        maxNumFaces: 1,
+        refineLandmarks: false,
+        minDetectionConfidence: faceMeshMinConfidence,
+        minTrackingConfidence: faceMeshTrackingConfidence
+      })
+      faceMesh.onResults(onFaceMeshResults)
+      faceMeshReady = true
+      cameraMode = 'face-mesh'
+      setCameraStatus('얼굴 추적 사용')
+      updateCameraUI()
+      return true
+    })
+    .catch(function(error) {
+      console.warn('FaceMesh load failed', error)
+      faceMeshReady = false
+      faceMesh = null
+      cameraMode = 'motion'
+      setCameraStatus('모션 추적 사용')
+      updateCameraUI()
+      return false
+    })
+    .finally(function() {
+      faceMeshLoading = false
+    })
+  return faceMeshPromise
+}
+
+function applyCameraDeadzone(value, zone) {
+  var absValue = Math.abs(value)
+  if (absValue <= zone) {
+    return 0
+  }
+  return (absValue - zone) / (1 - zone) * Math.sign(value)
+}
+
+function applyCameraOffset(offsetX, offsetY, deltaMs) {
+  var strength = Math.max(0.5, Math.min(2, cameraStrength / 100))
+  var deadzone = cameraMode === 'motion' ? 0.14 : 0.04
+  var modeGain = cameraMode === 'motion' ? 0.7 : 1
+  var adjustedX = applyCameraDeadzone(offsetX * strength, deadzone) * modeGain
+  var adjustedY = applyCameraDeadzone(offsetY * strength, deadzone) * modeGain
+  adjustedX = Math.max(-1, Math.min(1, adjustedX))
+  adjustedY = Math.max(-1, Math.min(1, adjustedY))
+  if (cameraMode === 'face-mesh' && cameraInvertX) {
+    adjustedX = -adjustedX
+  }
+  var targetX = (adjustedX + 1) / 2 * document.body.clientWidth
+  var targetY = (adjustedY + 1) / 2 * document.body.clientHeight
+
+  var baseSmoothing = cameraMode === 'motion' ? 0.12 : cameraSmoothing
+  var smoothing = baseSmoothing
+  if (Number.isFinite(deltaMs) && deltaMs > 0) {
+    var step = deltaMs / 60
+    smoothing = 1 - Math.pow(1 - baseSmoothing, step)
+  }
+  if (!cameraHasPosition) {
+    cameraLastX = targetX
+    cameraLastY = targetY
+    cameraHasPosition = true
+  } else {
+    cameraLastX += (targetX - cameraLastX) * smoothing
+    cameraLastY += (targetY - cameraLastY) * smoothing
+  }
+
+  var velocityX = (lastX - cameraLastX) * stiffness * damping
+  applyRigFromPoint(cameraLastX, cameraLastY, velocityX)
+
+  lastX = cameraLastX
+  lastY = cameraLastY
+  randomX = 0
+  randomY = 0
+}
+
+function updateCameraTarget(offsetX, offsetY) {
+  cameraTargetOffsetX = offsetX
+  cameraTargetOffsetY = offsetY
+  cameraTargetReady = true
+}
+
+function startCameraAnimation() {
+  if (cameraAnimationId) {
+    return
+  }
+  cameraLastApplyTime = 0
+  cameraAnimationId = requestAnimationFrame(runCameraAnimation)
+}
+
+function stopCameraAnimation() {
+  if (cameraAnimationId) {
+    cancelAnimationFrame(cameraAnimationId)
+    cameraAnimationId = null
+  }
+  cameraLastApplyTime = 0
+}
+
+function runCameraAnimation(now) {
+  if (!cameraEnabled) {
+    stopCameraAnimation()
+    return
+  }
+  if (cameraTargetReady) {
+    var deltaMs = cameraLastApplyTime ? now - cameraLastApplyTime : 60
+    applyCameraOffset(cameraTargetOffsetX, cameraTargetOffsetY, deltaMs)
+    cameraLastApplyTime = now
+  }
+  cameraAnimationId = requestAnimationFrame(runCameraAnimation)
+}
+
+function onFaceMeshResults(results) {
+  if (!cameraEnabled || cameraMode !== 'face-mesh') {
+    return
+  }
+  var landmarks = results && results.multiFaceLandmarks && results.multiFaceLandmarks[0]
+  if (!landmarks || !landmarks.length) {
+    return
+  }
+  var leftEye = landmarks[33]
+  var rightEye = landmarks[263]
+  var noseTip = landmarks[1] || landmarks[4]
+  if (!leftEye || !rightEye || !noseTip) {
+    return
+  }
+  var midX = (leftEye.x + rightEye.x) / 2
+  var midY = (leftEye.y + rightEye.y) / 2
+  var eyeDx = rightEye.x - leftEye.x
+  var eyeDy = rightEye.y - leftEye.y
+  var eyeDist = Math.max(0.0001, Math.hypot(eyeDx, eyeDy))
+  var rawX = (noseTip.x - midX) / eyeDist
+  var rawY = (noseTip.y - midY) / eyeDist
+  var offsetX = Math.max(-1, Math.min(1, rawX * faceMeshYawGain))
+  var offsetY = Math.max(-1, Math.min(1, rawY * faceMeshPitchGain))
+  updateCameraTarget(offsetX, offsetY)
+}
+
+function detectMotionFrame() {
+  ensureMotionCanvas()
+  if (!motionCtx) {
+    return
+  }
+  motionCtx.drawImage(cameraVideo, 0, 0, motionWidth, motionHeight)
+  var frame = motionCtx.getImageData(0, 0, motionWidth, motionHeight).data
+  var count = 0
+  var sumX = 0
+  var sumY = 0
+  var idx = 0
+  for (var y = 0; y < motionHeight; y++) {
+    for (var x = 0; x < motionWidth; x++) {
+      var i = (y * motionWidth + x) * 4
+      var gray = (frame[i] * 0.299 + frame[i + 1] * 0.587 + frame[i + 2] * 0.114) | 0
+      var diff = Math.abs(gray - motionPrevFrame[idx])
+      motionPrevFrame[idx] = gray
+      if (diff > motionThreshold) {
+        sumX += x
+        sumY += y
+        count += 1
+      }
+      idx += 1
+    }
+  }
+  if (count < motionMinPixels) {
+    return
+  }
+  var centerX = sumX / count
+  var centerY = sumY / count
+  var offsetX = (centerX / motionWidth - 0.5) * 2
+  var offsetY = (centerY / motionHeight - 0.5) * 2
+  updateCameraTarget(offsetX, offsetY)
+}
+
+function detectCameraFrame() {
+  if (!cameraEnabled || !cameraVideo || cameraDetecting) {
+    return
+  }
+  if (cameraVideo.readyState < 2) {
+    return
+  }
+  if (cameraMode === 'motion' || !faceMeshReady || !faceMesh) {
+    cameraDetecting = true
+    detectMotionFrame()
+    cameraDetecting = false
+    return
+  }
+  cameraDetecting = true
+  faceMesh.send({ image: cameraVideo }).catch(function(error) {
+    console.warn('FaceMesh detection failed', error)
+    cameraMode = 'motion'
+    setCameraStatus('모션 추적 사용')
+    updateCameraUI()
+    ensureMotionCanvas()
+  }).finally(function() {
+    cameraDetecting = false
+  })
+}
+
+function initCameraControls() {
+  if (!cameraSupported) {
+    cameraEnabled = false
+    localStorage.setItem('ftCameraEnabled', 'false')
+  }
+  updateCameraUI()
+  if (cameraEnabled) {
+    setCameraEnabled(true)
+  }
+}
+
+initCameraControls()
