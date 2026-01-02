@@ -79,9 +79,43 @@ if (!Number.isFinite(cameraOffsetY)) {
   cameraOffsetY = 0
 }
 
+var cameraBlinkEnabled = false
+if (localStorage.getItem('ftCameraBlinkEnabled')) {
+  cameraBlinkEnabled = localStorage.getItem('ftCameraBlinkEnabled') === 'true'
+}
+
+var cameraBlinkSensitivity = 100
+if (localStorage.getItem('ftCameraBlinkSensitivity')) {
+  cameraBlinkSensitivity = parseInt(localStorage.getItem('ftCameraBlinkSensitivity'), 10)
+}
+if (!Number.isFinite(cameraBlinkSensitivity)) {
+  cameraBlinkSensitivity = 100
+}
+
 var cameraSupported = navigator.mediaDevices && navigator.mediaDevices.getUserMedia
 var cameraMode = 'motion'
 var cameraStatusMessage = ''
+var cameraBlinkActive = false
+var cameraBlinkLastUpdate = 0
+var cameraBlinkThreshold = 0.22
+var cameraBlinkHysteresis = 0.04
+var cameraBlinkStaleMs = 800
+var cameraBlinkBaseline = 0
+var cameraBlinkBaselineAlpha = 0.08
+var cameraBlinkCloseRatio = 0.8
+var cameraBlinkOpenRatio = 0.93
+var lastVolumeValue = 0
+
+function updateCameraBlinkSettings() {
+  if (!Number.isFinite(cameraBlinkSensitivity)) {
+    cameraBlinkSensitivity = 100
+  }
+  var adjusted = 0.8 + (cameraBlinkSensitivity - 100) * 0.002
+  cameraBlinkCloseRatio = Math.min(0.9, Math.max(0.7, adjusted))
+  cameraBlinkOpenRatio = Math.min(0.98, cameraBlinkCloseRatio + 0.05)
+}
+
+updateCameraBlinkSettings()
 
 var intervalLimitMin = 200
 var intervalLimitMax = 3000
@@ -174,6 +208,9 @@ var cameraRange = document.querySelector('#camera-range')
 var cameraRangeValue = document.querySelector('#camera-range-value')
 var cameraStatus = document.querySelector('#camera-status')
 var cameraPreviewModeSelect = document.querySelector('#camera-preview-mode')
+var cameraBlinkToggle = document.querySelector('#camera-blink-toggle')
+var cameraBlinkSensitivityInput = document.querySelector('#camera-blink-sensitivity')
+var cameraBlinkSensitivityValue = document.querySelector('#camera-blink-sensitivity-value')
 var cameraOffsetXInput = document.querySelector('#camera-offset-x')
 var cameraOffsetYInput = document.querySelector('#camera-offset-y')
 var cameraOffsetXValue = document.querySelector('#camera-offset-x-value')
@@ -401,6 +438,17 @@ function updateCameraUI() {
     cameraPreviewModeSelect.value = cameraPreviewMode
     cameraPreviewModeSelect.disabled = !cameraSupported
   }
+  if (cameraBlinkToggle) {
+    cameraBlinkToggle.value = cameraBlinkEnabled ? 'on' : 'off'
+    cameraBlinkToggle.disabled = !cameraSupported
+  }
+  if (cameraBlinkSensitivityInput) {
+    cameraBlinkSensitivityInput.value = cameraBlinkSensitivity
+    cameraBlinkSensitivityInput.disabled = !cameraSupported
+  }
+  if (cameraBlinkSensitivityValue) {
+    cameraBlinkSensitivityValue.textContent = `${cameraBlinkSensitivity}%`
+  }
   if (cameraStatus) {
     if (cameraStatusMessage) {
       cameraStatus.textContent = cameraStatusMessage
@@ -587,6 +635,29 @@ if (cameraPreviewModeSelect) {
     cameraPreviewMode = nextMode
     localStorage.setItem('ftCameraPreviewMode', cameraPreviewMode)
     updateCameraPreviewVisibility()
+  })
+}
+
+if (cameraBlinkToggle) {
+  cameraBlinkToggle.addEventListener('change', function(e) {
+    cameraBlinkEnabled = e.target.value === 'on'
+    localStorage.setItem('ftCameraBlinkEnabled', String(cameraBlinkEnabled))
+    if (!cameraBlinkEnabled) {
+      cameraBlinkActive = false
+      cameraBlinkLastUpdate = 0
+      cameraBlinkBaseline = 0
+    }
+  })
+}
+
+if (cameraBlinkSensitivityInput) {
+  cameraBlinkSensitivityInput.addEventListener('input', function(e) {
+    var nextValue = parseInt(e.target.value, 10)
+    cameraBlinkSensitivity = Number.isFinite(nextValue) ? nextValue : 100
+    localStorage.setItem('ftCameraBlinkSensitivity', cameraBlinkSensitivity)
+    cameraBlinkBaseline = 0
+    updateCameraBlinkSettings()
+    updateCameraUI()
   })
 }
 
@@ -917,7 +988,8 @@ window.addEventListener('keydown', function(e) {
 function updateExpression(volume) {
   const now = Date.now()
   const mouthActive = volume >= thres && now % 400 >= 200
-  const blinkActive = now % 3000 >= 2800
+  const useCameraBlink = cameraBlinkEnabled && cameraEnabled && cameraMode === 'face-mesh' && faceMeshReady && now - cameraBlinkLastUpdate <= cameraBlinkStaleMs
+  const blinkActive = useCameraBlink ? cameraBlinkActive : now % 3000 >= 2800
 
   for (let i = 0; i < currentLayers.length; i++) {
     const layer = currentLayers[i]
@@ -956,6 +1028,7 @@ async function audio () {
         volumeSum += volume;
       const averageVolume = volumeSum / volumes.length;
 
+      lastVolumeValue = averageVolume
       updateExpression(averageVolume)
       // Value range: 127 = analyser.maxDecibels - analyser.minDecibels;
     };
@@ -967,6 +1040,7 @@ async function audio () {
     volumeCallback = () => {
       const volume = Math.min(Math.max(Math.random() * 100, 0.8 * lastVolume), 1.2 * lastVolume);
       lastVolume = volume;
+      lastVolumeValue = lastVolume
       updateExpression(lastVolume)
     };
   }
@@ -1338,6 +1412,9 @@ function stopCameraTracking() {
   cameraHasPosition = false
   motionPrevFrame = null
   cameraTargetReady = false
+  cameraBlinkActive = false
+  cameraBlinkLastUpdate = 0
+  cameraBlinkBaseline = 0
   stopCameraAnimation()
   if (cameraStream) {
     cameraStream.getTracks().forEach(function(track) {
@@ -1535,6 +1612,77 @@ function runCameraAnimation(now) {
   cameraAnimationId = requestAnimationFrame(runCameraAnimation)
 }
 
+function getLandmarkDistance(a, b) {
+  if (!a || !b) {
+    return null
+  }
+  var dx = a.x - b.x
+  var dy = a.y - b.y
+  return Math.hypot(dx, dy)
+}
+
+function getEyeAspectRatio(landmarks, outerIdx, innerIdx, topIdx, bottomIdx) {
+  var outer = landmarks[outerIdx]
+  var inner = landmarks[innerIdx]
+  var top = landmarks[topIdx]
+  var bottom = landmarks[bottomIdx]
+  if (!outer || !inner || !top || !bottom) {
+    return null
+  }
+  var horizontal = getLandmarkDistance(outer, inner)
+  if (!horizontal) {
+    return null
+  }
+  var vertical = getLandmarkDistance(top, bottom)
+  if (!vertical) {
+    return null
+  }
+  return vertical / horizontal
+}
+
+function updateCameraBlinkState(landmarks) {
+  if (!cameraBlinkEnabled) {
+    return
+  }
+  var leftRatio = getEyeAspectRatio(landmarks, 33, 133, 159, 145)
+  var rightRatio = getEyeAspectRatio(landmarks, 362, 263, 386, 374)
+  var ratioSum = 0
+  var ratioCount = 0
+  if (Number.isFinite(leftRatio)) {
+    ratioSum += leftRatio
+    ratioCount += 1
+  }
+  if (Number.isFinite(rightRatio)) {
+    ratioSum += rightRatio
+    ratioCount += 1
+  }
+  if (!ratioCount) {
+    return
+  }
+  var ratio = ratioSum / ratioCount
+  cameraBlinkLastUpdate = Date.now()
+  if (!cameraBlinkBaseline) {
+    cameraBlinkBaseline = ratio
+  }
+  if (!cameraBlinkActive && ratio > cameraBlinkThreshold) {
+    cameraBlinkBaseline = cameraBlinkBaseline * (1 - cameraBlinkBaselineAlpha) + ratio * cameraBlinkBaselineAlpha
+  }
+  var closeThreshold = cameraBlinkBaseline ? cameraBlinkBaseline * cameraBlinkCloseRatio : cameraBlinkThreshold
+  var openThreshold = cameraBlinkBaseline ? cameraBlinkBaseline * cameraBlinkOpenRatio : cameraBlinkThreshold + cameraBlinkHysteresis
+  var nextBlinkActive = cameraBlinkActive
+  if (cameraBlinkActive) {
+    if (ratio > openThreshold) {
+      nextBlinkActive = false
+    }
+  } else if (ratio < closeThreshold) {
+    nextBlinkActive = true
+  }
+  if (nextBlinkActive !== cameraBlinkActive) {
+    cameraBlinkActive = nextBlinkActive
+    updateExpression(lastVolumeValue)
+  }
+}
+
 function onFaceMeshResults(results) {
   if (!cameraEnabled || cameraMode !== 'face-mesh') {
     return
@@ -1559,6 +1707,7 @@ function onFaceMeshResults(results) {
   var offsetX = Math.max(-1, Math.min(1, rawX * faceMeshYawGain))
   var offsetY = Math.max(-1, Math.min(1, rawY * faceMeshPitchGain))
   updateCameraTarget(offsetX, offsetY)
+  updateCameraBlinkState(landmarks)
   drawFaceMeshOverlay(landmarks)
 }
 

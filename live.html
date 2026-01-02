@@ -83,6 +83,20 @@
         </select>
       </div>
       <div class="setting-item">
+        <span>눈 깜빡임</span>
+        <select id="camera-blink-toggle">
+          <option value="off">자동</option>
+          <option value="on">카메라</option>
+        </select>
+      </div>
+      <div class="setting-item">
+        <div class="range-header">
+          <span>깜빡임 민감도</span>
+          <div class="range-values" id="camera-blink-sensitivity-value">100%</div>
+        </div>
+        <input id="camera-blink-sensitivity" type="range" value="100" min="60" max="140">
+      </div>
+      <div class="setting-item">
         <div class="range-header">
           <span>카메라 감도</span>
           <div class="range-values" id="camera-range-value">100%</div>
