@@ -12,6 +12,20 @@
 - `assets/` stores default PNGs used for character parts and icons.
 - `start-local.bat` is a Windows helper for running a local server; `CNAME` is for GitHub Pages.
 
+## File Roles
+- `index.html`: 설정 UI 엔트리, 레이어 입력/탭/라이브 버튼.
+- `live.html`: 캐릭터 렌더링 화면 및 설정 패널.
+- `js/index.js`: 공통 상태/초기 UI, 모듈 간 공유 변수/헬퍼.
+- `js/index.layers.js`: 레이어 로딩/정규화, 프리셋 적용, 표정(눈/입) 스왑, 오디오 기반 업데이트.
+- `js/index.rig.js`: 자동 리깅/마우스 리깅 로직, 캐릭터 변형 적용.
+- `js/index.camera.js`: 카메라 트래킹, FaceMesh 로딩, 모션/얼굴 추적, 프리뷰/오버레이 렌더.
+- `js/localstorage.js`: 레이어 슬롯 로딩/정규화/마이그레이션 등 core storage.
+- `js/localstorage.ui.js`: 레이어 편집 UI 생성/이벤트/파일 선택 처리.
+- `js/localstorage.boot.js`: 초기 렌더/탭 전환/저장 후 `live.html` 이동.
+- `css/index.css`: 설정 UI 스타일.
+- `css/main.css`: 라이브 화면 스타일.
+- `assets/`: 기본 파츠 이미지와 아이콘.
+
 ## Build, Test, and Development Commands
 - `start-local.bat`: launches `http://localhost:8000/index.html` and runs `python -m http.server 8000`.
 - `python -m http.server 8000`: cross-platform static server; open `http://localhost:8000/index.html` manually.
