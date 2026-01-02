@@ -51,6 +51,22 @@ if (!Number.isFinite(cameraStrength)) {
   cameraStrength = 100
 }
 
+var cameraOffsetX = 0
+if (localStorage.getItem('ftCameraOffsetX')) {
+  cameraOffsetX = parseInt(localStorage.getItem('ftCameraOffsetX'), 10)
+}
+if (!Number.isFinite(cameraOffsetX)) {
+  cameraOffsetX = 0
+}
+
+var cameraOffsetY = 0
+if (localStorage.getItem('ftCameraOffsetY')) {
+  cameraOffsetY = parseInt(localStorage.getItem('ftCameraOffsetY'), 10)
+}
+if (!Number.isFinite(cameraOffsetY)) {
+  cameraOffsetY = 0
+}
+
 var cameraSupported = navigator.mediaDevices && navigator.mediaDevices.getUserMedia
 var cameraMode = 'motion'
 var cameraStatusMessage = ''
@@ -144,6 +160,10 @@ var cameraRange = document.querySelector('#camera-range')
 var cameraRangeValue = document.querySelector('#camera-range-value')
 var cameraStatus = document.querySelector('#camera-status')
 var cameraPreviewToggle = document.querySelector('#camera-preview-toggle')
+var cameraOffsetXInput = document.querySelector('#camera-offset-x')
+var cameraOffsetYInput = document.querySelector('#camera-offset-y')
+var cameraOffsetXValue = document.querySelector('#camera-offset-x-value')
+var cameraOffsetYValue = document.querySelector('#camera-offset-y-value')
 var cameraPreview = document.querySelector('#camera-preview')
 var cameraPreviewVideo = document.querySelector('#camera-preview-video')
 var character = document.querySelector('#character')
@@ -260,6 +280,18 @@ function updateCameraUI() {
   if (cameraRangeValue) {
     cameraRangeValue.textContent = `${cameraStrength}%`
   }
+  if (cameraOffsetXInput) {
+    cameraOffsetXInput.value = cameraOffsetX
+  }
+  if (cameraOffsetYInput) {
+    cameraOffsetYInput.value = cameraOffsetY
+  }
+  if (cameraOffsetXValue) {
+    cameraOffsetXValue.textContent = `${cameraOffsetX}%`
+  }
+  if (cameraOffsetYValue) {
+    cameraOffsetYValue.textContent = `${cameraOffsetY}%`
+  }
   if (cameraToggle) {
     cameraToggle.value = cameraEnabled ? 'on' : 'off'
     cameraToggle.disabled = !cameraSupported
@@ -360,6 +392,24 @@ if (cameraRange) {
     var nextValue = parseInt(e.target.value, 10)
     cameraStrength = Number.isFinite(nextValue) ? nextValue : 100
     localStorage.setItem('ftCameraStrength', cameraStrength)
+    updateCameraUI()
+  })
+}
+
+if (cameraOffsetXInput) {
+  cameraOffsetXInput.addEventListener('input', function(e) {
+    var nextValue = parseInt(e.target.value, 10)
+    cameraOffsetX = Number.isFinite(nextValue) ? nextValue : 0
+    localStorage.setItem('ftCameraOffsetX', cameraOffsetX)
+    updateCameraUI()
+  })
+}
+
+if (cameraOffsetYInput) {
+  cameraOffsetYInput.addEventListener('input', function(e) {
+    var nextValue = parseInt(e.target.value, 10)
+    cameraOffsetY = Number.isFinite(nextValue) ? nextValue : 0
+    localStorage.setItem('ftCameraOffsetY', cameraOffsetY)
     updateCameraUI()
   })
 }
@@ -1251,13 +1301,19 @@ function applyCameraOffset(offsetX, offsetY, deltaMs) {
   var modeGain = cameraMode === 'motion' ? 0.7 : 1
   var adjustedX = applyCameraDeadzone(offsetX * strength, deadzone) * modeGain
   var adjustedY = applyCameraDeadzone(offsetY * strength, deadzone) * modeGain
-  adjustedX = Math.max(-1, Math.min(1, adjustedX))
-  adjustedY = Math.max(-1, Math.min(1, adjustedY))
   if (cameraMode === 'face-mesh' && cameraInvertX) {
     adjustedX = -adjustedX
   }
-  var targetX = (adjustedX + 1) / 2 * document.body.clientWidth
-  var targetY = (adjustedY + 1) / 2 * document.body.clientHeight
+  adjustedX = Math.max(-1, Math.min(1, adjustedX))
+  adjustedY = Math.max(-1, Math.min(1, adjustedY))
+  var width = document.body.clientWidth
+  var height = document.body.clientHeight
+  var targetX = (adjustedX + 1) / 2 * width
+  var targetY = (adjustedY + 1) / 2 * height
+  var pixelOffsetX = (cameraOffsetX / 100) * (width / 2)
+  var pixelOffsetY = (cameraOffsetY / 100) * (height / 2)
+  targetX = Math.max(0, Math.min(width, targetX + pixelOffsetX))
+  targetY = Math.max(0, Math.min(height, targetY + pixelOffsetY))
 
   var baseSmoothing = cameraMode === 'motion' ? 0.12 : cameraSmoothing
   var smoothing = baseSmoothing
