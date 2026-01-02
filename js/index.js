@@ -1,4 +1,4 @@
-var thres = 30
+﻿var thres = 30
 if (localStorage.getItem('ftThres')) {
   thres = parseInt(localStorage.getItem('ftThres'))
   document.querySelector('#threshold').value=thres
@@ -331,36 +331,250 @@ function readAssetArray(key, fallback) {
   return normalized
 }
 
-var ftBangArray = readAssetArray('ftBang', 'assets/bang.png')
-var ftEyesArray = readAssetArray('ftEyes', 'assets/eyes.png')
-var ftEyesClosedArray = readAssetArray('ftEyesClosed', 'assets/eyesclosed.png')
-var ftMouthArray = readAssetArray('ftMouth', 'assets/mouth.png')
-var ftMouthOpenArray = readAssetArray('ftMouthOpen', 'assets/mouthopen.png')
-var ftFaceArray = readAssetArray('ftFace', 'assets/face.png')
-var ftBodyArray = readAssetArray('ftBody', 'assets/body.png')
-var ftBackArray = readAssetArray('ftBack', 'assets/back.png')
+const LAYER_STORAGE_KEY = 'ftLayers'
+const DEFAULT_LAYER_SRC = 'assets/transparent.png'
+const rigOptions = ['bang', 'eyes', 'mouth', 'face', 'body', 'back']
+const splitRigOptions = ['bang', 'eyes', 'mouth', 'face']
+const roleOptions = ['none', 'blink', 'mouth']
 
-let ftMouth = ftMouthArray[0]
-let ftMouthOpen = ftMouthOpenArray[0]
-let ftEyes = ftEyesArray[0]
-let ftEyesClosed = ftEyesClosedArray[0]
+let layerIdSeed = Date.now()
+
+function createLayerId() {
+  layerIdSeed += 1
+  return `layer-${layerIdSeed}`
+}
+
+function resolveLayerSrc(value, fallback) {
+  const trimmed = typeof value === 'string' ? value.trim() : value
+  if (!trimmed) {
+    return fallback
+  }
+  return normalizeAssetPath(trimmed)
+}
+
+function normalizeLayer(layer, fallback) {
+  const base = layer || {}
+  const fallbackLayer = fallback || {}
+  let rig = typeof base.rig === 'string' ? base.rig : fallbackLayer.rig
+  if (rigOptions.indexOf(rig) === -1) {
+    rig = fallbackLayer.rig || 'face'
+  }
+  let role = typeof base.role === 'string' ? base.role : fallbackLayer.role
+  if (roleOptions.indexOf(role) === -1) {
+    role = fallbackLayer.role || 'none'
+  }
+  return {
+    id: typeof base.id === 'string' ? base.id : (fallbackLayer.id || createLayerId()),
+    src: resolveLayerSrc(base.src, fallbackLayer.src || DEFAULT_LAYER_SRC),
+    altSrc: resolveLayerSrc(base.altSrc, fallbackLayer.altSrc || ''),
+    rig,
+    role
+  }
+}
+
+function buildLegacyLayerSlots() {
+  const bangArray = readAssetArray('ftBang', 'assets/bang.png')
+  const eyesArray = readAssetArray('ftEyes', 'assets/eyes.png')
+  const eyesClosedArray = readAssetArray('ftEyesClosed', 'assets/eyesclosed.png')
+  const mouthArray = readAssetArray('ftMouth', 'assets/mouth.png')
+  const mouthOpenArray = readAssetArray('ftMouthOpen', 'assets/mouthopen.png')
+  const faceArray = readAssetArray('ftFace', 'assets/face.png')
+  const bodyArray = readAssetArray('ftBody', 'assets/body.png')
+  const backArray = readAssetArray('ftBack', 'assets/back.png')
+
+  const slots = new Array(10)
+  for (let i = 0; i < 10; i++) {
+    slots[i] = [
+      { id: createLayerId(), src: bangArray[i], rig: 'bang', role: 'none' },
+      { id: createLayerId(), src: mouthArray[i], rig: 'mouth', role: 'mouth', altSrc: mouthOpenArray[i] },
+      { id: createLayerId(), src: eyesArray[i], rig: 'eyes', role: 'blink', altSrc: eyesClosedArray[i] },
+      { id: createLayerId(), src: faceArray[i], rig: 'face', role: 'none' },
+      { id: createLayerId(), src: bodyArray[i], rig: 'body', role: 'none' },
+      { id: createLayerId(), src: backArray[i], rig: 'back', role: 'none' }
+    ]
+  }
+  return slots
+}
+
+function loadLayerSlots() {
+  const stored = localStorage.getItem(LAYER_STORAGE_KEY)
+  let slots
+  if (stored && stored[0] === '[') {
+    const parsed = JSON.parse(stored)
+    slots = Array.isArray(parsed) ? parsed : null
+  }
+  if (!slots) {
+    slots = buildLegacyLayerSlots()
+  }
+  const normalizedSlots = new Array(10)
+  for (let i = 0; i < 10; i++) {
+    const slotLayers = Array.isArray(slots[i]) ? slots[i] : []
+    normalizedSlots[i] = slotLayers.map(function(layer) {
+      return normalizeLayer(layer)
+    })
+    if (!normalizedSlots[i].length) {
+      normalizedSlots[i] = [normalizeLayer({ src: DEFAULT_LAYER_SRC, rig: 'face', role: 'none' })]
+    }
+  }
+  localStorage.setItem(LAYER_STORAGE_KEY, JSON.stringify(normalizedSlots))
+  return normalizedSlots
+}
+
+function getLayerType(rig) {
+  return splitRigOptions.indexOf(rig) !== -1 ? 'split' : 'single'
+}
+
+function setLayerImage(layer, src) {
+  const value = src || DEFAULT_LAYER_SRC
+  if (layer.type === 'split') {
+    if (layer.imgL) {
+      layer.imgL.src = value
+    }
+    if (layer.imgR) {
+      layer.imgR.src = value
+    }
+  } else if (layer.img) {
+    layer.img.src = value
+  }
+}
+
+function buildLayerElement(layer, zIndex) {
+  const wrapper = document.createElement('div')
+  wrapper.className = `layer layer--${layer.type}`
+  wrapper.style.zIndex = zIndex
+  layer.zIndex = zIndex
+
+  if (layer.type === 'split') {
+    const left = document.createElement('div')
+    left.className = 'layer__split layer__split--left'
+    const leftImg = document.createElement('img')
+    leftImg.className = 'layer__img layer__img--left'
+    left.appendChild(leftImg)
+
+    const right = document.createElement('div')
+    right.className = 'layer__split layer__split--right'
+    const rightImg = document.createElement('img')
+    rightImg.className = 'layer__img layer__img--right'
+    right.appendChild(rightImg)
+
+    wrapper.appendChild(left)
+    wrapper.appendChild(right)
+
+    layer.divL = left
+    layer.divR = right
+    layer.imgL = leftImg
+    layer.imgR = rightImg
+    setLayerImage(layer, layer.src)
+  } else {
+    const img = document.createElement('img')
+    img.className = 'layer__img layer__img--single'
+    wrapper.appendChild(img)
+    layer.img = img
+    setLayerImage(layer, layer.src)
+  }
+
+  return wrapper
+}
+
+function rebuildRigTargets(layers) {
+  rigTargets = {
+    bang: [],
+    eyes: [],
+    mouth: [],
+    face: [],
+    body: [],
+    back: []
+  }
+  layers.forEach(function(layer) {
+    if (rigTargets[layer.rig]) {
+      rigTargets[layer.rig].push(layer)
+    }
+  })
+}
+
+function applyStyleWithZ(element, styleText, zIndex) {
+  if (!element) {
+    return
+  }
+  var zText = Number.isFinite(zIndex) ? `z-index: ${zIndex};` : ''
+  element.setAttribute('style', `${styleText}${zText}`)
+}
+
+function applySplitStyles(target, styles) {
+  if (!target) {
+    return
+  }
+  if (styles.divL && target.divL) {
+    target.divL.setAttribute('style', styles.divL)
+  }
+  if (styles.divR && target.divR) {
+    target.divR.setAttribute('style', styles.divR)
+  }
+  if (styles.imgL && target.imgL) {
+    applyStyleWithZ(target.imgL, styles.imgL, target.zIndex)
+  }
+  if (styles.imgR && target.imgR) {
+    applyStyleWithZ(target.imgR, styles.imgR, target.zIndex)
+  }
+}
+
+function applySingleStyles(target, styles) {
+  if (!target || !target.img) {
+    return
+  }
+  if (styles.img) {
+    applyStyleWithZ(target.img, styles.img, target.zIndex)
+  }
+}
+
+function applyRigStyles(rigKey, styles) {
+  var targets = rigTargets[rigKey]
+  if (!targets || !targets.length) {
+    return
+  }
+  for (let i = 0; i < targets.length; i++) {
+    const target = targets[i]
+    if (target.type === 'split') {
+      applySplitStyles(target, styles)
+    } else {
+      applySingleStyles(target, styles)
+    }
+  }
+}
+
+var layerSlots = loadLayerSlots()
+var currentLayers = []
+var rigTargets = {
+  bang: [],
+  eyes: [],
+  mouth: [],
+  face: [],
+  body: [],
+  back: []
+}
 
 function applyPreset(index) {
-  document.querySelector('#bangl').setAttribute('src', ftBangArray[index])
-  document.querySelector('#eyesl').setAttribute('src', ftEyesArray[index])
-  document.querySelector('#mouthl').setAttribute('src', ftMouthArray[index])
-  document.querySelector('#facel').setAttribute('src', ftFaceArray[index])
-  document.querySelector('#bangr').setAttribute('src', ftBangArray[index])
-  document.querySelector('#eyesr').setAttribute('src', ftEyesArray[index])
-  document.querySelector('#mouthr').setAttribute('src', ftMouthArray[index])
-  document.querySelector('#facer').setAttribute('src', ftFaceArray[index])
-  document.querySelector('#body').setAttribute('src', ftBodyArray[index])
-  document.querySelector('#back').setAttribute('src', ftBackArray[index])
-
-  ftMouth = ftMouthArray[index]
-  ftMouthOpen = ftMouthOpenArray[index]
-  ftEyes = ftEyesArray[index]
-  ftEyesClosed = ftEyesClosedArray[index]
+  if (!Number.isFinite(index)) {
+    return
+  }
+  const slotLayers = Array.isArray(layerSlots[index]) ? layerSlots[index] : []
+  if (character) {
+    character.innerHTML = ''
+  }
+  const total = slotLayers.length
+  currentLayers = []
+  for (let i = 0; i < slotLayers.length; i++) {
+    const layer = normalizeLayer(slotLayers[i])
+    layer.type = getLayerType(layer.rig)
+    const zIndex = total - i
+    const element = buildLayerElement(layer, zIndex)
+    if (character) {
+      character.appendChild(element)
+    }
+    currentLayers.push(layer)
+  }
+  rebuildRigTargets(currentLayers)
+  updateExpression(0)
 }
 
 applyPreset(0)
@@ -376,19 +590,18 @@ window.addEventListener('keydown', function(e) {
 
 function updateExpression(volume) {
   const now = Date.now()
-  if (volume >= thres && now % 400 >= 200) {
-    document.querySelector('#mouthl').setAttribute('src', ftMouthOpen)
-    document.querySelector('#mouthr').setAttribute('src', ftMouthOpen)
-  } else {
-    document.querySelector('#mouthl').setAttribute('src', ftMouth)
-    document.querySelector('#mouthr').setAttribute('src', ftMouth)
-  }
-  if (now % 3000 >= 2800) {
-    document.querySelector('#eyesl').setAttribute('src', ftEyesClosed)
-    document.querySelector('#eyesr').setAttribute('src', ftEyesClosed)
-  } else {
-    document.querySelector('#eyesl').setAttribute('src', ftEyes)
-    document.querySelector('#eyesr').setAttribute('src', ftEyes)
+  const mouthActive = volume >= thres && now % 400 >= 200
+  const blinkActive = now % 3000 >= 2800
+
+  for (let i = 0; i < currentLayers.length; i++) {
+    const layer = currentLayers[i]
+    if (layer.role === 'mouth') {
+      const nextSrc = mouthActive && layer.altSrc ? layer.altSrc : layer.src
+      setLayerImage(layer, nextSrc)
+    } else if (layer.role === 'blink') {
+      const nextSrc = blinkActive && layer.altSrc ? layer.altSrc : layer.src
+      setLayerImage(layer, nextSrc)
+    }
   }
 }
 
@@ -488,39 +701,32 @@ async function audio () {
       var X = lastRandomX + (randomX - lastRandomX) * i / currentInterval
       var Y = lastRandomY + (randomY - lastRandomY) * i / currentInterval
       
-      document.querySelector('#back').setAttribute('style', `top: ${(5 - (Y / document.body.clientHeight) * 10)*rig/100}px`)
+      var backStyle = `top: ${(5 - (Y / document.body.clientHeight) * 10) * rig / 100}px;`
+      applyRigStyles('back', { img: backStyle })
 
-      document.querySelector('#bangdivl').setAttribute('style', `width: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}dvh);`)
+      var bangDivLStyle = `width: min(${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 5 * rig / 50}vw, ${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 5 * rig / 50}dvh);`
+      var bangDivRStyle = `width: min(${50 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 5 * rig / 50}vw, ${50 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 5 * rig / 50}dvh); left: min(${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 5 * rig / 50}vw, ${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 5 * rig / 50}dvh);`
+      var bangImgLStyle = `width: min(${100 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100}vw, ${100 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100}dvh); top: ${(-10 + (Y / document.body.clientHeight) * 20) * rig / 100}px;`
+      var bangImgRStyle = `width: min(${100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100}vw, ${100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100}dvh);top: ${(-10 + (Y / document.body.clientHeight) * 20) * rig / 100}px;`
+      applyRigStyles('bang', { divL: bangDivLStyle, divR: bangDivRStyle, imgL: bangImgLStyle, imgR: bangImgRStyle })
 
-      document.querySelector('#bangdivr').setAttribute('style', `width: min(${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}vw, ${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}dvh); left: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}dvh);`)
+      var eyesDivLStyle = `width: min(${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh);`
+      var eyesDivRStyle = `width: min(${50 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh); left: min(${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh);`
+      var eyesImgLStyle = `width: min(${100 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100}vw, ${100 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100}dvh);top: ${(-15 + (Y / document.body.clientHeight) * 30) * rig / 100}px;`
+      var eyesImgRStyle = `width: min(${100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100}vw, ${100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100}dvh);top: ${(-15 + (Y / document.body.clientHeight) * 30) * rig / 100}px;`
+      applyRigStyles('eyes', { divL: eyesDivLStyle, divR: eyesDivRStyle, imgL: eyesImgLStyle, imgR: eyesImgRStyle })
 
-      document.querySelector('#bangl').setAttribute('style', `width: min(${100 + (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100}vw, ${100 + (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100}dvh); top: ${(-10 + (Y / document.body.clientHeight) * 20)*rig/100}px;`)
+      var mouthDivLStyle = `width: min(${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh);`
+      var mouthDivRStyle = `width: min(${50 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh); left: min(${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh);`
+      var mouthImgLStyle = `width: min(${100 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100}vw, ${100 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100}dvh);top: ${(-10 + (Y / document.body.clientHeight) * 20) * rig / 100}px;`
+      var mouthImgRStyle = `width: min(${100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100}vw, ${100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100}dvh);top: ${(-10 + (Y / document.body.clientHeight) * 20) * rig / 100}px;`
+      applyRigStyles('mouth', { divL: mouthDivLStyle, divR: mouthDivRStyle, imgL: mouthImgLStyle, imgR: mouthImgRStyle })
 
-      document.querySelector('#bangr').setAttribute('style', `width: min(${100 - (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100}vw, ${100 - (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100}dvh);top: ${(-10 + (Y / document.body.clientHeight) * 20)*rig/100}px;`)
-      
-      document.querySelector('#eyesdivl').setAttribute('style', `width: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh);`)
-
-      document.querySelector('#eyesdivr').setAttribute('style', `width: min(${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh); left: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh);`)
-
-      document.querySelector('#eyesl').setAttribute('style', `width: min(${100 + (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100}vw, ${100 + (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100}dvh);top: ${(-15 + (Y / document.body.clientHeight) * 30)*rig/100}px;`)
-
-      document.querySelector('#eyesr').setAttribute('style', `width: min(${100 - (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100}vw, ${100 - (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100}dvh);top: ${(-15 + (Y / document.body.clientHeight) * 30)*rig/100}px;`)
-
-      document.querySelector('#mouthdivl').setAttribute('style', `width: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh);`)
-
-      document.querySelector('#mouthdivr').setAttribute('style', `width: min(${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh); left: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh);`)
-
-      document.querySelector('#mouthl').setAttribute('style', `width: min(${100 + (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100}vw, ${100 + (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100}dvh);top: ${(-10 + (Y / document.body.clientHeight) * 20)*rig/100}px;`)
-
-      document.querySelector('#mouthr').setAttribute('style', `width: min(${100 - (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100}vw, ${100 - (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100}dvh);top: ${(-10 + (Y / document.body.clientHeight) * 20)*rig/100}px;`)
-
-      document.querySelector('#facedivl').setAttribute('style', `width: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh);`)
-
-      document.querySelector('#facedivr').setAttribute('style', `width: min(${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh); left: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh);`)
-
-      document.querySelector('#facel').setAttribute('style', `width: min(${100 + (X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100}vw, ${100 + (X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100}dvh);top: ${(-5 + (Y / document.body.clientHeight) * 10)*rig/100}px;`)
-
-      document.querySelector('#facer').setAttribute('style', `width: min(${100 - (X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100}vw, ${100 - (X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100}dvh);top: ${(-5 + (Y / document.body.clientHeight) * 10)*rig/100}px;`)
+      var faceDivLStyle = `width: min(${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh);`
+      var faceDivRStyle = `width: min(${50 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh); left: min(${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh);`
+      var faceImgLStyle = `width: min(${100 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 15 * rig / 100}vw, ${100 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 15 * rig / 100}dvh);top: ${(-5 + (Y / document.body.clientHeight) * 10) * rig / 100}px;`
+      var faceImgRStyle = `width: min(${100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 15 * rig / 100}vw, ${100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 15 * rig / 100}dvh);top: ${(-5 + (Y / document.body.clientHeight) * 10) * rig / 100}px;`
+      applyRigStyles('face', { divL: faceDivLStyle, divR: faceDivRStyle, imgL: faceImgLStyle, imgR: faceImgRStyle })
 
       setCharacterTransform((X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)
       }, i*12/20);
@@ -534,8 +740,8 @@ audio()
 
 let lastX = 0
 let lastY = 0
-var stiffness = 0.07; // 강도 (높을수록 빠름)
-var damping = 0.8;   // 감쇠 (낮을수록 더 많이 출렁임)
+var stiffness = 0.07; // 강도 (값을수록 빠름)
+var damping = 0.8;   // 감쇠 (값을수록 더 많이 출렁임)
 let X = lastX
 let Y = lastY
 let velocity = 0
@@ -565,45 +771,39 @@ function scheduleAutoRigFromPointer(fallbackX, fallbackY) {
     velocityY = (randomY - Y) * stiffness * damping;
     X += velocity;
     Y += velocityY;
-    var squashStretch = Math.abs(velocity) * 0.0005; // 0.1 강도 조절값
-    var currentScaleY = 1 + 0.5*squashStretch; // 위아래로 늘어짐
-    var currentScaleNegY = 1 - 0.5*squashStretch; // 위아래로 줄어듦
-    var currentScaleX = 1 - squashStretch; // 좌우로 줄어듦(부피 보존)
-    var currentScaleNegX = 1 + squashStretch; // 좌우로 늘어남(부피 보존)
+    // Squash/stretch based on horizontal velocity.
+    var squashStretch = Math.abs(velocity) * 0.0005;
+    var currentScaleY = 1 + 0.5 * squashStretch;
+    var currentScaleNegY = 1 - 0.5 * squashStretch;
+    var currentScaleX = 1 - squashStretch;
+    var currentScaleNegX = 1 + squashStretch;
     
-    document.querySelector('#back').setAttribute('style', `height: ${100*currentScaleY}dvh; left: min(${50 - 50*currentScaleX}vw, ${50 - 50*currentScaleX}dvh); width: min(${100*currentScaleX}vw, ${100*currentScaleX}dvh); top: ${(5 - (Y / document.body.clientHeight) * 10)*rig/100}px`)
+    var backStyle = `height: ${100 * currentScaleY}dvh; left: min(${50 - 50 * currentScaleX}vw, ${50 - 50 * currentScaleX}dvh); width: min(${100 * currentScaleX}vw, ${100 * currentScaleX}dvh); top: ${(5 - (Y / document.body.clientHeight) * 10) * rig / 100}px;`
+    applyRigStyles('back', { img: backStyle })
 
-    document.querySelector('#bangdivl').setAttribute('style', `width: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}dvh);`)
+    var bangDivLStyle = `width: min(${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 5 * rig / 50}vw, ${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 5 * rig / 50}dvh);`
+    var bangDivRStyle = `width: min(${50 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 5 * rig / 50}vw, ${50 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 5 * rig / 50}dvh); left: min(${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 5 * rig / 50}vw, ${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 5 * rig / 50}dvh);`
+    var bangImgLStyle = `height: ${100 * currentScaleY}dvh; width: min(${(100 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleNegX}vw, ${(100 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleNegX}dvh); top: ${(-10 + (Y / document.body.clientHeight) * 20) * rig / 100}px;`
+    var bangImgRStyle = `height: ${100 * currentScaleY}dvh; width: min(${(100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleX}vw, ${(100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleX}dvh);top: ${(-10 + (Y / document.body.clientHeight) * 20) * rig / 100}px;`
+    applyRigStyles('bang', { divL: bangDivLStyle, divR: bangDivRStyle, imgL: bangImgLStyle, imgR: bangImgRStyle })
 
-    document.querySelector('#bangdivr').setAttribute('style', `width: min(${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}vw, ${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}dvh); left: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}dvh);`)
+    var eyesDivLStyle = `width: min(${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh);`
+    var eyesDivRStyle = `width: min(${50 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh); left: min(${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh);`
+    var eyesImgLStyle = `height: ${100 * currentScaleY}dvh; width: min(${(100 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleNegX}vw, ${(100 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleNegX}dvh);top: ${(-15 + (Y / document.body.clientHeight) * 30) * rig / 100}px;`
+    var eyesImgRStyle = `height: ${100 * currentScaleY}dvh; width: min(${(100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleX}vw, ${(100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleX}dvh);top: ${(-15 + (Y / document.body.clientHeight) * 30) * rig / 100}px;`
+    applyRigStyles('eyes', { divL: eyesDivLStyle, divR: eyesDivRStyle, imgL: eyesImgLStyle, imgR: eyesImgRStyle })
 
-    document.querySelector('#bangl').setAttribute('style', `height: ${100*currentScaleY}dvh; width: min(${(100 + (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleNegX}vw, ${(100 + (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleNegX}dvh); top: ${(-10 + (Y / document.body.clientHeight) * 20)*rig/100}px;`)
+    var mouthDivLStyle = `width: min(${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh);`
+    var mouthDivRStyle = `width: min(${50 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh); left: min(${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh);`
+    var mouthImgLStyle = `height: ${100 * currentScaleY}dvh; width: min(${100 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100}vw, ${100 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100}dvh);top: ${(-10 + (Y / document.body.clientHeight) * 20) * rig / 100}px;`
+    var mouthImgRStyle = `height: ${100 * currentScaleY}dvh; width: min(${100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100}vw, ${100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100}dvh);top: ${(-10 + (Y / document.body.clientHeight) * 20) * rig / 100}px;`
+    applyRigStyles('mouth', { divL: mouthDivLStyle, divR: mouthDivRStyle, imgL: mouthImgLStyle, imgR: mouthImgRStyle })
 
-    document.querySelector('#bangr').setAttribute('style', `height: ${100*currentScaleY}dvh; width: min(${(100 - (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleX}vw, ${(100 - (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleX}dvh);top: ${(-10 + (Y / document.body.clientHeight) * 20)*rig/100}px;`)
-    
-    document.querySelector('#eyesdivl').setAttribute('style', `width: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh);`)
-
-    document.querySelector('#eyesdivr').setAttribute('style', `width: min(${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh); left: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh);`)
-
-    document.querySelector('#eyesl').setAttribute('style', `height: ${100*currentScaleY}dvh; width: min(${(100 + (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleNegX}vw, ${(100 + (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleNegX}dvh);top: ${(-15 + (Y / document.body.clientHeight) * 30)*rig/100}px;`)
-
-    document.querySelector('#eyesr').setAttribute('style', `height: ${100*currentScaleY}dvh; width: min(${(100 - (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleX}vw, ${(100 - (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleX}dvh);top: ${(-15 + (Y / document.body.clientHeight) * 30)*rig/100}px;`)
-
-    document.querySelector('#mouthdivl').setAttribute('style', `width: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh);`)
-
-    document.querySelector('#mouthdivr').setAttribute('style', `width: min(${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh); left: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh);`)
-
-    document.querySelector('#mouthl').setAttribute('style', `height: ${100*currentScaleY}dvh; width: min(${100 + (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100}vw, ${100 + (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100}dvh);top: ${(-10 + (Y / document.body.clientHeight) * 20)*rig/100}px;`)
-
-    document.querySelector('#mouthr').setAttribute('style', `height: ${100*currentScaleY}dvh; width: min(${100 - (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100}vw, ${100 - (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100}dvh);top: ${(-10 + (Y / document.body.clientHeight) * 20)*rig/100}px;`)
-
-    document.querySelector('#facedivl').setAttribute('style', `width: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh);`)
-
-    document.querySelector('#facedivr').setAttribute('style', `width: min(${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 - (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh); left: min(${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 + (X - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh);`)
-
-    document.querySelector('#facel').setAttribute('style', `height: ${100*currentScaleY}dvh; width: min(${(100 + (X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)*currentScaleNegX}vw, ${(100 + (X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)*currentScaleNegX}dvh);top: ${(-5 + (Y / document.body.clientHeight) * 10)*rig/100}px;`)
-
-    document.querySelector('#facer').setAttribute('style', `height: ${100*currentScaleY}dvh; width: min(${(100 - (X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)*currentScaleX}vw, ${(100 - (X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)*currentScaleX}dvh);top: ${(-5 + (Y / document.body.clientHeight) * 10)*rig/100}px;`)
+    var faceDivLStyle = `width: min(${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh);`
+    var faceDivRStyle = `width: min(${50 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh); left: min(${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh);`
+    var faceImgLStyle = `height: ${100 * currentScaleY}dvh; width: min(${(100 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 15 * rig / 100) * currentScaleNegX}vw, ${(100 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 15 * rig / 100) * currentScaleNegX}dvh);top: ${(-5 + (Y / document.body.clientHeight) * 10) * rig / 100}px;`
+    var faceImgRStyle = `height: ${100 * currentScaleY}dvh; width: min(${(100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 15 * rig / 100) * currentScaleX}vw, ${(100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 15 * rig / 100) * currentScaleX}dvh);top: ${(-5 + (Y / document.body.clientHeight) * 10) * rig / 100}px;`
+    applyRigStyles('face', { divL: faceDivLStyle, divR: faceDivRStyle, imgL: faceImgLStyle, imgR: faceImgRStyle })
 
     setCharacterTransform((X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)
     }, i*12/20);
@@ -619,46 +819,39 @@ document.addEventListener('mousemove',function(e){
     X = e.clientX
     Y = e.clientY
     velocity = (lastX - X) * stiffness * damping;
-    
+
     var squashStretchM = Math.abs(velocity) * 0.0005; // 0.1 강도 조절값
-    var currentScaleYM = 1 + 2*squashStretchM; // 위아래로 늘어짐
-    var currentScaleNegYM = 1 - 2*squashStretchM; // 위아래로 줄어듦
-    var currentScaleXM = 1 - 4* squashStretchM; // 좌우로 줄어듦(부피 보존)
-    var currentScaleNegXM = 1 + 4* squashStretchM; // 좌우로 늘어남(부피 보존)
+    var currentScaleYM = 1 + 2 * squashStretchM; // 위아래로 늘어짐
+    var currentScaleNegYM = 1 - 2 * squashStretchM; // 위아래로 줄어듦
+    var currentScaleXM = 1 - 4 * squashStretchM; // 좌우로 줄어듦(부피 보존)
+    var currentScaleNegXM = 1 + 4 * squashStretchM; // 좌우로 늘어남(부피 보존)
 
-      document.querySelector('#back').setAttribute('style', `height: ${100*currentScaleYM}dvh; left: min(${50 - 50*currentScaleXM}vw, ${50 - 50*currentScaleXM}dvh); width: min(${100*currentScaleXM}vw, ${100*currentScaleXM}dvh); top: ${(5 - (Y / document.body.clientHeight) * 10)*rig/100}px;`)
+      var backStyle = `height: ${100 * currentScaleYM}dvh; left: min(${50 - 50 * currentScaleXM}vw, ${50 - 50 * currentScaleXM}dvh); width: min(${100 * currentScaleXM}vw, ${100 * currentScaleXM}dvh); top: ${(5 - (Y / document.body.clientHeight) * 10) * rig / 100}px;`
+      applyRigStyles('back', { img: backStyle })
 
-      document.querySelector('#bangdivl').setAttribute('style', `width: min(${50 + (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}vw, ${50 + (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}dvh);`)
+      var bangDivLStyle = `width: min(${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 5 * rig / 50}vw, ${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 5 * rig / 50}dvh);`
+      var bangDivRStyle = `width: min(${50 - (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 5 * rig / 50}vw, ${50 - (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 5 * rig / 50}dvh); left: min(${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 5 * rig / 50}vw, ${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 5 * rig / 50}dvh);`
+      var bangImgLStyle = `height: ${100 * currentScaleYM}dvh; width: min(${(100 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleNegXM}vw, ${(100 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleNegXM}dvh); top: ${(-10 + (Y / document.body.clientHeight) * 20) * rig / 100}px;`
+      var bangImgRStyle = `height: ${100 * currentScaleYM}dvh; width: min(${(100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleXM}vw, ${(100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleXM}dvh);top: ${(-10 + (Y / document.body.clientHeight) * 20) * rig / 100}px;`
+      applyRigStyles('bang', { divL: bangDivLStyle, divR: bangDivRStyle, imgL: bangImgLStyle, imgR: bangImgRStyle })
 
-      document.querySelector('#bangdivr').setAttribute('style', `width: min(${50 - (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}vw, ${50 - (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}dvh); left: min(${50 + (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}vw, ${50 + (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*5*rig/50}dvh);`)
+      var eyesDivLStyle = `width: min(${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh);`
+      var eyesDivRStyle = `width: min(${50 - (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 - (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh); left: min(${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh);`
+      var eyesImgLStyle = `height: ${100 * currentScaleYM}dvh; width: min(${(100 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleNegXM}vw, ${(100 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleNegXM}dvh);top: ${(-15 + (Y / document.body.clientHeight) * 30) * rig / 100}px;`
+      var eyesImgRStyle = `height: ${100 * currentScaleYM}dvh; width: min(${(100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleXM}vw, ${(100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100) * currentScaleXM}dvh);top: ${(-15 + (Y / document.body.clientHeight) * 30) * rig / 100}px;`
+      applyRigStyles('eyes', { divL: eyesDivLStyle, divR: eyesDivRStyle, imgL: eyesImgLStyle, imgR: eyesImgRStyle })
 
-      document.querySelector('#bangl').setAttribute('style', `height: ${100*currentScaleYM}dvh; width: min(${(100 + (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleNegXM}vw, ${(100 + (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleNegXM}dvh); top: ${(-10 + (Y / document.body.clientHeight) * 20)*rig/100}px;`)
+      var mouthDivLStyle = `width: min(${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh);`
+      var mouthDivRStyle = `width: min(${50 - (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 - (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh); left: min(${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh);`
+      var mouthImgLStyle = `height: ${100 * currentScaleYM}dvh; width: min(${100 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100}vw, ${100 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100}dvh);top: ${(-10 + (e.clientY / document.body.clientHeight) * 20) * rig / 100}px;`
+      var mouthImgRStyle = `height: ${100 * currentScaleYM}dvh; width: min(${100 - (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100}vw, ${100 - (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 20 * rig / 100}dvh);top: ${(-10 + (e.clientY / document.body.clientHeight) * 20) * rig / 100}px;`
+      applyRigStyles('mouth', { divL: mouthDivLStyle, divR: mouthDivRStyle, imgL: mouthImgLStyle, imgR: mouthImgRStyle })
 
-      document.querySelector('#bangr').setAttribute('style', `height: ${100*currentScaleYM}dvh; width: min(${(100 - (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleXM}vw, ${(100 - (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleXM}dvh);top: ${(-10 + (Y / document.body.clientHeight) * 20)*rig/100}px;`)
-      
-      document.querySelector('#eyesdivl').setAttribute('style', `width: min(${50 + (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 + (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh);`)
-
-      document.querySelector('#eyesdivr').setAttribute('style', `width: min(${50 - (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 - (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh); left: min(${50 + (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 + (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh);`)
-
-      document.querySelector('#eyesl').setAttribute('style', `height: ${100*currentScaleYM}dvh; width: min(${(100 + (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleNegXM}vw, ${(100 + (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleNegXM}dvh);top: ${(-15 + (Y / document.body.clientHeight) * 30)*rig/100}px;`)
-
-      document.querySelector('#eyesr').setAttribute('style', `height: ${100*currentScaleYM}dvh; width: min(${(100 - (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleXM}vw, ${(100 - (X - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100)*currentScaleXM}dvh);top: ${(-15 + (Y / document.body.clientHeight) * 30)*rig/100}px;`)
-
-      document.querySelector('#mouthdivl').setAttribute('style', `width: min(${50 + (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 + (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh);`)
-
-      document.querySelector('#mouthdivr').setAttribute('style', `width: min(${50 - (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 - (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh); left: min(${50 + (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 + (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh);`)
-
-      document.querySelector('#mouthl').setAttribute('style', `height: ${100*currentScaleYM}dvh; width: min(${100 + (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100}vw, ${100 + (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100}dvh);top: ${(-10 + (e.clientY / document.body.clientHeight) * 20)*rig/100}px;`)
-
-      document.querySelector('#mouthr').setAttribute('style', `height: ${100*currentScaleYM}dvh; width: min(${100 - (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100}vw, ${100 - (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*20*rig/100}dvh);top: ${(-10 + (e.clientY / document.body.clientHeight) * 20)*rig/100}px;`)
-
-      document.querySelector('#facedivl').setAttribute('style', `width: min(${50 + (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 + (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh);`)
-
-      document.querySelector('#facedivr').setAttribute('style', `width: min(${50 - (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 - (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh); left: min(${50 + (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}vw, ${50 + (e.clientX - document.body.clientWidth/2)/document.body.clientWidth*7.5*rig/50}dvh);`)
-
-      document.querySelector('#facel').setAttribute('style', `height: ${100*currentScaleYM}dvh; width: min(${(100 + (X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)*currentScaleNegXM}vw, ${(100 + (X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)*currentScaleNegXM}dvh);top: ${(-5 + (Y / document.body.clientHeight) * 10)*rig/100}px;`)
-
-      document.querySelector('#facer').setAttribute('style', `height: ${100*currentScaleYM}dvh; width: min(${(100 - (X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)*currentScaleXM}vw, ${(100 - (X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)*currentScaleXM}dvh);top: ${(-5 + (Y / document.body.clientHeight) * 10)*rig/100}px;`)
+      var faceDivLStyle = `width: min(${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh);`
+      var faceDivRStyle = `width: min(${50 - (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 - (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh); left: min(${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}vw, ${50 + (e.clientX - document.body.clientWidth / 2) / document.body.clientWidth * 7.5 * rig / 50}dvh);`
+      var faceImgLStyle = `height: ${100 * currentScaleYM}dvh; width: min(${(100 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 15 * rig / 100) * currentScaleNegXM}vw, ${(100 + (X - document.body.clientWidth / 2) / document.body.clientWidth * 15 * rig / 100) * currentScaleNegXM}dvh);top: ${(-5 + (Y / document.body.clientHeight) * 10) * rig / 100}px;`
+      var faceImgRStyle = `height: ${100 * currentScaleYM}dvh; width: min(${(100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 15 * rig / 100) * currentScaleXM}vw, ${(100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 15 * rig / 100) * currentScaleXM}dvh);top: ${(-5 + (Y / document.body.clientHeight) * 10) * rig / 100}px;`
+      applyRigStyles('face', { divL: faceDivLStyle, divR: faceDivRStyle, imgL: faceImgLStyle, imgR: faceImgRStyle })
 
     setCharacterTransform((e.clientX - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)
 
@@ -672,14 +865,3 @@ document.addEventListener('mousemove',function(e){
     scheduleAutoResume(e.clientX, e.clientY)
 
 })
-    
-
-
-
-
-
-
-
-
-
-

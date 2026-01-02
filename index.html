@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <!-- Design by foolishdeveloper.com -->
 <html lang="ko">
 <head>
@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Feather-Talk</title>
     <meta name="summary" content="저사양 유저를 겨냥한 움직이는 버츄얼 캐릭터">
-    <link rel="stylesheet" media="screen" href="css/index.css?v=0.0.2">
+    <link rel="stylesheet" media="screen" href="css/index.css?v=0.0.3">
     <link rel="icon" type="image/x-icon" href="assets/icon.png">
     <meta property="og:image" content="assets/icon.png" />
     <meta property="og:title" content="Feather-Talk" />
@@ -61,351 +61,78 @@
                     0
                 </div>
             </div>
-            <div id="form1" class="form activated">
-                <div>
-                    <img id="bang_img1" src="assets/transparent.png" />
-                    <input type="text" id="bang1" placeholder="앞머리 이미지 주소" />
+                        <div id="form1" class="form activated">
+                <div class="layer-header">
+                    <div class="layer-note">레이어 순서: 위가 앞</div>
+                    <button type="button" class="layer-add" data-slot="1">레이어 추가</button>
                 </div>
-                <div>
-                    <img id="eyes_img1" src="assets/transparent.png" />
-                    <input type="text" id="eyes1" placeholder="눈/코(열림) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="eyesclosed_img1" src="assets/transparent.png" />
-                    <input type="text" id="eyesclosed1" placeholder="눈/코(닫힘) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="mouth_img1"  src="assets/transparent.png"/>
-                    <input type="text" id="mouth1" placeholder="입(닫힘) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="mouthopen_img1"  src="assets/transparent.png"/>
-                    <input type="text" id="mouthopen1" placeholder="입(열림) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="face_img1"  src="assets/transparent.png"/>
-                    <input type="text" id="face1" placeholder="얼굴+옆머리 이미지 주소" />
-                </div>
-                <div>
-                    <img id="body_img1"  src="assets/transparent.png"/>
-                    <input type="text" id="body1" placeholder="몸통 이미지 주소" />
-                </div>
-                <div>
-                    <img id="back_img1"  src="assets/transparent.png"/>
-                    <input type="text" id="back1" placeholder="뒷머리 이미지 주소" />
-                </div>
+                <div class="layer-list" id="layers1"></div>
             </div>
 
             <div id="form2" class="form">
-                <div>
-                    <img id="bang_img2" src="assets/transparent.png" />
-                    <input type="text" id="bang2" placeholder="앞머리 이미지 주소" />
+                <div class="layer-header">
+                    <div class="layer-note">레이어 순서: 위가 앞</div>
+                    <button type="button" class="layer-add" data-slot="2">레이어 추가</button>
                 </div>
-                <div>
-                    <img id="eyes_img2" src="assets/transparent.png" />
-                    <input type="text" id="eyes2" placeholder="눈/코(열림) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="eyesclosed_img2" src="assets/transparent.png" />
-                    <input type="text" id="eyesclosed2" placeholder="눈/코(닫힘) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="mouth_img2"  src="assets/transparent.png"/>
-                    <input type="text" id="mouth2" placeholder="입(닫힘) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="mouthopen_img2"  src="assets/transparent.png"/>
-                    <input type="text" id="mouthopen2" placeholder="입(열림) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="face_img2"  src="assets/transparent.png"/>
-                    <input type="text" id="face2" placeholder="얼굴+옆머리 이미지 주소" />
-                </div>
-                <div>
-                    <img id="body_img2"  src="assets/transparent.png"/>
-                    <input type="text" id="body2" placeholder="몸통 이미지 주소" />
-                </div>
-                <div>
-                    <img id="back_img2"  src="assets/transparent.png"/>
-                    <input type="text" id="back2" placeholder="뒷머리 이미지 주소" />
-                </div>
+                <div class="layer-list" id="layers2"></div>
             </div>
             <div id="form3" class="form">
-                <div>
-                    <img id="bang_img3" src="assets/transparent.png" />
-                    <input type="text" id="bang3" placeholder="앞머리 이미지 주소" />
+                <div class="layer-header">
+                    <div class="layer-note">레이어 순서: 위가 앞</div>
+                    <button type="button" class="layer-add" data-slot="3">레이어 추가</button>
                 </div>
-                <div>
-                    <img id="eyes_img3" src="assets/transparent.png" />
-                    <input type="text" id="eyes3" placeholder="눈/코(열림) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="eyesclosed_img3" src="assets/transparent.png" />
-                    <input type="text" id="eyesclosed3" placeholder="눈/코(닫힘) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="mouth_img3"  src="assets/transparent.png"/>
-                    <input type="text" id="mouth3" placeholder="입(닫힘) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="mouthopen_img3"  src="assets/transparent.png"/>
-                    <input type="text" id="mouthopen3" placeholder="입(열림) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="face_img3"  src="assets/transparent.png"/>
-                    <input type="text" id="face3" placeholder="얼굴+옆머리 이미지 주소" />
-                </div>
-                <div>
-                    <img id="body_img3"  src="assets/transparent.png"/>
-                    <input type="text" id="body3" placeholder="몸통 이미지 주소" />
-                </div>
-                <div>
-                    <img id="back_img3"  src="assets/transparent.png"/>
-                    <input type="text" id="back3" placeholder="뒷머리 이미지 주소" />
-                </div>
+                <div class="layer-list" id="layers3"></div>
             </div>
 
             <div id="form4" class="form">
-                <div>
-                    <img id="bang_img4" src="assets/transparent.png" />
-                    <input type="text" id="bang4" placeholder="앞머리 이미지 주소" />
+                <div class="layer-header">
+                    <div class="layer-note">레이어 순서: 위가 앞</div>
+                    <button type="button" class="layer-add" data-slot="4">레이어 추가</button>
                 </div>
-                <div>
-                    <img id="eyes_img4" src="assets/transparent.png" />
-                    <input type="text" id="eyes4" placeholder="눈/코(열림) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="eyesclosed_img4" src="assets/transparent.png" />
-                    <input type="text" id="eyesclosed4" placeholder="눈/코(닫힘) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="mouth_img4"  src="assets/transparent.png"/>
-                    <input type="text" id="mouth4" placeholder="입(닫힘) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="mouthopen_img4"  src="assets/transparent.png"/>
-                    <input type="text" id="mouthopen4" placeholder="입(열림) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="face_img4"  src="assets/transparent.png"/>
-                    <input type="text" id="face4" placeholder="얼굴+옆머리 이미지 주소" />
-                </div>
-                <div>
-                    <img id="body_img4"  src="assets/transparent.png"/>
-                    <input type="text" id="body4" placeholder="몸통 이미지 주소" />
-                </div>
-                <div>
-                    <img id="back_img4"  src="assets/transparent.png"/>
-                    <input type="text" id="back4" placeholder="뒷머리 이미지 주소" />
-                </div>
+                <div class="layer-list" id="layers4"></div>
             </div>
             <div id="form5" class="form">
-                <div>
-                    <img id="bang_img5" src="assets/transparent.png" />
-                    <input type="text" id="bang5" placeholder="앞머리 이미지 주소" />
+                <div class="layer-header">
+                    <div class="layer-note">레이어 순서: 위가 앞</div>
+                    <button type="button" class="layer-add" data-slot="5">레이어 추가</button>
                 </div>
-                <div>
-                    <img id="eyes_img5" src="assets/transparent.png" />
-                    <input type="text" id="eyes5" placeholder="눈/코(열림) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="eyesclosed_img5" src="assets/transparent.png" />
-                    <input type="text" id="eyesclosed5" placeholder="눈/코(닫힘) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="mouth_img5"  src="assets/transparent.png"/>
-                    <input type="text" id="mouth5" placeholder="입(닫힘) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="mouthopen_img5"  src="assets/transparent.png"/>
-                    <input type="text" id="mouthopen5" placeholder="입(열림) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="face_img5"  src="assets/transparent.png"/>
-                    <input type="text" id="face5" placeholder="얼굴+옆머리 이미지 주소" />
-                </div>
-                <div>
-                    <img id="body_img5"  src="assets/transparent.png"/>
-                    <input type="text" id="body5" placeholder="몸통 이미지 주소" />
-                </div>
-                <div>
-                    <img id="back_img5"  src="assets/transparent.png"/>
-                    <input type="text" id="back5" placeholder="뒷머리 이미지 주소" />
-                </div>
+                <div class="layer-list" id="layers5"></div>
             </div>
-<div id="form6" class="form">
-                <div>
-                    <img id="bang_img6" src="assets/transparent.png" />
-                    <input type="text" id="bang6" placeholder="앞머리 이미지 주소" />
+            <div id="form6" class="form">
+                <div class="layer-header">
+                    <div class="layer-note">레이어 순서: 위가 앞</div>
+                    <button type="button" class="layer-add" data-slot="6">레이어 추가</button>
                 </div>
-                <div>
-                    <img id="eyes_img6" src="assets/transparent.png" />
-                    <input type="text" id="eyes6" placeholder="눈/코(열림) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="eyesclosed_img6" src="assets/transparent.png" />
-                    <input type="text" id="eyesclosed6" placeholder="눈/코(닫힘) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="mouth_img6"  src="assets/transparent.png"/>
-                    <input type="text" id="mouth6" placeholder="입(닫힘) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="mouthopen_img6"  src="assets/transparent.png"/>
-                    <input type="text" id="mouthopen6" placeholder="입(열림) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="face_img6"  src="assets/transparent.png"/>
-                    <input type="text" id="face6" placeholder="얼굴+옆머리 이미지 주소" />
-                </div>
-                <div>
-                    <img id="body_img6"  src="assets/transparent.png"/>
-                    <input type="text" id="body6" placeholder="몸통 이미지 주소" />
-                </div>
-                <div>
-                    <img id="back_img6"  src="assets/transparent.png"/>
-                    <input type="text" id="back6" placeholder="뒷머리 이미지 주소" />
-                </div>
+                <div class="layer-list" id="layers6"></div>
             </div>
             <div id="form7" class="form">
-                <div>
-                    <img id="bang_img7" src="assets/transparent.png" />
-                    <input type="text" id="bang7" placeholder="앞머리 이미지 주소" />
+                <div class="layer-header">
+                    <div class="layer-note">레이어 순서: 위가 앞</div>
+                    <button type="button" class="layer-add" data-slot="7">레이어 추가</button>
                 </div>
-                <div>
-                    <img id="eyes_img7" src="assets/transparent.png" />
-                    <input type="text" id="eyes7" placeholder="눈/코(열림) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="eyesclosed_img7" src="assets/transparent.png" />
-                    <input type="text" id="eyesclosed7" placeholder="눈/코(닫힘) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="mouth_img7"  src="assets/transparent.png"/>
-                    <input type="text" id="mouth7" placeholder="입(닫힘) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="mouthopen_img7"  src="assets/transparent.png"/>
-                    <input type="text" id="mouthopen7" placeholder="입(열림) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="face_img7"  src="assets/transparent.png"/>
-                    <input type="text" id="face7" placeholder="얼굴+옆머리 이미지 주소" />
-                </div>
-                <div>
-                    <img id="body_img7"  src="assets/transparent.png"/>
-                    <input type="text" id="body7" placeholder="몸통 이미지 주소" />
-                </div>
-                <div>
-                    <img id="back_img7"  src="assets/transparent.png"/>
-                    <input type="text" id="back7" placeholder="뒷머리 이미지 주소" />
-                </div>
+                <div class="layer-list" id="layers7"></div>
             </div>
             <div id="form8" class="form">
-                <div>
-                    <img id="bang_img8" src="assets/transparent.png" />
-                    <input type="text" id="bang8" placeholder="앞머리 이미지 주소" />
+                <div class="layer-header">
+                    <div class="layer-note">레이어 순서: 위가 앞</div>
+                    <button type="button" class="layer-add" data-slot="8">레이어 추가</button>
                 </div>
-                <div>
-                    <img id="eyes_img8" src="assets/transparent.png" />
-                    <input type="text" id="eyes8" placeholder="눈/코(열림) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="eyesclosed_img8" src="assets/transparent.png" />
-                    <input type="text" id="eyesclosed8" placeholder="눈/코(닫힘) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="mouth_img8"  src="assets/transparent.png"/>
-                    <input type="text" id="mouth8" placeholder="입(닫힘) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="mouthopen_img8"  src="assets/transparent.png"/>
-                    <input type="text" id="mouthopen8" placeholder="입(열림) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="face_img8"  src="assets/transparent.png"/>
-                    <input type="text" id="face8" placeholder="얼굴+옆머리 이미지 주소" />
-                </div>
-                <div>
-                    <img id="body_img8"  src="assets/transparent.png"/>
-                    <input type="text" id="body8" placeholder="몸통 이미지 주소" />
-                </div>
-                <div>
-                    <img id="back_img8"  src="assets/transparent.png"/>
-                    <input type="text" id="back8" placeholder="뒷머리 이미지 주소" />
-                </div>
+                <div class="layer-list" id="layers8"></div>
             </div>
-<div id="form9" class="form">
-                <div>
-                    <img id="bang_img9" src="assets/transparent.png" />
-                    <input type="text" id="bang9" placeholder="앞머리 이미지 주소" />
+            <div id="form9" class="form">
+                <div class="layer-header">
+                    <div class="layer-note">레이어 순서: 위가 앞</div>
+                    <button type="button" class="layer-add" data-slot="9">레이어 추가</button>
                 </div>
-                <div>
-                    <img id="eyes_img9" src="assets/transparent.png" />
-                    <input type="text" id="eyes9" placeholder="눈/코(열림) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="eyesclosed_img9" src="assets/transparent.png" />
-                    <input type="text" id="eyesclosed9" placeholder="눈/코(닫힘) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="mouth_img9"  src="assets/transparent.png"/>
-                    <input type="text" id="mouth9" placeholder="입(닫힘) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="mouthopen_img9"  src="assets/transparent.png"/>
-                    <input type="text" id="mouthopen9" placeholder="입(열림) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="face_img9"  src="assets/transparent.png"/>
-                    <input type="text" id="face9" placeholder="얼굴+옆머리 이미지 주소" />
-                </div>
-                <div>
-                    <img id="body_img9"  src="assets/transparent.png"/>
-                    <input type="text" id="body9" placeholder="몸통 이미지 주소" />
-                </div>
-                <div>
-                    <img id="back_img9"  src="assets/transparent.png"/>
-                    <input type="text" id="back9" placeholder="뒷머리 이미지 주소" />
-                </div>
+                <div class="layer-list" id="layers9"></div>
             </div>
-<div id="form0" class="form">
-                <div>
-                    <img id="bang_img0" src="assets/transparent.png" />
-                    <input type="text" id="bang0" placeholder="앞머리 이미지 주소" />
+            <div id="form0" class="form">
+                <div class="layer-header">
+                    <div class="layer-note">레이어 순서: 위가 앞</div>
+                    <button type="button" class="layer-add" data-slot="0">레이어 추가</button>
                 </div>
-                <div>
-                    <img id="eyes_img0" src="assets/transparent.png" />
-                    <input type="text" id="eyes0" placeholder="눈/코(열림) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="eyesclosed_img0" src="assets/transparent.png" />
-                    <input type="text" id="eyesclosed0" placeholder="눈/코(닫힘) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="mouth_img0"  src="assets/transparent.png"/>
-                    <input type="text" id="mouth0" placeholder="입(닫힘) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="mouthopen_img0"  src="assets/transparent.png"/>
-                    <input type="text" id="mouthopen0" placeholder="입(열림) 이미지 주소" />
-                </div>
-                <div>
-                    <img id="face_img0"  src="assets/transparent.png"/>
-                    <input type="text" id="face0" placeholder="얼굴+옆머리 이미지 주소" />
-                </div>
-                <div>
-                    <img id="body_img0"  src="assets/transparent.png"/>
-                    <input type="text" id="body0" placeholder="몸통 이미지 주소" />
-                </div>
-                <div>
-                    <img id="back_img0"  src="assets/transparent.png"/>
-                    <input type="text" id="back0" placeholder="뒷머리 이미지 주소" />
-                </div>
-            </div>
-
-
-            <div style="display: flex; justify-content: center;"><div id="submit" class="button">라이브!</div></div>
+                <div class="layer-list" id="layers0"></div>
+            </div>            <div style="display: flex; justify-content: center;"><div id="submit" class="button">라이브!</div></div>
         </div>
         <div id="info2">
             <div><b>제작자: 연이나</b></div>
@@ -415,6 +142,7 @@
         </div>
     </div>
 </div>
-<script src="./js/localstorage.js?v=0.0.5"></script>
+<script src="./js/localstorage.js?v=0.0.6"></script>
 </body>
 </html>
+

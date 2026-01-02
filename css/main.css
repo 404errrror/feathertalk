@@ -115,16 +115,15 @@ body {
     transform-origin:  min(50vw, 50dvh) min(100vw, 100dvh);
 }
 
-.live2d {
+.layer {
     width: min(100vw, 100dvh);
     height: min(100vw, 100dvh);
-    overflow: hidden;
     position: absolute;
     top: 0;
     left: 0;
 }
 
-.live2dleft {
+.layer__split {
     width: min(50vw, 50dvh);
     height: min(100vw, 100dvh);
     overflow: hidden;
@@ -133,51 +132,27 @@ body {
     left: 0;
 }
 
-.live2dright {
-    width: min(50vw, 50dvh);
-    height: min(100vw, 100dvh);
-    overflow: hidden;
-    position: absolute;
-    top: 0;
+.layer__split--right {
     left: min(50vw, 50dvh);
 }
 
-#bangl, #mouthl, #eyesl, #facel {
+.layer__img {
     width: min(100vw, 100dvh);
     height: min(100vw, 100dvh);
     position: absolute;
+}
+
+.layer__img--left {
     left: 0;
 }
 
-#bangr, #mouthr, #eyesr, #facer {
-    width: min(100vw, 100dvh);
-    height: min(100vw, 100dvh);
-    position: absolute;
+.layer__img--right {
     right: 0;
 }
 
-#bangl, #bangr {
-    z-index: 99;
-}
-
-#mouthl, #mouthr {
-    z-index: 98;
-}
-
-#eyesl, #eyesr {
-    z-index: 97;
-}
-
-#facel, #facer {
-    z-index: 96;
-}
-
-#body {
-    z-index: 95;
-}
-
-#back {
-    z-index: 94;
+.layer__img--single {
+    left: 0;
+    top: 0;
 }
 
 
