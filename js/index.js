@@ -366,7 +366,9 @@ function normalizeLayer(layer, fallback) {
   return {
     id: typeof base.id === 'string' ? base.id : (fallbackLayer.id || createLayerId()),
     src: resolveLayerSrc(base.src, fallbackLayer.src || DEFAULT_LAYER_SRC),
+    display: typeof base.display === 'string' ? base.display : (fallbackLayer.display || ''),
     altSrc: resolveLayerSrc(base.altSrc, fallbackLayer.altSrc || ''),
+    altDisplay: typeof base.altDisplay === 'string' ? base.altDisplay : (fallbackLayer.altDisplay || ''),
     rig,
     role
   }
