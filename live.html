@@ -37,6 +37,13 @@
       <div class="range-values" id="camera-status"></div>
     </div>
     <div class="setting-item">
+      <span>카메라 미리보기</span>
+      <select id="camera-preview-toggle">
+        <option value="off">끄기</option>
+        <option value="on">켜기</option>
+      </select>
+    </div>
+    <div class="setting-item">
       <div class="range-header">
         <span>카메라 감도</span>
         <div class="range-values" id="camera-range-value">100%</div>
@@ -78,6 +85,10 @@
 </div>
 
 <div id="character"></div>
+<div id="camera-preview" hidden>
+  <div class="camera-preview__label">Camera</div>
+  <video id="camera-preview-video" autoplay muted playsinline></video>
+</div>
 
 <script src="./js/index.js?v=0.0.6"></script>
 </body>

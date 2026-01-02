@@ -38,6 +38,11 @@ if (localStorage.getItem('ftCameraEnabled')) {
   cameraEnabled = localStorage.getItem('ftCameraEnabled') === 'true'
 }
 
+var cameraPreviewEnabled = false
+if (localStorage.getItem('ftCameraPreviewEnabled')) {
+  cameraPreviewEnabled = localStorage.getItem('ftCameraPreviewEnabled') === 'true'
+}
+
 var cameraStrength = 100
 if (localStorage.getItem('ftCameraStrength')) {
   cameraStrength = parseInt(localStorage.getItem('ftCameraStrength'), 10)
@@ -138,6 +143,9 @@ var cameraToggle = document.querySelector('#camera-toggle')
 var cameraRange = document.querySelector('#camera-range')
 var cameraRangeValue = document.querySelector('#camera-range-value')
 var cameraStatus = document.querySelector('#camera-status')
+var cameraPreviewToggle = document.querySelector('#camera-preview-toggle')
+var cameraPreview = document.querySelector('#camera-preview')
+var cameraPreviewVideo = document.querySelector('#camera-preview-video')
 var character = document.querySelector('#character')
 var currentRotate = 0
 
@@ -234,6 +242,17 @@ function setCameraStatus(message) {
   }
 }
 
+function updateCameraPreviewVisibility() {
+  if (!cameraPreview) {
+    return
+  }
+  if (cameraEnabled && cameraStream && cameraPreviewEnabled) {
+    cameraPreview.removeAttribute('hidden')
+  } else {
+    cameraPreview.setAttribute('hidden', '')
+  }
+}
+
 function updateCameraUI() {
   if (cameraRange) {
     cameraRange.value = cameraStrength
@@ -245,6 +264,10 @@ function updateCameraUI() {
     cameraToggle.value = cameraEnabled ? 'on' : 'off'
     cameraToggle.disabled = !cameraSupported
   }
+  if (cameraPreviewToggle) {
+    cameraPreviewToggle.value = cameraPreviewEnabled ? 'on' : 'off'
+    cameraPreviewToggle.disabled = !cameraSupported
+  }
   if (cameraStatus) {
     if (cameraStatusMessage) {
       cameraStatus.textContent = cameraStatusMessage
@@ -254,6 +277,7 @@ function updateCameraUI() {
       cameraStatus.textContent = ''
     }
   }
+  updateCameraPreviewVisibility()
 }
 
 function applyCharacterTransform() {
@@ -343,6 +367,27 @@ if (cameraRange) {
 if (cameraToggle) {
   cameraToggle.addEventListener('change', function(e) {
     setCameraEnabled(e.target.value === 'on')
+  })
+}
+
+if (cameraPreviewToggle) {
+  cameraPreviewToggle.addEventListener('change', function(e) {
+    if (e.target.value === 'on') {
+      var confirmed = window.confirm('화면에 실제 얼굴이 표시됩니다!!!\n활성화 시키겠습니까?!')
+      if (!confirmed) {
+        cameraPreviewEnabled = false
+        localStorage.setItem('ftCameraPreviewEnabled', 'false')
+        cameraPreviewToggle.value = 'off'
+        updateCameraPreviewVisibility()
+        return
+      }
+      cameraPreviewEnabled = true
+      localStorage.setItem('ftCameraPreviewEnabled', 'true')
+    } else {
+      cameraPreviewEnabled = false
+      localStorage.setItem('ftCameraPreviewEnabled', 'false')
+    }
+    updateCameraPreviewVisibility()
   })
 }
 
@@ -1045,7 +1090,7 @@ async function startCameraTracking() {
   }
 
   if (!cameraVideo) {
-    cameraVideo = document.createElement('video')
+    cameraVideo = cameraPreviewVideo || document.createElement('video')
     cameraVideo.setAttribute('playsinline', '')
     cameraVideo.muted = true
   }
@@ -1055,6 +1100,7 @@ async function startCameraTracking() {
   } catch (error) {
     console.warn('Camera play was blocked', error)
   }
+  updateCameraPreviewVisibility()
 
   loadFaceMesh().then(function() {
     if (!cameraEnabled) {
@@ -1091,6 +1137,7 @@ function stopCameraTracking() {
   if (cameraVideo) {
     cameraVideo.srcObject = null
   }
+  updateCameraPreviewVisibility()
 }
 
 function ensureMotionCanvas() {
