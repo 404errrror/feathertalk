@@ -23,6 +23,7 @@ var faceMeshLoading = false
 var faceMeshPromise = null
 var faceMeshYawGain = 2.2
 var faceMeshPitchGain = 3.4
+var cameraBodyRollGain = 2.0
 var faceMeshPitchBaseline = 0
 var faceMeshPitchBaselineReady = false
 var faceMeshPitchBaselineSum = 0
@@ -312,7 +313,8 @@ function applyCameraOffset(offsetX, offsetY, rollX, deltaMs) {
   var modeGain = cameraMode === 'motion' ? 0.7 : 1
   var adjustedX = applyCameraDeadzone(offsetX * strength, deadzone) * modeGain
   var adjustedY = applyCameraDeadzone(offsetY * strength, deadzone) * modeGain
-  var adjustedRollX = applyCameraDeadzone(rollX * strength, deadzone) * modeGain
+  var rollGain = cameraMode === 'face-mesh' ? cameraBodyRollGain : 1
+  var adjustedRollX = applyCameraDeadzone(rollX * strength * rollGain, deadzone) * modeGain
   if (cameraMode === 'face-mesh' && cameraInvertX) {
     adjustedX = -adjustedX
     adjustedRollX = -adjustedRollX
