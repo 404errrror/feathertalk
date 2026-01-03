@@ -285,7 +285,7 @@ function applyCameraOffset(offsetX, offsetY, rollX, deltaMs) {
   }
   if (cameraMode === 'face-mesh') {
     adjustedX += cameraHeadOffsetX / 100
-    adjustedY += cameraHeadOffsetY / 100
+    adjustedY -= cameraHeadOffsetY / 100
   }
   adjustedX = Math.max(-1, Math.min(1, adjustedX))
   adjustedY = Math.max(-1, Math.min(1, adjustedY))
@@ -296,7 +296,7 @@ function applyCameraOffset(offsetX, offsetY, rollX, deltaMs) {
   var targetY = (adjustedY + 1) / 2 * height
   var rollTargetX = (adjustedRollX + 1) / 2 * width
   var pixelOffsetX = cameraMode === 'face-mesh' ? 0 : (cameraHeadOffsetX / 100) * (width / 2)
-  var pixelOffsetY = cameraMode === 'face-mesh' ? 0 : (cameraHeadOffsetY / 100) * (height / 2)
+  var pixelOffsetY = cameraMode === 'face-mesh' ? 0 : -(cameraHeadOffsetY / 100) * (height / 2)
   var rollOffsetX = (cameraBodyRollOffsetX / 100) * (width / 2)
   targetX = Math.max(0, Math.min(width, targetX + pixelOffsetX))
   targetY = Math.max(0, Math.min(height, targetY + pixelOffsetY))
