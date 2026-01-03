@@ -55,12 +55,38 @@ if (['off', 'video', 'facemesh'].indexOf(cameraPreviewMode) === -1) {
   cameraPreviewMode = 'off'
 }
 
-var cameraStrength = 100
-if (localStorage.getItem('ftCameraStrength')) {
-  cameraStrength = parseInt(localStorage.getItem('ftCameraStrength'), 10)
+var cameraHeadStrength = 100
+var storedHeadStrength = localStorage.getItem('ftCameraHeadStrength')
+if (storedHeadStrength != null) {
+  cameraHeadStrength = parseInt(storedHeadStrength, 10)
+} else {
+  var legacyStrength = localStorage.getItem('ftCameraStrength')
+  if (legacyStrength != null) {
+    cameraHeadStrength = parseInt(legacyStrength, 10)
+    if (Number.isFinite(cameraHeadStrength)) {
+      localStorage.setItem('ftCameraHeadStrength', cameraHeadStrength)
+    }
+  }
 }
-if (!Number.isFinite(cameraStrength)) {
-  cameraStrength = 100
+if (!Number.isFinite(cameraHeadStrength)) {
+  cameraHeadStrength = 100
+}
+
+var cameraBodyStrength = 100
+var storedBodyStrength = localStorage.getItem('ftCameraBodyStrength')
+if (storedBodyStrength != null) {
+  cameraBodyStrength = parseInt(storedBodyStrength, 10)
+} else {
+  var legacyBodyStrength = localStorage.getItem('ftCameraStrength')
+  if (legacyBodyStrength != null) {
+    cameraBodyStrength = parseInt(legacyBodyStrength, 10)
+    if (Number.isFinite(cameraBodyStrength)) {
+      localStorage.setItem('ftCameraBodyStrength', cameraBodyStrength)
+    }
+  }
+}
+if (!Number.isFinite(cameraBodyStrength)) {
+  cameraBodyStrength = 100
 }
 
 var cameraHeadOffsetX = 0
@@ -273,8 +299,10 @@ var offsetYInput = document.querySelector('#offset-y')
 var offsetXValue = document.querySelector('#offset-x-value')
 var offsetYValue = document.querySelector('#offset-y-value')
 var cameraToggle = document.querySelector('#camera-toggle')
-var cameraRange = document.querySelector('#camera-range')
-var cameraRangeValue = document.querySelector('#camera-range-value')
+var cameraHeadRange = document.querySelector('#camera-head-range')
+var cameraBodyRange = document.querySelector('#camera-body-range')
+var cameraHeadRangeValue = document.querySelector('#camera-head-range-value')
+var cameraBodyRangeValue = document.querySelector('#camera-body-range-value')
 var cameraStatus = document.querySelector('#camera-status')
 var cameraPreviewModeSelect = document.querySelector('#camera-preview-mode')
 var cameraBlinkToggle = document.querySelector('#camera-blink-toggle')
@@ -496,11 +524,17 @@ function getCoverTransform(sourceWidth, sourceHeight, boxWidth, boxHeight) {
 }
 
 function updateCameraUI() {
-  if (cameraRange) {
-    cameraRange.value = cameraStrength
+  if (cameraHeadRange) {
+    cameraHeadRange.value = cameraHeadStrength
   }
-  if (cameraRangeValue) {
-    cameraRangeValue.textContent = `${cameraStrength}%`
+  if (cameraHeadRangeValue) {
+    cameraHeadRangeValue.textContent = `${cameraHeadStrength}%`
+  }
+  if (cameraBodyRange) {
+    cameraBodyRange.value = cameraBodyStrength
+  }
+  if (cameraBodyRangeValue) {
+    cameraBodyRangeValue.textContent = `${cameraBodyStrength}%`
   }
   if (cameraHeadOffsetXInput) {
     cameraHeadOffsetXInput.value = cameraHeadOffsetX
@@ -684,11 +718,20 @@ if (offsetYInput) {
   })
 }
 
-if (cameraRange) {
-  cameraRange.addEventListener('input', function(e) {
+if (cameraHeadRange) {
+  cameraHeadRange.addEventListener('input', function(e) {
     var nextValue = parseInt(e.target.value, 10)
-    cameraStrength = Number.isFinite(nextValue) ? nextValue : 100
-    localStorage.setItem('ftCameraStrength', cameraStrength)
+    cameraHeadStrength = Number.isFinite(nextValue) ? nextValue : 100
+    localStorage.setItem('ftCameraHeadStrength', cameraHeadStrength)
+    updateCameraUI()
+  })
+}
+
+if (cameraBodyRange) {
+  cameraBodyRange.addEventListener('input', function(e) {
+    var nextValue = parseInt(e.target.value, 10)
+    cameraBodyStrength = Number.isFinite(nextValue) ? nextValue : 100
+    localStorage.setItem('ftCameraBodyStrength', cameraBodyStrength)
     updateCameraUI()
   })
 }
