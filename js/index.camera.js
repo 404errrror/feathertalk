@@ -399,12 +399,24 @@ function updateCameraBlinkState(landmarks) {
     return
   }
   var ratio = ratioSum / ratioCount
+  var minRatio = 0.03
+  var maxRatio = 0.6
+  if (ratio < minRatio || ratio > maxRatio) {
+    return
+  }
   cameraBlinkLastUpdate = Date.now()
+  var baselineMax = 0.5
   if (!cameraBlinkBaseline) {
     cameraBlinkBaseline = ratio
   }
+  if (cameraBlinkBaseline > baselineMax) {
+    cameraBlinkBaseline = baselineMax
+  }
   if (!cameraBlinkActive && ratio > cameraBlinkThreshold) {
     cameraBlinkBaseline = cameraBlinkBaseline * (1 - cameraBlinkBaselineAlpha) + ratio * cameraBlinkBaselineAlpha
+    if (cameraBlinkBaseline > baselineMax) {
+      cameraBlinkBaseline = baselineMax
+    }
   }
   var closeThreshold = cameraBlinkBaseline ? cameraBlinkBaseline * cameraBlinkCloseRatio : cameraBlinkThreshold
   var openThreshold = cameraBlinkBaseline ? cameraBlinkBaseline * cameraBlinkOpenRatio : cameraBlinkThreshold + cameraBlinkHysteresis
