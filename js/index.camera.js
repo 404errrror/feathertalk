@@ -9,7 +9,7 @@ var cameraLastY = 0
 var cameraLastRollX = 0
 var cameraIntervalMs = 60
 var cameraSmoothing = 0.18
-var cameraInvertX = false
+var cameraInvertX = typeof cameraInvertX === 'boolean' ? cameraInvertX : false
 var motionCanvas = null
 var motionCtx = null
 var motionPrevFrame = null
@@ -316,7 +316,7 @@ function applyCameraOffset(offsetX, offsetY, rollX, deltaMs) {
   var adjustedY = applyCameraDeadzone(offsetY * headStrength, deadzone) * modeGain
   var rollGain = cameraMode === 'face-mesh' ? cameraBodyRollGain : 1
   var adjustedRollX = applyCameraDeadzone(rollX * bodyStrength * rollGain, deadzone) * modeGain
-  if (cameraMode === 'face-mesh' && cameraInvertX) {
+  if (cameraInvertX) {
     adjustedX = -adjustedX
     adjustedRollX = -adjustedRollX
   }

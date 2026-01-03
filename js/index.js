@@ -58,6 +58,11 @@ if (['off', 'video', 'facemesh'].indexOf(cameraPreviewMode) === -1) {
   cameraPreviewMode = 'off'
 }
 
+var cameraInvertX = false
+if (localStorage.getItem('ftCameraInvertX')) {
+  cameraInvertX = localStorage.getItem('ftCameraInvertX') === 'true'
+}
+
 var cameraHeadStrength = 100
 var storedHeadStrength = localStorage.getItem('ftCameraHeadStrength')
 if (storedHeadStrength != null) {
@@ -314,6 +319,7 @@ var cameraHeadRangeValue = document.querySelector('#camera-head-range-value')
 var cameraBodyRangeValue = document.querySelector('#camera-body-range-value')
 var cameraStatus = document.querySelector('#camera-status')
 var cameraPreviewModeSelect = document.querySelector('#camera-preview-mode')
+var cameraInvertToggle = document.querySelector('#camera-invert-toggle')
 var cameraBlinkToggle = document.querySelector('#camera-blink-toggle')
 var cameraBlinkSensitivityInput = document.querySelector('#camera-blink-sensitivity')
 var cameraBlinkSensitivityValue = document.querySelector('#camera-blink-sensitivity-value')
@@ -617,7 +623,19 @@ function updateCameraPreviewVisibility() {
   } else {
     cameraPreview.setAttribute('hidden', '')
   }
+  updateCameraPreviewMirror()
   updateCameraOverlayVisibility()
+}
+
+function updateCameraPreviewMirror() {
+  if (!cameraPreview) {
+    return
+  }
+  if (cameraInvertX) {
+    cameraPreview.classList.add('is-mirrored')
+  } else {
+    cameraPreview.classList.remove('is-mirrored')
+  }
 }
 
 function clearCameraOverlay() {
@@ -750,6 +768,10 @@ function updateCameraUI() {
     cameraPreviewModeSelect.value = cameraPreviewMode
     cameraPreviewModeSelect.disabled = !cameraControlsEnabled
   }
+  if (cameraInvertToggle) {
+    updateToggleButton(cameraInvertToggle, cameraInvertX)
+    cameraInvertToggle.disabled = !cameraControlsEnabled
+  }
   if (cameraBlinkToggle) {
     updateToggleButton(cameraBlinkToggle, cameraBlinkEnabled)
     cameraBlinkToggle.disabled = !cameraControlsEnabled
@@ -782,6 +804,7 @@ function updateCameraUI() {
     }
   }
   setSettingItemDisabled(cameraPreviewModeSelect, cameraPreviewModeSelect && cameraPreviewModeSelect.disabled)
+  setSettingItemDisabled(cameraInvertToggle, cameraInvertToggle && cameraInvertToggle.disabled)
   setSettingItemDisabled(cameraHeadRange, cameraHeadRange && cameraHeadRange.disabled)
   setSettingItemDisabled(cameraHeadOffsetXInput, cameraHeadOffsetXInput && cameraHeadOffsetXInput.disabled)
   setSettingItemDisabled(cameraHeadOffsetYInput, cameraHeadOffsetYInput && cameraHeadOffsetYInput.disabled)
@@ -1023,6 +1046,17 @@ if (cameraPreviewModeSelect) {
     cameraPreviewMode = nextMode
     localStorage.setItem('ftCameraPreviewMode', cameraPreviewMode)
     updateCameraPreviewVisibility()
+  })
+}
+
+if (cameraInvertToggle) {
+  cameraInvertToggle.addEventListener('click', function() {
+    if (cameraInvertToggle.disabled) {
+      return
+    }
+    cameraInvertX = !cameraInvertX
+    localStorage.setItem('ftCameraInvertX', String(cameraInvertX))
+    updateCameraUI()
   })
 }
 
