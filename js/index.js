@@ -63,21 +63,43 @@ if (localStorage.getItem('ftCameraInvertX')) {
   cameraInvertX = localStorage.getItem('ftCameraInvertX') === 'true'
 }
 
-var cameraHeadStrength = 100
-var storedHeadStrength = localStorage.getItem('ftCameraHeadStrength')
-if (storedHeadStrength != null) {
-  cameraHeadStrength = parseInt(storedHeadStrength, 10)
-} else {
-  var legacyStrength = localStorage.getItem('ftCameraStrength')
-  if (legacyStrength != null) {
-    cameraHeadStrength = parseInt(legacyStrength, 10)
-    if (Number.isFinite(cameraHeadStrength)) {
-      localStorage.setItem('ftCameraHeadStrength', cameraHeadStrength)
+var cameraHeadYawStrength = 100
+var cameraHeadPitchStrength = 100
+var storedHeadYawStrength = localStorage.getItem('ftCameraHeadYawStrength')
+var storedHeadPitchStrength = localStorage.getItem('ftCameraHeadPitchStrength')
+if (storedHeadYawStrength != null) {
+  cameraHeadYawStrength = parseInt(storedHeadYawStrength, 10)
+}
+if (storedHeadPitchStrength != null) {
+  cameraHeadPitchStrength = parseInt(storedHeadPitchStrength, 10)
+}
+if (storedHeadYawStrength == null || storedHeadPitchStrength == null) {
+  var legacyHeadStrength = null
+  var storedHeadStrength = localStorage.getItem('ftCameraHeadStrength')
+  if (storedHeadStrength != null) {
+    legacyHeadStrength = parseInt(storedHeadStrength, 10)
+  } else {
+    var legacyStrength = localStorage.getItem('ftCameraStrength')
+    if (legacyStrength != null) {
+      legacyHeadStrength = parseInt(legacyStrength, 10)
+    }
+  }
+  if (Number.isFinite(legacyHeadStrength)) {
+    if (storedHeadYawStrength == null) {
+      cameraHeadYawStrength = legacyHeadStrength
+      localStorage.setItem('ftCameraHeadYawStrength', cameraHeadYawStrength)
+    }
+    if (storedHeadPitchStrength == null) {
+      cameraHeadPitchStrength = legacyHeadStrength
+      localStorage.setItem('ftCameraHeadPitchStrength', cameraHeadPitchStrength)
     }
   }
 }
-if (!Number.isFinite(cameraHeadStrength)) {
-  cameraHeadStrength = 100
+if (!Number.isFinite(cameraHeadYawStrength)) {
+  cameraHeadYawStrength = 100
+}
+if (!Number.isFinite(cameraHeadPitchStrength)) {
+  cameraHeadPitchStrength = 100
 }
 
 var cameraBodyStrength = 100
@@ -313,9 +335,11 @@ var rigValue = document.querySelector('#rig-value')
 var offsetXValue = document.querySelector('#offset-x-value')
 var offsetYValue = document.querySelector('#offset-y-value')
 var cameraToggle = document.querySelector('#camera-toggle')
-var cameraHeadRange = document.querySelector('#camera-head-range')
+var cameraHeadYawRange = document.querySelector('#camera-head-yaw-range')
+var cameraHeadPitchRange = document.querySelector('#camera-head-pitch-range')
 var cameraBodyRange = document.querySelector('#camera-body-range')
-var cameraHeadRangeValue = document.querySelector('#camera-head-range-value')
+var cameraHeadYawRangeValue = document.querySelector('#camera-head-yaw-range-value')
+var cameraHeadPitchRangeValue = document.querySelector('#camera-head-pitch-range-value')
 var cameraBodyRangeValue = document.querySelector('#camera-body-range-value')
 var cameraStatus = document.querySelector('#camera-status')
 var cameraPreviewModeSelect = document.querySelector('#camera-preview-mode')
@@ -725,12 +749,19 @@ function getCoverTransform(sourceWidth, sourceHeight, boxWidth, boxHeight) {
 
 function updateCameraUI() {
   var cameraControlsEnabled = cameraSupported && cameraEnabled
-  if (cameraHeadRange) {
-    cameraHeadRange.value = cameraHeadStrength
-    cameraHeadRange.disabled = !cameraControlsEnabled
+  if (cameraHeadYawRange) {
+    cameraHeadYawRange.value = cameraHeadYawStrength
+    cameraHeadYawRange.disabled = !cameraControlsEnabled
   }
-  if (cameraHeadRangeValue) {
-    setRangeValueText(cameraHeadRangeValue, cameraHeadStrength)
+  if (cameraHeadYawRangeValue) {
+    setRangeValueText(cameraHeadYawRangeValue, cameraHeadYawStrength)
+  }
+  if (cameraHeadPitchRange) {
+    cameraHeadPitchRange.value = cameraHeadPitchStrength
+    cameraHeadPitchRange.disabled = !cameraControlsEnabled
+  }
+  if (cameraHeadPitchRangeValue) {
+    setRangeValueText(cameraHeadPitchRangeValue, cameraHeadPitchStrength)
   }
   if (cameraBodyRange) {
     cameraBodyRange.value = cameraBodyStrength
@@ -805,7 +836,8 @@ function updateCameraUI() {
   }
   setSettingItemDisabled(cameraPreviewModeSelect, cameraPreviewModeSelect && cameraPreviewModeSelect.disabled)
   setSettingItemDisabled(cameraInvertToggle, cameraInvertToggle && cameraInvertToggle.disabled)
-  setSettingItemDisabled(cameraHeadRange, cameraHeadRange && cameraHeadRange.disabled)
+  setSettingItemDisabled(cameraHeadYawRange, cameraHeadYawRange && cameraHeadYawRange.disabled)
+  setSettingItemDisabled(cameraHeadPitchRange, cameraHeadPitchRange && cameraHeadPitchRange.disabled)
   setSettingItemDisabled(cameraHeadOffsetXInput, cameraHeadOffsetXInput && cameraHeadOffsetXInput.disabled)
   setSettingItemDisabled(cameraHeadOffsetYInput, cameraHeadOffsetYInput && cameraHeadOffsetYInput.disabled)
   setSettingItemDisabled(cameraBodyRange, cameraBodyRange && cameraBodyRange.disabled)
@@ -814,7 +846,8 @@ function updateCameraUI() {
   setSettingItemDisabled(cameraBlinkSensitivityInput, cameraBlinkSensitivityInput && cameraBlinkSensitivityInput.disabled)
   setSettingItemDisabled(cameraMouthToggle, cameraMouthToggle && cameraMouthToggle.disabled)
   setSettingItemDisabled(cameraMouthSensitivityInput, cameraMouthSensitivityInput && cameraMouthSensitivityInput.disabled)
-  setRangeValueDisabled(cameraHeadRangeValue, cameraHeadRange && cameraHeadRange.disabled)
+  setRangeValueDisabled(cameraHeadYawRangeValue, cameraHeadYawRange && cameraHeadYawRange.disabled)
+  setRangeValueDisabled(cameraHeadPitchRangeValue, cameraHeadPitchRange && cameraHeadPitchRange.disabled)
   setRangeValueDisabled(cameraBodyRangeValue, cameraBodyRange && cameraBodyRange.disabled)
   setRangeValueDisabled(cameraHeadOffsetXValue, cameraHeadOffsetXInput && cameraHeadOffsetXInput.disabled)
   setRangeValueDisabled(cameraHeadOffsetYValue, cameraHeadOffsetYInput && cameraHeadOffsetYInput.disabled)
@@ -883,7 +916,8 @@ bindRangeValueInput(thresholdInput, thresholdValue)
 bindRangeValueInput(rigInput, rigValue)
 bindRangeValueInput(offsetXInput, offsetXValue)
 bindRangeValueInput(offsetYInput, offsetYValue)
-bindRangeValueInput(cameraHeadRange, cameraHeadRangeValue)
+bindRangeValueInput(cameraHeadYawRange, cameraHeadYawRangeValue)
+bindRangeValueInput(cameraHeadPitchRange, cameraHeadPitchRangeValue)
 bindRangeValueInput(cameraBodyRange, cameraBodyRangeValue)
 bindRangeValueInput(cameraHeadOffsetXInput, cameraHeadOffsetXValue)
 bindRangeValueInput(cameraHeadOffsetYInput, cameraHeadOffsetYValue)
@@ -973,11 +1007,20 @@ if (offsetYInput) {
   })
 }
 
-if (cameraHeadRange) {
-  cameraHeadRange.addEventListener('input', function(e) {
+if (cameraHeadYawRange) {
+  cameraHeadYawRange.addEventListener('input', function(e) {
     var nextValue = parseInt(e.target.value, 10)
-    cameraHeadStrength = Number.isFinite(nextValue) ? nextValue : 100
-    localStorage.setItem('ftCameraHeadStrength', cameraHeadStrength)
+    cameraHeadYawStrength = Number.isFinite(nextValue) ? nextValue : 100
+    localStorage.setItem('ftCameraHeadYawStrength', cameraHeadYawStrength)
+    updateCameraUI()
+  })
+}
+
+if (cameraHeadPitchRange) {
+  cameraHeadPitchRange.addEventListener('input', function(e) {
+    var nextValue = parseInt(e.target.value, 10)
+    cameraHeadPitchStrength = Number.isFinite(nextValue) ? nextValue : 100
+    localStorage.setItem('ftCameraHeadPitchStrength', cameraHeadPitchStrength)
     updateCameraUI()
   })
 }

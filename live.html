@@ -104,12 +104,21 @@
       <div class="settings-divider" role="separator" aria-hidden="true"></div>
       <div class="setting-item">
         <div class="range-header">
-          <span>얼굴 회전 감도</span>
-          <div class="range-values range-values--input" id="camera-head-range-value" data-unit="%">
+          <span>얼굴 좌우 회전 감도</span>
+          <div class="range-values range-values--input" id="camera-head-yaw-range-value" data-unit="%">
             <input class="range-input" type="text" inputmode="numeric" pattern="-?[0-9]*">
           </div>
         </div>
-        <input id="camera-head-range" type="range" value="100" min="50" max="200">
+        <input id="camera-head-yaw-range" type="range" value="100" min="50" max="200">
+      </div>
+      <div class="setting-item">
+        <div class="range-header">
+          <span>얼굴 상하 회전 감도</span>
+          <div class="range-values range-values--input" id="camera-head-pitch-range-value" data-unit="%">
+            <input class="range-input" type="text" inputmode="numeric" pattern="-?[0-9]*">
+          </div>
+        </div>
+        <input id="camera-head-pitch-range" type="range" value="100" min="50" max="200">
       </div>
       <div class="setting-item">
         <div class="range-header">

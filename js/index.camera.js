@@ -308,12 +308,13 @@ function applyCameraDeadzone(value, zone) {
 }
 
 function applyCameraOffset(offsetX, offsetY, rollX, deltaMs) {
-  var headStrength = Math.max(0.5, Math.min(2, cameraHeadStrength / 100))
+  var headYawStrength = Math.max(0.5, Math.min(2, (Number.isFinite(cameraHeadYawStrength) ? cameraHeadYawStrength : 100) / 100))
+  var headPitchStrength = Math.max(0.5, Math.min(2, (Number.isFinite(cameraHeadPitchStrength) ? cameraHeadPitchStrength : 100) / 100))
   var bodyStrength = Math.max(0.5, Math.min(2, cameraBodyStrength / 100))
   var deadzone = cameraMode === 'motion' ? 0.14 : 0.04
   var modeGain = cameraMode === 'motion' ? 0.7 : 1
-  var adjustedX = applyCameraDeadzone(offsetX * headStrength, deadzone) * modeGain
-  var adjustedY = applyCameraDeadzone(offsetY * headStrength, deadzone) * modeGain
+  var adjustedX = applyCameraDeadzone(offsetX * headYawStrength, deadzone) * modeGain
+  var adjustedY = applyCameraDeadzone(offsetY * headPitchStrength, deadzone) * modeGain
   var rollGain = cameraMode === 'face-mesh' ? cameraBodyRollGain : 1
   var adjustedRollX = applyCameraDeadzone(rollX * bodyStrength * rollGain, deadzone) * modeGain
   if (cameraInvertX) {
