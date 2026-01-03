@@ -419,6 +419,23 @@ function updateToggleButton(button, enabled) {
   button.textContent = enabled ? onLabel : offLabel
 }
 
+function setSettingItemDisabled(control, disabled) {
+  if (!control) {
+    return
+  }
+  var item = control.closest('.setting-item')
+  if (!item) {
+    return
+  }
+  if (disabled) {
+    item.classList.add('is-disabled')
+    item.setAttribute('aria-disabled', 'true')
+  } else {
+    item.classList.remove('is-disabled')
+    item.removeAttribute('aria-disabled')
+  }
+}
+
 function setCameraStatus(message) {
   cameraStatusMessage = message || ''
   if (cameraStatus) {
@@ -524,26 +541,32 @@ function getCoverTransform(sourceWidth, sourceHeight, boxWidth, boxHeight) {
 }
 
 function updateCameraUI() {
+  var cameraControlsEnabled = cameraSupported && cameraEnabled
   if (cameraHeadRange) {
     cameraHeadRange.value = cameraHeadStrength
+    cameraHeadRange.disabled = !cameraControlsEnabled
   }
   if (cameraHeadRangeValue) {
     cameraHeadRangeValue.textContent = `${cameraHeadStrength}%`
   }
   if (cameraBodyRange) {
     cameraBodyRange.value = cameraBodyStrength
+    cameraBodyRange.disabled = !cameraControlsEnabled
   }
   if (cameraBodyRangeValue) {
     cameraBodyRangeValue.textContent = `${cameraBodyStrength}%`
   }
   if (cameraHeadOffsetXInput) {
     cameraHeadOffsetXInput.value = cameraHeadOffsetX
+    cameraHeadOffsetXInput.disabled = !cameraControlsEnabled
   }
   if (cameraHeadOffsetYInput) {
     cameraHeadOffsetYInput.value = cameraHeadOffsetY
+    cameraHeadOffsetYInput.disabled = !cameraControlsEnabled
   }
   if (cameraBodyRollOffsetXInput) {
     cameraBodyRollOffsetXInput.value = cameraBodyRollOffsetX
+    cameraBodyRollOffsetXInput.disabled = !cameraControlsEnabled
   }
   if (cameraHeadOffsetXValue) {
     cameraHeadOffsetXValue.textContent = `${cameraHeadOffsetX}%`
@@ -560,26 +583,26 @@ function updateCameraUI() {
   }
   if (cameraPreviewModeSelect) {
     cameraPreviewModeSelect.value = cameraPreviewMode
-    cameraPreviewModeSelect.disabled = !cameraSupported
+    cameraPreviewModeSelect.disabled = !cameraControlsEnabled
   }
   if (cameraBlinkToggle) {
     updateToggleButton(cameraBlinkToggle, cameraBlinkEnabled)
-    cameraBlinkToggle.disabled = !cameraSupported
+    cameraBlinkToggle.disabled = !cameraControlsEnabled
   }
   if (cameraBlinkSensitivityInput) {
     cameraBlinkSensitivityInput.value = cameraBlinkSensitivity
-    cameraBlinkSensitivityInput.disabled = !cameraSupported
+    cameraBlinkSensitivityInput.disabled = !cameraControlsEnabled || !cameraBlinkEnabled
   }
   if (cameraBlinkSensitivityValue) {
     cameraBlinkSensitivityValue.textContent = `${cameraBlinkSensitivity}%`
   }
   if (cameraMouthToggle) {
     updateToggleButton(cameraMouthToggle, cameraMouthEnabled)
-    cameraMouthToggle.disabled = !cameraSupported
+    cameraMouthToggle.disabled = !cameraControlsEnabled
   }
   if (cameraMouthSensitivityInput) {
     cameraMouthSensitivityInput.value = cameraMouthSensitivity
-    cameraMouthSensitivityInput.disabled = !cameraSupported
+    cameraMouthSensitivityInput.disabled = !cameraControlsEnabled || !cameraMouthEnabled
   }
   if (cameraMouthSensitivityValue) {
     cameraMouthSensitivityValue.textContent = `${cameraMouthSensitivity}%`
@@ -593,6 +616,16 @@ function updateCameraUI() {
       cameraStatus.textContent = ''
     }
   }
+  setSettingItemDisabled(cameraPreviewModeSelect, cameraPreviewModeSelect && cameraPreviewModeSelect.disabled)
+  setSettingItemDisabled(cameraHeadRange, cameraHeadRange && cameraHeadRange.disabled)
+  setSettingItemDisabled(cameraHeadOffsetXInput, cameraHeadOffsetXInput && cameraHeadOffsetXInput.disabled)
+  setSettingItemDisabled(cameraHeadOffsetYInput, cameraHeadOffsetYInput && cameraHeadOffsetYInput.disabled)
+  setSettingItemDisabled(cameraBodyRange, cameraBodyRange && cameraBodyRange.disabled)
+  setSettingItemDisabled(cameraBodyRollOffsetXInput, cameraBodyRollOffsetXInput && cameraBodyRollOffsetXInput.disabled)
+  setSettingItemDisabled(cameraBlinkToggle, cameraBlinkToggle && cameraBlinkToggle.disabled)
+  setSettingItemDisabled(cameraBlinkSensitivityInput, cameraBlinkSensitivityInput && cameraBlinkSensitivityInput.disabled)
+  setSettingItemDisabled(cameraMouthToggle, cameraMouthToggle && cameraMouthToggle.disabled)
+  setSettingItemDisabled(cameraMouthSensitivityInput, cameraMouthSensitivityInput && cameraMouthSensitivityInput.disabled)
   updateCameraPreviewVisibility()
 }
 

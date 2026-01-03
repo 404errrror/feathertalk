@@ -116,6 +116,17 @@ body {
   gap: 8px;
 }
 
+#settings-panel .setting-item.is-disabled span,
+#settings-panel .setting-item.is-disabled .range-values {
+  color: rgba(68, 68, 68, 0.45);
+}
+
+#settings-panel input:disabled,
+#settings-panel select:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 #settings-panel .settings-divider {
   height: 1px;
   background: rgba(0, 0, 0, 0.12);
