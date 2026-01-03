@@ -287,6 +287,8 @@ normalizeIntervalRange()
 var intervalMinInput = document.querySelector('#interval-min')
 var intervalMaxInput = document.querySelector('#interval-max')
 var intervalDisplay = document.querySelector('#interval-values')
+var intervalMinValueInput = document.querySelector('#interval-min-value')
+var intervalMaxValueInput = document.querySelector('#interval-max-value')
 var intervalRangeFill = document.querySelector('#interval-range-fill')
 var intervalRange = document.querySelector('#interval-range')
 var activeIntervalHandle = 'max'
@@ -296,6 +298,10 @@ var settingsTabs = document.querySelectorAll('[data-settings-tab]')
 var settingsGroups = document.querySelectorAll('[data-settings-group]')
 var offsetXInput = document.querySelector('#offset-x')
 var offsetYInput = document.querySelector('#offset-y')
+var thresholdInput = document.querySelector('#threshold')
+var rigInput = document.querySelector('#rig')
+var thresholdValue = document.querySelector('#threshold-value')
+var rigValue = document.querySelector('#rig-value')
 var offsetXValue = document.querySelector('#offset-x-value')
 var offsetYValue = document.querySelector('#offset-y-value')
 var cameraToggle = document.querySelector('#camera-toggle')
@@ -325,6 +331,94 @@ var currentRotate = 0
 
 function formatIntervalMs(value) {
   return (value / 1000).toFixed(1)
+}
+
+function getRangeValueInput(target) {
+  if (!target) {
+    return null
+  }
+  if (target.tagName === 'INPUT') {
+    return target
+  }
+  return target.querySelector('input')
+}
+
+function setRangeValueText(target, value) {
+  var input = getRangeValueInput(target)
+  if (input) {
+    input.value = value
+    return
+  }
+  if (target) {
+    target.textContent = value
+  }
+}
+
+function setRangeValueDisabled(target, disabled) {
+  var input = getRangeValueInput(target)
+  if (!input) {
+    return
+  }
+  input.disabled = Boolean(disabled)
+}
+
+function bindRangeValueInput(rangeInput, valueTarget, options) {
+  var textInput = getRangeValueInput(valueTarget)
+  if (!rangeInput || !textInput) {
+    return
+  }
+  var allowFloat = options && options.allowFloat
+  var scale = options && options.scale ? options.scale : 1
+  var formatter = options && options.formatter
+
+  function formatValue(value) {
+    if (formatter) {
+      return formatter(value)
+    }
+    var displayValue = value / scale
+    if (!allowFloat) {
+      displayValue = Math.round(displayValue)
+    }
+    return String(displayValue)
+  }
+
+  function commitValue() {
+    var raw = textInput.value.trim()
+    if (!raw) {
+      setRangeValueText(valueTarget, formatValue(rangeInput.value))
+      return
+    }
+    var parsed = allowFloat ? parseFloat(raw) : parseInt(raw, 10)
+    if (!Number.isFinite(parsed)) {
+      setRangeValueText(valueTarget, formatValue(rangeInput.value))
+      return
+    }
+    var nextValue = parsed * scale
+    var minValue = parseFloat(rangeInput.min)
+    var maxValue = parseFloat(rangeInput.max)
+    if (Number.isFinite(minValue)) {
+      nextValue = Math.max(minValue, nextValue)
+    }
+    if (Number.isFinite(maxValue)) {
+      nextValue = Math.min(maxValue, nextValue)
+    }
+    if (!allowFloat) {
+      nextValue = Math.round(nextValue)
+    }
+    rangeInput.value = nextValue
+    rangeInput.dispatchEvent(new Event('input', { bubbles: true }))
+    rangeInput.dispatchEvent(new Event('change', { bubbles: true }))
+    setRangeValueText(valueTarget, formatValue(rangeInput.value))
+  }
+
+  textInput.addEventListener('change', commitValue)
+  textInput.addEventListener('blur', commitValue)
+  textInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      commitValue()
+      textInput.blur()
+    }
+  })
 }
 
 function updateIntervalHandleZ() {
@@ -381,8 +475,11 @@ function updateIntervalUI() {
   if (intervalMaxInput) {
     intervalMaxInput.value = intervalMax
   }
-  if (intervalDisplay) {
-    intervalDisplay.textContent = `[${formatIntervalMs(intervalMin)}]~[${formatIntervalMs(intervalMax)}]s`
+  if (intervalMinValueInput) {
+    intervalMinValueInput.value = formatIntervalMs(intervalMin)
+  }
+  if (intervalMaxValueInput) {
+    intervalMaxValueInput.value = formatIntervalMs(intervalMax)
   }
   if (intervalRangeFill) {
     var rangeSpan = intervalLimitMax - intervalLimitMin
@@ -394,6 +491,47 @@ function updateIntervalUI() {
   updateIntervalHandleZ()
 }
 
+function bindIntervalValueInput(input, handle) {
+  if (!input) {
+    return
+  }
+
+  function commitIntervalValue() {
+    var raw = input.value.trim()
+    if (!raw) {
+      updateIntervalUI()
+      return
+    }
+    var parsed = parseFloat(raw)
+    if (!Number.isFinite(parsed)) {
+      updateIntervalUI()
+      return
+    }
+    var nextValue = Math.round(parsed * 1000)
+    if (handle === 'min') {
+      setIntervalHandleActive('min')
+      intervalMin = nextValue
+      clampIntervalRange('min')
+    } else {
+      setIntervalHandleActive('max')
+      intervalMax = nextValue
+      clampIntervalRange('max')
+    }
+    localStorage.setItem('ftIntervalMin', intervalMin)
+    localStorage.setItem('ftIntervalMax', intervalMax)
+    updateIntervalUI()
+  }
+
+  input.addEventListener('change', commitIntervalValue)
+  input.addEventListener('blur', commitIntervalValue)
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      commitIntervalValue()
+      input.blur()
+    }
+  })
+}
+
 function updateOffsetUI() {
   if (offsetXInput) {
     offsetXInput.value = offsetX
@@ -401,12 +539,22 @@ function updateOffsetUI() {
   if (offsetYInput) {
     offsetYInput.value = offsetY
   }
-  if (offsetXValue) {
-    offsetXValue.textContent = `${offsetX}px`
+  setRangeValueText(offsetXValue, offsetX)
+  setRangeValueText(offsetYValue, offsetY)
+}
+
+function updateThresholdUI() {
+  if (thresholdInput) {
+    thresholdInput.value = thres
   }
-  if (offsetYValue) {
-    offsetYValue.textContent = `${offsetY}px`
+  setRangeValueText(thresholdValue, thres)
+}
+
+function updateRigUI() {
+  if (rigInput) {
+    rigInput.value = rig
   }
+  setRangeValueText(rigValue, rig)
 }
 
 function updateToggleButton(button, enabled) {
@@ -547,14 +695,14 @@ function updateCameraUI() {
     cameraHeadRange.disabled = !cameraControlsEnabled
   }
   if (cameraHeadRangeValue) {
-    cameraHeadRangeValue.textContent = `${cameraHeadStrength}%`
+    setRangeValueText(cameraHeadRangeValue, cameraHeadStrength)
   }
   if (cameraBodyRange) {
     cameraBodyRange.value = cameraBodyStrength
     cameraBodyRange.disabled = !cameraControlsEnabled
   }
   if (cameraBodyRangeValue) {
-    cameraBodyRangeValue.textContent = `${cameraBodyStrength}%`
+    setRangeValueText(cameraBodyRangeValue, cameraBodyStrength)
   }
   if (cameraHeadOffsetXInput) {
     cameraHeadOffsetXInput.value = cameraHeadOffsetX
@@ -569,13 +717,13 @@ function updateCameraUI() {
     cameraBodyRollOffsetXInput.disabled = !cameraControlsEnabled
   }
   if (cameraHeadOffsetXValue) {
-    cameraHeadOffsetXValue.textContent = `${cameraHeadOffsetX}%`
+    setRangeValueText(cameraHeadOffsetXValue, cameraHeadOffsetX)
   }
   if (cameraHeadOffsetYValue) {
-    cameraHeadOffsetYValue.textContent = `${cameraHeadOffsetY}%`
+    setRangeValueText(cameraHeadOffsetYValue, cameraHeadOffsetY)
   }
   if (cameraBodyRollOffsetXValue) {
-    cameraBodyRollOffsetXValue.textContent = `${cameraBodyRollOffsetX}%`
+    setRangeValueText(cameraBodyRollOffsetXValue, cameraBodyRollOffsetX)
   }
   if (cameraToggle) {
     updateToggleButton(cameraToggle, cameraEnabled)
@@ -594,7 +742,7 @@ function updateCameraUI() {
     cameraBlinkSensitivityInput.disabled = !cameraControlsEnabled || !cameraBlinkEnabled
   }
   if (cameraBlinkSensitivityValue) {
-    cameraBlinkSensitivityValue.textContent = `${cameraBlinkSensitivity}%`
+    setRangeValueText(cameraBlinkSensitivityValue, cameraBlinkSensitivity)
   }
   if (cameraMouthToggle) {
     updateToggleButton(cameraMouthToggle, cameraMouthEnabled)
@@ -605,7 +753,7 @@ function updateCameraUI() {
     cameraMouthSensitivityInput.disabled = !cameraControlsEnabled || !cameraMouthEnabled
   }
   if (cameraMouthSensitivityValue) {
-    cameraMouthSensitivityValue.textContent = `${cameraMouthSensitivity}%`
+    setRangeValueText(cameraMouthSensitivityValue, cameraMouthSensitivity)
   }
   if (cameraStatus) {
     if (cameraStatusMessage) {
@@ -626,6 +774,13 @@ function updateCameraUI() {
   setSettingItemDisabled(cameraBlinkSensitivityInput, cameraBlinkSensitivityInput && cameraBlinkSensitivityInput.disabled)
   setSettingItemDisabled(cameraMouthToggle, cameraMouthToggle && cameraMouthToggle.disabled)
   setSettingItemDisabled(cameraMouthSensitivityInput, cameraMouthSensitivityInput && cameraMouthSensitivityInput.disabled)
+  setRangeValueDisabled(cameraHeadRangeValue, cameraHeadRange && cameraHeadRange.disabled)
+  setRangeValueDisabled(cameraBodyRangeValue, cameraBodyRange && cameraBodyRange.disabled)
+  setRangeValueDisabled(cameraHeadOffsetXValue, cameraHeadOffsetXInput && cameraHeadOffsetXInput.disabled)
+  setRangeValueDisabled(cameraHeadOffsetYValue, cameraHeadOffsetYInput && cameraHeadOffsetYInput.disabled)
+  setRangeValueDisabled(cameraBodyRollOffsetXValue, cameraBodyRollOffsetXInput && cameraBodyRollOffsetXInput.disabled)
+  setRangeValueDisabled(cameraBlinkSensitivityValue, cameraBlinkSensitivityInput && cameraBlinkSensitivityInput.disabled)
+  setRangeValueDisabled(cameraMouthSensitivityValue, cameraMouthSensitivityInput && cameraMouthSensitivityInput.disabled)
   updateCameraPreviewVisibility()
 }
 
@@ -678,7 +833,23 @@ bindIntervalHandleEvents(intervalMinInput, 'min')
 bindIntervalHandleEvents(intervalMaxInput, 'max')
 updateIntervalUI()
 updateOffsetUI()
+updateThresholdUI()
+updateRigUI()
 updateCameraUI()
+
+bindIntervalValueInput(intervalMinValueInput, 'min')
+bindIntervalValueInput(intervalMaxValueInput, 'max')
+bindRangeValueInput(thresholdInput, thresholdValue)
+bindRangeValueInput(rigInput, rigValue)
+bindRangeValueInput(offsetXInput, offsetXValue)
+bindRangeValueInput(offsetYInput, offsetYValue)
+bindRangeValueInput(cameraHeadRange, cameraHeadRangeValue)
+bindRangeValueInput(cameraBodyRange, cameraBodyRangeValue)
+bindRangeValueInput(cameraHeadOffsetXInput, cameraHeadOffsetXValue)
+bindRangeValueInput(cameraHeadOffsetYInput, cameraHeadOffsetYValue)
+bindRangeValueInput(cameraBodyRollOffsetXInput, cameraBodyRollOffsetXValue)
+bindRangeValueInput(cameraBlinkSensitivityInput, cameraBlinkSensitivityValue)
+bindRangeValueInput(cameraMouthSensitivityInput, cameraMouthSensitivityValue)
 applyCharacterTransform()
 
 if (settingsToggle && settingsPanel) {
@@ -715,15 +886,23 @@ if (settingsTabs.length && settingsGroups.length) {
 var randomX = document.body.clientWidth/2; 
 var randomY= document.body.clientHeight/2;
 
-document.querySelector('#threshold').addEventListener('change', function(e){
-  thres = e.target.value
-  localStorage.setItem('ftThres', thres)
-})
+if (thresholdInput) {
+  thresholdInput.addEventListener('change', function(e){
+    var nextValue = parseInt(e.target.value, 10)
+    thres = Number.isFinite(nextValue) ? nextValue : thres
+    localStorage.setItem('ftThres', thres)
+    updateThresholdUI()
+  })
+}
 
-document.querySelector('#rig').addEventListener('change', function(e){
-  rig = e.target.value
-  localStorage.setItem('ftRig', rig)
-})
+if (rigInput) {
+  rigInput.addEventListener('change', function(e){
+    var nextValue = parseInt(e.target.value, 10)
+    rig = Number.isFinite(nextValue) ? nextValue : rig
+    localStorage.setItem('ftRig', rig)
+    updateRigUI()
+  })
+}
 
 document.querySelector('#color').addEventListener('change', function(e){
   document.body.setAttribute('style', `background: ${e.target.value};`)
