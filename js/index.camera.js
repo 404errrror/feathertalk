@@ -67,6 +67,15 @@ async function startCameraTracking() {
   if (!cameraSupported || cameraStream) {
     return
   }
+  var confirmed = window.confirm('카메라 권한을 요청합니다.\n카메라에 비친 사람이 브라우저 화면에 표시될 수 있습니다.\n방송 중이면 실제 얼굴이 노출될 수 있으니 주의하세요.\n계속하시겠습니까?')
+  if (!confirmed) {
+    cameraEnabled = false
+    localStorage.setItem('ftCameraEnabled', 'false')
+    setCameraStatus('카메라 권한 요청 취소')
+    updateCameraUI()
+    scheduleAutoRigFromPointer(lastX || document.body.clientWidth / 2, lastY || document.body.clientHeight / 2)
+    return
+  }
   try {
     cameraStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'user' }

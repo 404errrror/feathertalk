@@ -681,7 +681,7 @@ if (cameraPreviewModeSelect) {
   cameraPreviewModeSelect.addEventListener('change', function(e) {
     var nextMode = e.target.value
     if (nextMode !== 'off' && cameraPreviewMode === 'off') {
-      var confirmed = window.confirm('화면에 실제 얼굴이 표시됩니다!!!\n활성화 시키겠습니까?!')
+      var confirmed = window.confirm('카메라에 비친 사람이 브라우저 화면에 표시될 수 있습니다.\n방송 중이면 실제 얼굴이 노출될 수 있으니 주의하세요.\n계속하시겠습니까?')
       if (!confirmed) {
         cameraPreviewMode = 'off'
         localStorage.setItem('ftCameraPreviewMode', cameraPreviewMode)
