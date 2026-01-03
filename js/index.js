@@ -1,8 +1,11 @@
 ﻿var thres = 30
 if (localStorage.getItem('ftThres')) {
-  thres = parseInt(localStorage.getItem('ftThres'))
-  document.querySelector('#threshold').value=thres
+  thres = parseInt(localStorage.getItem('ftThres'), 10)
 }
+if (!Number.isFinite(thres)) {
+  thres = 30
+}
+thres = Math.min(100, Math.max(0, thres))
 
 var rig = 100
 if (localStorage.getItem('ftRig')) {
@@ -329,6 +332,19 @@ var cameraPreviewOverlay = document.querySelector('#camera-preview-overlay')
 var character = document.querySelector('#character')
 var currentRotate = 0
 
+function getMicSensitivityValue() {
+  return Math.min(100, Math.max(0, 100 - thres))
+}
+
+function setMicSensitivityValue(value) {
+  if (!Number.isFinite(value)) {
+    return
+  }
+  var clamped = Math.min(100, Math.max(0, Math.round(value)))
+  thres = 100 - clamped
+  localStorage.setItem('ftThres', thres)
+}
+
 function formatIntervalMs(value) {
   return (value / 1000).toFixed(1)
 }
@@ -544,10 +560,11 @@ function updateOffsetUI() {
 }
 
 function updateThresholdUI() {
+  var sensitivityValue = getMicSensitivityValue()
   if (thresholdInput) {
-    thresholdInput.value = thres
+    thresholdInput.value = sensitivityValue
   }
-  setRangeValueText(thresholdValue, thres)
+  setRangeValueText(thresholdValue, sensitivityValue)
 }
 
 function updateRigUI() {
@@ -889,8 +906,11 @@ var randomY= document.body.clientHeight/2;
 if (thresholdInput) {
   thresholdInput.addEventListener('change', function(e){
     var nextValue = parseInt(e.target.value, 10)
-    thres = Number.isFinite(nextValue) ? nextValue : thres
-    localStorage.setItem('ftThres', thres)
+    if (!Number.isFinite(nextValue)) {
+      updateThresholdUI()
+      return
+    }
+    setMicSensitivityValue(nextValue)
     updateThresholdUI()
   })
 }
