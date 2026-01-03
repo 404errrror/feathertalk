@@ -23,15 +23,8 @@ var faceMeshLoading = false
 var faceMeshPromise = null
 var faceMeshYawGain = 2.2
 var faceMeshPitchGain = 3.4
+var faceMeshPitchOffset = -2.0
 var cameraBodyRollGain = 2.0
-var faceMeshPitchBaseline = 0
-var faceMeshPitchBaselineReady = false
-var faceMeshPitchBaselineSum = 0
-var faceMeshPitchBaselineFrames = 0
-var faceMeshPitchBaselineMinFrames = 12
-var faceMeshPitchBaselineSmooth = 0.02
-var faceMeshPitchBaselineStableX = 0.2
-var faceMeshPitchBaselineStableY = 0.25
 var faceMeshMinConfidence = 0.5
 var faceMeshTrackingConfidence = 0.5
 var faceMeshOverlayStep = 2
@@ -125,7 +118,6 @@ async function startCameraTracking() {
   }
   updateCameraPreviewVisibility()
 
-  resetFaceMeshPitchBaseline()
   loadFaceMesh().then(function() {
     if (!cameraEnabled) {
       return
@@ -151,7 +143,6 @@ function stopCameraTracking() {
   cameraHasPosition = false
   cameraHasRoll = false
   cameraLastRollX = 0
-  resetFaceMeshPitchBaseline()
   motionPrevFrame = null
   cameraTargetReady = false
   cameraBlinkActive = false
@@ -270,35 +261,6 @@ function loadFaceMesh() {
   return faceMeshPromise
 }
 
-function resetFaceMeshPitchBaseline() {
-  faceMeshPitchBaseline = 0
-  faceMeshPitchBaselineReady = false
-  faceMeshPitchBaselineSum = 0
-  faceMeshPitchBaselineFrames = 0
-}
-
-function updateFaceMeshPitchBaseline(rawX, rawY) {
-  if (!Number.isFinite(rawX) || !Number.isFinite(rawY)) {
-    return
-  }
-  var stable = Math.abs(rawX) <= faceMeshPitchBaselineStableX && Math.abs(rawY) <= faceMeshPitchBaselineStableY
-  if (!stable) {
-    faceMeshPitchBaselineSum = 0
-    faceMeshPitchBaselineFrames = 0
-    return
-  }
-  if (!faceMeshPitchBaselineReady) {
-    faceMeshPitchBaselineSum += rawY
-    faceMeshPitchBaselineFrames += 1
-    if (faceMeshPitchBaselineFrames >= faceMeshPitchBaselineMinFrames) {
-      faceMeshPitchBaseline = faceMeshPitchBaselineSum / faceMeshPitchBaselineFrames
-      faceMeshPitchBaselineReady = true
-    }
-    return
-  }
-  faceMeshPitchBaseline += (rawY - faceMeshPitchBaseline) * faceMeshPitchBaselineSmooth
-}
-
 function applyCameraDeadzone(value, zone) {
   var absValue = Math.abs(value)
   if (absValue <= zone) {
@@ -321,6 +283,10 @@ function applyCameraOffset(offsetX, offsetY, rollX, deltaMs) {
     adjustedX = -adjustedX
     adjustedRollX = -adjustedRollX
   }
+  if (cameraMode === 'face-mesh') {
+    adjustedX += cameraHeadOffsetX / 100
+    adjustedY += cameraHeadOffsetY / 100
+  }
   adjustedX = Math.max(-1, Math.min(1, adjustedX))
   adjustedY = Math.max(-1, Math.min(1, adjustedY))
   adjustedRollX = Math.max(-1, Math.min(1, adjustedRollX))
@@ -329,8 +295,8 @@ function applyCameraOffset(offsetX, offsetY, rollX, deltaMs) {
   var targetX = (adjustedX + 1) / 2 * width
   var targetY = (adjustedY + 1) / 2 * height
   var rollTargetX = (adjustedRollX + 1) / 2 * width
-  var pixelOffsetX = (cameraHeadOffsetX / 100) * (width / 2)
-  var pixelOffsetY = (cameraHeadOffsetY / 100) * (height / 2)
+  var pixelOffsetX = cameraMode === 'face-mesh' ? 0 : (cameraHeadOffsetX / 100) * (width / 2)
+  var pixelOffsetY = cameraMode === 'face-mesh' ? 0 : (cameraHeadOffsetY / 100) * (height / 2)
   var rollOffsetX = (cameraBodyRollOffsetX / 100) * (width / 2)
   targetX = Math.max(0, Math.min(width, targetX + pixelOffsetX))
   targetY = Math.max(0, Math.min(height, targetY + pixelOffsetY))
@@ -563,13 +529,9 @@ function onFaceMeshResults(results) {
   var rawX = (noseTip.x - midX) / eyeDist
   var rawY = (noseTip.y - midY) / eyeDist
   var positionX = (midX - 0.5) * 2
-  updateFaceMeshPitchBaseline(rawX, rawY)
-  var pitchBaseline = faceMeshPitchBaselineReady
-    ? faceMeshPitchBaseline
-    : (faceMeshPitchBaselineFrames ? faceMeshPitchBaselineSum / faceMeshPitchBaselineFrames : 0)
-  var adjustedRawY = rawY - pitchBaseline
-  var offsetX = Math.max(-1, Math.min(1, rawX * faceMeshYawGain))
-  var offsetY = Math.max(-1, Math.min(1, adjustedRawY * faceMeshPitchGain))
+  var adjustedRawY = rawY
+  var offsetX = rawX * faceMeshYawGain
+  var offsetY = adjustedRawY * faceMeshPitchGain + faceMeshPitchOffset
   var rollX = Math.max(-1, Math.min(1, positionX))
   updateCameraTarget(offsetX, offsetY, rollX)
   updateCameraBlinkState(landmarks)
