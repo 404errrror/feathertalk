@@ -293,6 +293,10 @@ function applyPreset(index) {
 applyPreset(0)
 
 window.addEventListener('keydown', function(e) {
+  var target = e.target
+  if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable)) {
+    return
+  }
   const digit = parseInt(e.key, 10)
   if (Number.isNaN(digit)) {
     return
