@@ -19,6 +19,7 @@ body {
     width: 100vw;
     background-color: #00ff00;
     color: #444;
+    overflow: hidden;
 }
 
 #settings {
