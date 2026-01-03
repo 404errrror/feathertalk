@@ -63,20 +63,55 @@ if (!Number.isFinite(cameraStrength)) {
   cameraStrength = 100
 }
 
-var cameraOffsetX = 0
-if (localStorage.getItem('ftCameraOffsetX')) {
-  cameraOffsetX = parseInt(localStorage.getItem('ftCameraOffsetX'), 10)
+var cameraHeadOffsetX = 0
+var storedHeadOffsetX = localStorage.getItem('ftCameraHeadOffsetX')
+if (storedHeadOffsetX != null) {
+  cameraHeadOffsetX = parseInt(storedHeadOffsetX, 10)
+} else {
+  var legacyHeadOffsetX = localStorage.getItem('ftCameraOffsetX')
+  if (legacyHeadOffsetX != null) {
+    cameraHeadOffsetX = parseInt(legacyHeadOffsetX, 10)
+    if (Number.isFinite(cameraHeadOffsetX)) {
+      localStorage.setItem('ftCameraHeadOffsetX', cameraHeadOffsetX)
+    }
+  }
 }
-if (!Number.isFinite(cameraOffsetX)) {
-  cameraOffsetX = 0
+if (!Number.isFinite(cameraHeadOffsetX)) {
+  cameraHeadOffsetX = 0
 }
 
-var cameraOffsetY = 0
-if (localStorage.getItem('ftCameraOffsetY')) {
-  cameraOffsetY = parseInt(localStorage.getItem('ftCameraOffsetY'), 10)
+var cameraHeadOffsetY = 0
+var storedHeadOffsetY = localStorage.getItem('ftCameraHeadOffsetY')
+if (storedHeadOffsetY != null) {
+  cameraHeadOffsetY = parseInt(storedHeadOffsetY, 10)
+} else {
+  var legacyHeadOffsetY = localStorage.getItem('ftCameraOffsetY')
+  if (legacyHeadOffsetY != null) {
+    cameraHeadOffsetY = parseInt(legacyHeadOffsetY, 10)
+    if (Number.isFinite(cameraHeadOffsetY)) {
+      localStorage.setItem('ftCameraHeadOffsetY', cameraHeadOffsetY)
+    }
+  }
 }
-if (!Number.isFinite(cameraOffsetY)) {
-  cameraOffsetY = 0
+if (!Number.isFinite(cameraHeadOffsetY)) {
+  cameraHeadOffsetY = 0
+}
+
+var cameraBodyRollOffsetX = 0
+var storedBodyRollOffsetX = localStorage.getItem('ftCameraBodyRollOffsetX')
+if (storedBodyRollOffsetX != null) {
+  cameraBodyRollOffsetX = parseInt(storedBodyRollOffsetX, 10)
+} else {
+  var legacyBodyRollOffsetX = localStorage.getItem('ftCameraOffsetX')
+  if (legacyBodyRollOffsetX != null) {
+    cameraBodyRollOffsetX = parseInt(legacyBodyRollOffsetX, 10)
+    if (Number.isFinite(cameraBodyRollOffsetX)) {
+      localStorage.setItem('ftCameraBodyRollOffsetX', cameraBodyRollOffsetX)
+    }
+  }
+}
+if (!Number.isFinite(cameraBodyRollOffsetX)) {
+  cameraBodyRollOffsetX = 0
 }
 
 var cameraBlinkEnabled = false
@@ -248,10 +283,12 @@ var cameraBlinkSensitivityValue = document.querySelector('#camera-blink-sensitiv
 var cameraMouthToggle = document.querySelector('#camera-mouth-toggle')
 var cameraMouthSensitivityInput = document.querySelector('#camera-mouth-sensitivity')
 var cameraMouthSensitivityValue = document.querySelector('#camera-mouth-sensitivity-value')
-var cameraOffsetXInput = document.querySelector('#camera-offset-x')
-var cameraOffsetYInput = document.querySelector('#camera-offset-y')
-var cameraOffsetXValue = document.querySelector('#camera-offset-x-value')
-var cameraOffsetYValue = document.querySelector('#camera-offset-y-value')
+var cameraHeadOffsetXInput = document.querySelector('#camera-head-offset-x')
+var cameraHeadOffsetYInput = document.querySelector('#camera-head-offset-y')
+var cameraBodyRollOffsetXInput = document.querySelector('#camera-body-roll-offset-x')
+var cameraHeadOffsetXValue = document.querySelector('#camera-head-offset-x-value')
+var cameraHeadOffsetYValue = document.querySelector('#camera-head-offset-y-value')
+var cameraBodyRollOffsetXValue = document.querySelector('#camera-body-roll-offset-x-value')
 var cameraPreview = document.querySelector('#camera-preview')
 var cameraPreviewVideo = document.querySelector('#camera-preview-video')
 var cameraPreviewOverlay = document.querySelector('#camera-preview-overlay')
@@ -465,17 +502,23 @@ function updateCameraUI() {
   if (cameraRangeValue) {
     cameraRangeValue.textContent = `${cameraStrength}%`
   }
-  if (cameraOffsetXInput) {
-    cameraOffsetXInput.value = cameraOffsetX
+  if (cameraHeadOffsetXInput) {
+    cameraHeadOffsetXInput.value = cameraHeadOffsetX
   }
-  if (cameraOffsetYInput) {
-    cameraOffsetYInput.value = cameraOffsetY
+  if (cameraHeadOffsetYInput) {
+    cameraHeadOffsetYInput.value = cameraHeadOffsetY
   }
-  if (cameraOffsetXValue) {
-    cameraOffsetXValue.textContent = `${cameraOffsetX}%`
+  if (cameraBodyRollOffsetXInput) {
+    cameraBodyRollOffsetXInput.value = cameraBodyRollOffsetX
   }
-  if (cameraOffsetYValue) {
-    cameraOffsetYValue.textContent = `${cameraOffsetY}%`
+  if (cameraHeadOffsetXValue) {
+    cameraHeadOffsetXValue.textContent = `${cameraHeadOffsetX}%`
+  }
+  if (cameraHeadOffsetYValue) {
+    cameraHeadOffsetYValue.textContent = `${cameraHeadOffsetY}%`
+  }
+  if (cameraBodyRollOffsetXValue) {
+    cameraBodyRollOffsetXValue.textContent = `${cameraBodyRollOffsetX}%`
   }
   if (cameraToggle) {
     updateToggleButton(cameraToggle, cameraEnabled)
@@ -650,20 +693,29 @@ if (cameraRange) {
   })
 }
 
-if (cameraOffsetXInput) {
-  cameraOffsetXInput.addEventListener('input', function(e) {
+if (cameraHeadOffsetXInput) {
+  cameraHeadOffsetXInput.addEventListener('input', function(e) {
     var nextValue = parseInt(e.target.value, 10)
-    cameraOffsetX = Number.isFinite(nextValue) ? nextValue : 0
-    localStorage.setItem('ftCameraOffsetX', cameraOffsetX)
+    cameraHeadOffsetX = Number.isFinite(nextValue) ? nextValue : 0
+    localStorage.setItem('ftCameraHeadOffsetX', cameraHeadOffsetX)
     updateCameraUI()
   })
 }
 
-if (cameraOffsetYInput) {
-  cameraOffsetYInput.addEventListener('input', function(e) {
+if (cameraHeadOffsetYInput) {
+  cameraHeadOffsetYInput.addEventListener('input', function(e) {
     var nextValue = parseInt(e.target.value, 10)
-    cameraOffsetY = Number.isFinite(nextValue) ? nextValue : 0
-    localStorage.setItem('ftCameraOffsetY', cameraOffsetY)
+    cameraHeadOffsetY = Number.isFinite(nextValue) ? nextValue : 0
+    localStorage.setItem('ftCameraHeadOffsetY', cameraHeadOffsetY)
+    updateCameraUI()
+  })
+}
+
+if (cameraBodyRollOffsetXInput) {
+  cameraBodyRollOffsetXInput.addEventListener('input', function(e) {
+    var nextValue = parseInt(e.target.value, 10)
+    cameraBodyRollOffsetX = Number.isFinite(nextValue) ? nextValue : 0
+    localStorage.setItem('ftCameraBodyRollOffsetX', cameraBodyRollOffsetX)
     updateCameraUI()
   })
 }

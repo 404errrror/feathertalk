@@ -325,11 +325,12 @@ function applyCameraOffset(offsetX, offsetY, rollX, deltaMs) {
   var targetX = (adjustedX + 1) / 2 * width
   var targetY = (adjustedY + 1) / 2 * height
   var rollTargetX = (adjustedRollX + 1) / 2 * width
-  var pixelOffsetX = (cameraOffsetX / 100) * (width / 2)
-  var pixelOffsetY = (cameraOffsetY / 100) * (height / 2)
+  var pixelOffsetX = (cameraHeadOffsetX / 100) * (width / 2)
+  var pixelOffsetY = (cameraHeadOffsetY / 100) * (height / 2)
+  var rollOffsetX = (cameraBodyRollOffsetX / 100) * (width / 2)
   targetX = Math.max(0, Math.min(width, targetX + pixelOffsetX))
   targetY = Math.max(0, Math.min(height, targetY + pixelOffsetY))
-  rollTargetX = Math.max(0, Math.min(width, rollTargetX + pixelOffsetX))
+  rollTargetX = Math.max(0, Math.min(width, rollTargetX + rollOffsetX))
 
   var baseSmoothing = cameraMode === 'motion' ? 0.12 : cameraSmoothing
   var smoothing = baseSmoothing
