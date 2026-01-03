@@ -9,9 +9,9 @@
     <meta name="summary" content="저사양 유저를 겨냥한 움직이는 버츄얼 캐릭터">
     <link rel="icon" type="image/x-icon" href="assets/icon.png">
     <link rel="stylesheet" media="screen" href="css/main.css?v=0.0.1">
-    <meta property="og:image" content="assets/icon.png" /> 
-    <meta property="og:title" content="Feather-Talk" /> 
-    <meta property="og:description" content="저사양 유저를 겨냥한 움직이는 버츄얼 캐릭터" /> 
+    <meta property="og:image" content="assets/icon.png" />
+    <meta property="og:title" content="Feather-Talk" />
+    <meta property="og:description" content="저사양 유저를 겨냥한 움직이는 버츄얼 캐릭터" />
 </head>
 <body>
 
@@ -79,17 +79,56 @@
           <option value="facemesh">FaceMesh 표시</option>
         </select>
       </div>
+      <div class="settings-divider" role="separator" aria-hidden="true"></div>
+      <div class="setting-item">
+        <div class="range-header">
+          <span>얼굴 회전 감도</span>
+          <div class="range-values" id="camera-head-range-value">100%</div>
+        </div>
+        <input id="camera-head-range" type="range" value="100" min="50" max="200">
+      </div>
+      <div class="setting-item">
+        <div class="range-header">
+          <span>얼굴 좌우 회전 오프셋</span>
+          <div class="range-values" id="camera-head-offset-x-value">0%</div>
+        </div>
+        <input id="camera-head-offset-x" type="range" value="0" min="-100" max="100">
+      </div>
+      <div class="setting-item">
+        <div class="range-header">
+          <span>얼굴 상하 회전 오프셋</span>
+          <div class="range-values" id="camera-head-offset-y-value">0%</div>
+        </div>
+        <input id="camera-head-offset-y" type="range" value="0" min="-100" max="100">
+      </div>
+      <div class="settings-divider" role="separator" aria-hidden="true"></div>
+      <div class="setting-item">
+        <div class="range-header">
+          <span>몸 회전 감도</span>
+          <div class="range-values" id="camera-body-range-value">100%</div>
+        </div>
+        <input id="camera-body-range" type="range" value="100" min="50" max="200">
+      </div>
+      <div class="setting-item">
+        <div class="range-header">
+          <span>몸 좌우 회전 오프셋</span>
+          <div class="range-values" id="camera-body-roll-offset-x-value">0%</div>
+        </div>
+        <input id="camera-body-roll-offset-x" type="range" value="0" min="-100" max="100">
+      </div>
+      <div class="settings-divider" role="separator" aria-hidden="true"></div>
       <div class="setting-item setting-item--inline">
         <span>눈 깜빡임 추적</span>
         <button class="toggle-button" id="camera-blink-toggle" type="button" aria-pressed="false" data-off-label="자동" data-on-label="카메라">자동</button>
       </div>
       <div class="setting-item">
         <div class="range-header">
-          <span>깜빡임 민감도</span>
+          <span>눈 깜빡임 민감도</span>
           <div class="range-values" id="camera-blink-sensitivity-value">100%</div>
         </div>
         <input id="camera-blink-sensitivity" type="range" value="100" min="60" max="140">
       </div>
+      <div class="settings-divider" role="separator" aria-hidden="true"></div>
       <div class="setting-item setting-item--inline">
         <span>입 추적</span>
         <button class="toggle-button" id="camera-mouth-toggle" type="button" aria-pressed="false" data-off-label="마이크" data-on-label="카메라">마이크</button>
@@ -100,41 +139,6 @@
           <div class="range-values" id="camera-mouth-sensitivity-value">100%</div>
         </div>
         <input id="camera-mouth-sensitivity" type="range" value="100" min="60" max="140">
-      </div>
-      <div class="setting-item">
-        <div class="range-header">
-          <span>얼굴 회전 감도</span>
-          <div class="range-values" id="camera-head-range-value">100%</div>
-        </div>
-        <input id="camera-head-range" type="range" value="100" min="50" max="200">
-      </div>
-      <div class="setting-item">
-        <div class="range-header">
-          <span>몸 회전 감도</span>
-          <div class="range-values" id="camera-body-range-value">100%</div>
-        </div>
-        <input id="camera-body-range" type="range" value="100" min="50" max="200">
-      </div>
-      <div class="setting-item">
-        <div class="range-header">
-          <span>머리 좌우 회전 오프셋</span>
-          <div class="range-values" id="camera-head-offset-x-value">0%</div>
-        </div>
-        <input id="camera-head-offset-x" type="range" value="0" min="-100" max="100">
-      </div>
-      <div class="setting-item">
-        <div class="range-header">
-          <span>머리 상하 회전 오프셋</span>
-          <div class="range-values" id="camera-head-offset-y-value">0%</div>
-        </div>
-        <input id="camera-head-offset-y" type="range" value="0" min="-100" max="100">
-      </div>
-      <div class="setting-item">
-        <div class="range-header">
-          <span>몸 좌우 회전 오프셋</span>
-          <div class="range-values" id="camera-body-roll-offset-x-value">0%</div>
-        </div>
-        <input id="camera-body-roll-offset-x" type="range" value="0" min="-100" max="100">
       </div>
     </div>
   </div>

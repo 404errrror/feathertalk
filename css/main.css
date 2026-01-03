@@ -116,6 +116,12 @@ body {
   gap: 8px;
 }
 
+#settings-panel .settings-divider {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.12);
+  margin: -8px 0;
+}
+
 #settings-panel .setting-item--inline {
   flex-direction: row;
   align-items: center;
