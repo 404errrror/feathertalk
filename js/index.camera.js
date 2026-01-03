@@ -3,8 +3,10 @@ var cameraStream = null
 var cameraTimer = null
 var cameraDetecting = false
 var cameraHasPosition = false
+var cameraHasRoll = false
 var cameraLastX = 0
 var cameraLastY = 0
+var cameraLastRollX = 0
 var cameraIntervalMs = 60
 var cameraSmoothing = 0.18
 var cameraInvertX = false
@@ -21,6 +23,14 @@ var faceMeshLoading = false
 var faceMeshPromise = null
 var faceMeshYawGain = 2.2
 var faceMeshPitchGain = 3.4
+var faceMeshPitchBaseline = 0
+var faceMeshPitchBaselineReady = false
+var faceMeshPitchBaselineSum = 0
+var faceMeshPitchBaselineFrames = 0
+var faceMeshPitchBaselineMinFrames = 12
+var faceMeshPitchBaselineSmooth = 0.02
+var faceMeshPitchBaselineStableX = 0.2
+var faceMeshPitchBaselineStableY = 0.25
 var faceMeshMinConfidence = 0.5
 var faceMeshTrackingConfidence = 0.5
 var faceMeshOverlayStep = 2
@@ -31,6 +41,7 @@ var faceMeshOverlayPointColor = 'rgba(255, 255, 255, 0.85)'
 var cameraAnimationId = null
 var cameraTargetOffsetX = 0
 var cameraTargetOffsetY = 0
+var cameraTargetRollX = 0
 var cameraTargetReady = false
 var cameraLastApplyTime = 0
 var cameraPreviewBound = false
@@ -113,6 +124,7 @@ async function startCameraTracking() {
   }
   updateCameraPreviewVisibility()
 
+  resetFaceMeshPitchBaseline()
   loadFaceMesh().then(function() {
     if (!cameraEnabled) {
       return
@@ -136,6 +148,9 @@ function stopCameraTracking() {
   }
   cameraDetecting = false
   cameraHasPosition = false
+  cameraHasRoll = false
+  cameraLastRollX = 0
+  resetFaceMeshPitchBaseline()
   motionPrevFrame = null
   cameraTargetReady = false
   cameraBlinkActive = false
@@ -254,6 +269,35 @@ function loadFaceMesh() {
   return faceMeshPromise
 }
 
+function resetFaceMeshPitchBaseline() {
+  faceMeshPitchBaseline = 0
+  faceMeshPitchBaselineReady = false
+  faceMeshPitchBaselineSum = 0
+  faceMeshPitchBaselineFrames = 0
+}
+
+function updateFaceMeshPitchBaseline(rawX, rawY) {
+  if (!Number.isFinite(rawX) || !Number.isFinite(rawY)) {
+    return
+  }
+  var stable = Math.abs(rawX) <= faceMeshPitchBaselineStableX && Math.abs(rawY) <= faceMeshPitchBaselineStableY
+  if (!stable) {
+    faceMeshPitchBaselineSum = 0
+    faceMeshPitchBaselineFrames = 0
+    return
+  }
+  if (!faceMeshPitchBaselineReady) {
+    faceMeshPitchBaselineSum += rawY
+    faceMeshPitchBaselineFrames += 1
+    if (faceMeshPitchBaselineFrames >= faceMeshPitchBaselineMinFrames) {
+      faceMeshPitchBaseline = faceMeshPitchBaselineSum / faceMeshPitchBaselineFrames
+      faceMeshPitchBaselineReady = true
+    }
+    return
+  }
+  faceMeshPitchBaseline += (rawY - faceMeshPitchBaseline) * faceMeshPitchBaselineSmooth
+}
+
 function applyCameraDeadzone(value, zone) {
   var absValue = Math.abs(value)
   if (absValue <= zone) {
@@ -262,25 +306,30 @@ function applyCameraDeadzone(value, zone) {
   return (absValue - zone) / (1 - zone) * Math.sign(value)
 }
 
-function applyCameraOffset(offsetX, offsetY, deltaMs) {
+function applyCameraOffset(offsetX, offsetY, rollX, deltaMs) {
   var strength = Math.max(0.5, Math.min(2, cameraStrength / 100))
   var deadzone = cameraMode === 'motion' ? 0.14 : 0.04
   var modeGain = cameraMode === 'motion' ? 0.7 : 1
   var adjustedX = applyCameraDeadzone(offsetX * strength, deadzone) * modeGain
   var adjustedY = applyCameraDeadzone(offsetY * strength, deadzone) * modeGain
+  var adjustedRollX = applyCameraDeadzone(rollX * strength, deadzone) * modeGain
   if (cameraMode === 'face-mesh' && cameraInvertX) {
     adjustedX = -adjustedX
+    adjustedRollX = -adjustedRollX
   }
   adjustedX = Math.max(-1, Math.min(1, adjustedX))
   adjustedY = Math.max(-1, Math.min(1, adjustedY))
+  adjustedRollX = Math.max(-1, Math.min(1, adjustedRollX))
   var width = document.body.clientWidth
   var height = document.body.clientHeight
   var targetX = (adjustedX + 1) / 2 * width
   var targetY = (adjustedY + 1) / 2 * height
+  var rollTargetX = (adjustedRollX + 1) / 2 * width
   var pixelOffsetX = (cameraOffsetX / 100) * (width / 2)
   var pixelOffsetY = (cameraOffsetY / 100) * (height / 2)
   targetX = Math.max(0, Math.min(width, targetX + pixelOffsetX))
   targetY = Math.max(0, Math.min(height, targetY + pixelOffsetY))
+  rollTargetX = Math.max(0, Math.min(width, rollTargetX + pixelOffsetX))
 
   var baseSmoothing = cameraMode === 'motion' ? 0.12 : cameraSmoothing
   var smoothing = baseSmoothing
@@ -296,9 +345,15 @@ function applyCameraOffset(offsetX, offsetY, deltaMs) {
     cameraLastX += (targetX - cameraLastX) * smoothing
     cameraLastY += (targetY - cameraLastY) * smoothing
   }
+  if (!cameraHasRoll) {
+    cameraLastRollX = rollTargetX
+    cameraHasRoll = true
+  } else {
+    cameraLastRollX += (rollTargetX - cameraLastRollX) * smoothing
+  }
 
   var velocityX = (lastX - cameraLastX) * stiffness * damping
-  applyRigFromPoint(cameraLastX, cameraLastY, velocityX)
+  applyRigFromPoint(cameraLastX, cameraLastY, velocityX, cameraLastRollX)
 
   lastX = cameraLastX
   lastY = cameraLastY
@@ -306,9 +361,10 @@ function applyCameraOffset(offsetX, offsetY, deltaMs) {
   randomY = 0
 }
 
-function updateCameraTarget(offsetX, offsetY) {
+function updateCameraTarget(offsetX, offsetY, rollX) {
   cameraTargetOffsetX = offsetX
   cameraTargetOffsetY = offsetY
+  cameraTargetRollX = Number.isFinite(rollX) ? rollX : offsetX
   cameraTargetReady = true
 }
 
@@ -335,7 +391,7 @@ function runCameraAnimation(now) {
   }
   if (cameraTargetReady) {
     var deltaMs = cameraLastApplyTime ? now - cameraLastApplyTime : 60
-    applyCameraOffset(cameraTargetOffsetX, cameraTargetOffsetY, deltaMs)
+    applyCameraOffset(cameraTargetOffsetX, cameraTargetOffsetY, cameraTargetRollX, deltaMs)
     cameraLastApplyTime = now
   }
   cameraAnimationId = requestAnimationFrame(runCameraAnimation)
@@ -501,9 +557,16 @@ function onFaceMeshResults(results) {
   var eyeDist = Math.max(0.0001, Math.hypot(eyeDx, eyeDy))
   var rawX = (noseTip.x - midX) / eyeDist
   var rawY = (noseTip.y - midY) / eyeDist
+  var positionX = (midX - 0.5) * 2
+  updateFaceMeshPitchBaseline(rawX, rawY)
+  var pitchBaseline = faceMeshPitchBaselineReady
+    ? faceMeshPitchBaseline
+    : (faceMeshPitchBaselineFrames ? faceMeshPitchBaselineSum / faceMeshPitchBaselineFrames : 0)
+  var adjustedRawY = rawY - pitchBaseline
   var offsetX = Math.max(-1, Math.min(1, rawX * faceMeshYawGain))
-  var offsetY = Math.max(-1, Math.min(1, rawY * faceMeshPitchGain))
-  updateCameraTarget(offsetX, offsetY)
+  var offsetY = Math.max(-1, Math.min(1, adjustedRawY * faceMeshPitchGain))
+  var rollX = Math.max(-1, Math.min(1, positionX))
+  updateCameraTarget(offsetX, offsetY, rollX)
   updateCameraBlinkState(landmarks)
   updateCameraMouthState(landmarks, rawX)
   drawFaceMeshOverlay(landmarks)

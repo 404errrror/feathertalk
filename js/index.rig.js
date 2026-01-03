@@ -171,7 +171,7 @@ function scheduleAutoRigFromPointer(fallbackX, fallbackY) {
   }
 }
 
-function applyRigFromPoint(pointX, pointY, velocityX) {
+function applyRigFromPoint(pointX, pointY, velocityX, rotateX) {
   var squashStretchM = Math.abs(velocityX) * 0.0005; // 0.1 강도 조절값
   var currentScaleYM = 1 + 2 * squashStretchM; // 위아래로 늘어짐
   var currentScaleNegYM = 1 - 2 * squashStretchM; // 위아래로 줄어듦
@@ -205,7 +205,8 @@ function applyRigFromPoint(pointX, pointY, velocityX) {
   var faceImgRStyle = `height: ${100 * currentScaleYM}dvh; width: min(${(100 - (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 15 * rig / 100) * currentScaleXM}vw, ${(100 - (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 15 * rig / 100) * currentScaleXM}dvh);top: ${(-5 + (pointY / document.body.clientHeight) * 10) * rig / 100}px;`
   applyRigStyles('face', { divL: faceDivLStyle, divR: faceDivRStyle, imgL: faceImgLStyle, imgR: faceImgRStyle })
 
-  setCharacterTransform((pointX - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)
+  var rotateSourceX = Number.isFinite(rotateX) ? rotateX : pointX
+  setCharacterTransform((rotateSourceX - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)
 }
 
 document.addEventListener('mousemove', function(e) {
