@@ -59,7 +59,8 @@ body {
   left: 0;
   width: 280px;
   height: 100dvh;
-  padding: 60px 14px 16px;
+  box-sizing: border-box;
+  padding: 60px 14px 28px;
   background: rgba(255, 255, 255, 0.92);
   box-shadow: 2px 0 12px rgba(0, 0, 0, 0.12);
   display: flex;
