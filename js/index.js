@@ -861,7 +861,7 @@ function applyCharacterTransform() {
   if (!character) {
     return
   }
-  character.style.transform = `translate(${offsetX}px, ${offsetY}px) rotate(${currentRotate}deg)`
+  character.style.transform = `translate(${offsetX}px, ${-offsetY}px) rotate(${currentRotate}deg)`
 }
 
 function setCharacterTransform(rotateDeg) {
