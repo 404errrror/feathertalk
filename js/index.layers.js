@@ -61,6 +61,63 @@ function resolveLayerSrc(value, fallback) {
   return normalizeAssetPath(trimmed)
 }
 
+function getDefaultRotatePivotY(rig) {
+  if (rig === 'bang' || rig === 'back') {
+    return 30
+  }
+  if (rig === 'eyes' || rig === 'mouth' || rig === 'face') {
+    return 45
+  }
+  if (rig === 'body') {
+    return 70
+  }
+  return 50
+}
+
+function normalizeRotatePivot(value, rig) {
+  let nextValue = value
+  if (!Number.isFinite(nextValue)) {
+    nextValue = getDefaultRotatePivotY(rig)
+  }
+  return Math.min(100, Math.max(0, Math.round(nextValue)))
+}
+
+function getLegacyRotateKey(rig) {
+  const keys = {
+    bang: 'ftRigRotateBang',
+    eyes: 'ftRigRotateEyes',
+    mouth: 'ftRigRotateMouth',
+    face: 'ftRigRotateFace',
+    body: 'ftRigRotateBody',
+    back: 'ftRigRotateBack'
+  }
+  return keys[rig] || null
+}
+
+function getLegacyRotateValue(rig) {
+  const key = getLegacyRotateKey(rig)
+  if (!key) {
+    return null
+  }
+  const stored = localStorage.getItem(key)
+  if (stored == null) {
+    return null
+  }
+  const parsed = parseInt(stored, 10)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function normalizeRotateValue(value, rig) {
+  let nextValue = value
+  if (!Number.isFinite(nextValue)) {
+    nextValue = getLegacyRotateValue(rig)
+  }
+  if (!Number.isFinite(nextValue)) {
+    nextValue = 100
+  }
+  return Math.min(100, Math.max(0, Math.round(nextValue)))
+}
+
 function normalizeLayer(layer, fallback) {
   const base = layer || {}
   const fallbackLayer = fallback || {}
@@ -72,6 +129,16 @@ function normalizeLayer(layer, fallback) {
   if (roleOptions.indexOf(role) === -1) {
     role = fallbackLayer.role || 'none'
   }
+  let rotate = Number.isFinite(base.rotate) ? base.rotate : parseInt(base.rotate, 10)
+  if (!Number.isFinite(rotate)) {
+    rotate = fallbackLayer.rotate
+  }
+  rotate = normalizeRotateValue(rotate, rig)
+  let rotatePivotY = Number.isFinite(base.rotatePivotY) ? base.rotatePivotY : parseInt(base.rotatePivotY, 10)
+  if (!Number.isFinite(rotatePivotY)) {
+    rotatePivotY = fallbackLayer.rotatePivotY
+  }
+  rotatePivotY = normalizeRotatePivot(rotatePivotY, rig)
   const srcFallback = typeof fallbackLayer.src === 'string' ? fallbackLayer.src : getDefaultRigSrc(rig)
   const altFallback = typeof fallbackLayer.altSrc === 'string' ? fallbackLayer.altSrc : ''
   return {
@@ -81,7 +148,9 @@ function normalizeLayer(layer, fallback) {
     altSrc: resolveLayerSrc(base.altSrc, altFallback),
     altDisplay: typeof base.altDisplay === 'string' ? base.altDisplay : (fallbackLayer.altDisplay || ''),
     rig,
-    role
+    role,
+    rotate,
+    rotatePivotY
   }
 }
 
@@ -156,6 +225,7 @@ function buildLayerElement(layer, zIndex) {
   wrapper.className = `layer layer--${layer.type}`
   wrapper.style.zIndex = zIndex
   layer.zIndex = zIndex
+  layer.wrapper = wrapper
 
   if (layer.type === 'split') {
     const left = document.createElement('div')
@@ -255,6 +325,37 @@ function applyRigStyles(rigKey, styles) {
   }
 }
 
+function applyRigRotationSensitivity(rotateDeg) {
+  if (!Number.isFinite(rotateDeg)) {
+    rotateDeg = 0
+  }
+  if (!rigTargets) {
+    return
+  }
+  var rigKeys = Object.keys(rigTargets)
+  for (let i = 0; i < rigKeys.length; i++) {
+    var rigKey = rigKeys[i]
+    var targets = rigTargets[rigKey]
+    if (!targets || !targets.length) {
+      continue
+    }
+    for (let j = 0; j < targets.length; j++) {
+      const target = targets[j]
+      var sensitivity = Number.isFinite(target.rotate) ? target.rotate : 100
+      sensitivity = Math.min(100, Math.max(0, sensitivity))
+      var compensation = rotateDeg * (sensitivity / 100 - 1)
+      var transformText = Math.abs(compensation) < 0.001 ? '0deg' : `${compensation}deg`
+      if (target.wrapper) {
+        target.wrapper.style.setProperty('--rig-rotate-comp', transformText)
+        var pivotY = Number.isFinite(target.rotatePivotY) ? target.rotatePivotY : 50
+        pivotY = Math.min(100, Math.max(0, pivotY))
+        target.wrapper.style.setProperty('--rig-rotate-origin-y', `${pivotY}%`)
+        target.wrapper.style.setProperty('--rig-rotate-origin-x', '50%')
+      }
+    }
+  }
+}
+
 var layerSlots = loadLayerSlots()
 var currentLayers = []
 var rigTargets = {
@@ -288,6 +389,9 @@ function applyPreset(index) {
   }
   rebuildRigTargets(currentLayers)
   updateExpression(0)
+  if (typeof currentRotate === 'number') {
+    applyRigRotationSensitivity(currentRotate)
+  }
 }
 
 applyPreset(0)

@@ -13,6 +13,7 @@ if (localStorage.getItem('ftRig')) {
   document.querySelector('#rig').value=rig
 }
 
+
 var color = '#00ff00'
 if (localStorage.getItem('ftColor')) {
   color = localStorage.getItem('ftColor')
@@ -375,6 +376,7 @@ function setMicSensitivityValue(value) {
   localStorage.setItem('ftThres', thres)
 }
 
+
 function formatIntervalMs(value) {
   return (value / 1000).toFixed(1)
 }
@@ -603,6 +605,7 @@ function updateRigUI() {
   }
   setRangeValueText(rigValue, rig)
 }
+
 
 function updateToggleButton(button, enabled) {
   if (!button) {
@@ -862,6 +865,9 @@ function applyCharacterTransform() {
     return
   }
   character.style.transform = `translate(${offsetX}px, ${-offsetY}px) rotate(${currentRotate}deg)`
+  if (typeof applyRigRotationSensitivity === 'function') {
+    applyRigRotationSensitivity(currentRotate)
+  }
 }
 
 function setCharacterTransform(rotateDeg) {
@@ -980,6 +986,7 @@ if (rigInput) {
     updateRigUI()
   })
 }
+
 
 document.querySelector('#color').addEventListener('change', function(e){
   document.body.setAttribute('style', `background: ${e.target.value};`)

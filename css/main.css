@@ -338,6 +338,9 @@ body {
     position: absolute;
     top: 0;
     left: 0;
+    --rig-rotate-comp: 0deg;
+    transform: rotate(var(--rig-rotate-comp));
+    transform-origin: var(--rig-rotate-origin-x, 50%) var(--rig-rotate-origin-y, 50%);
 }
 
 .layer__split {

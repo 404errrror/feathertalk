@@ -96,6 +96,40 @@ input {
     width: auto;
 }
 
+
+.input-row--range {
+    gap: 8px;
+}
+
+.input-row--range input[type="range"] {
+    flex: 1;
+}
+
+.range-value {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 6px;
+    border-radius: 999px;
+    border: 1px solid #ddd;
+    background: #fff;
+}
+
+.range-value::after {
+    content: attr(data-unit);
+    font-size: 0.75em;
+    color: #666;
+    margin-left: 4px;
+}
+
+.range-value input {
+    flex: 0 0 auto;
+    width: 44px;
+    padding: 2px 0;
+    border: 0;
+    background: transparent;
+    text-align: right;
+}
+
 .layer-header {
     display: flex;
     align-items: center;
@@ -174,6 +208,14 @@ input {
 
 .layer-row.is-hidden {
     display: none;
+}
+
+.layer-row--advanced {
+    display: none;
+}
+
+.layer-item.is-advanced .layer-row--advanced {
+    display: grid;
 }
 
 .layer-actions {

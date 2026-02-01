@@ -52,6 +52,63 @@ function resolveInputSrc(value, fallback) {
   return normalizeAssetPath(trimmed)
 }
 
+function getDefaultRotatePivotY(rig) {
+  if (rig === 'bang' || rig === 'back') {
+    return 30
+  }
+  if (rig === 'eyes' || rig === 'mouth' || rig === 'face') {
+    return 45
+  }
+  if (rig === 'body') {
+    return 70
+  }
+  return 50
+}
+
+function normalizeRotatePivot(value, rig) {
+  let nextValue = value
+  if (!Number.isFinite(nextValue)) {
+    nextValue = getDefaultRotatePivotY(rig)
+  }
+  return Math.min(100, Math.max(0, Math.round(nextValue)))
+}
+
+function getLegacyRotateKey(rig) {
+  const keys = {
+    bang: 'ftRigRotateBang',
+    eyes: 'ftRigRotateEyes',
+    mouth: 'ftRigRotateMouth',
+    face: 'ftRigRotateFace',
+    body: 'ftRigRotateBody',
+    back: 'ftRigRotateBack'
+  }
+  return keys[rig] || null
+}
+
+function getLegacyRotateValue(rig) {
+  const key = getLegacyRotateKey(rig)
+  if (!key) {
+    return null
+  }
+  const stored = localStorage.getItem(key)
+  if (stored == null) {
+    return null
+  }
+  const parsed = parseInt(stored, 10)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function normalizeRotateValue(value, rig) {
+  let nextValue = value
+  if (!Number.isFinite(nextValue)) {
+    nextValue = getLegacyRotateValue(rig)
+  }
+  if (!Number.isFinite(nextValue)) {
+    nextValue = 100
+  }
+  return Math.min(100, Math.max(0, Math.round(nextValue)))
+}
+
 function readLegacyArray(key, fallback) {
   const stored = localStorage.getItem(key)
   let values
@@ -102,6 +159,16 @@ function normalizeLayer(layer, fallback) {
   if (roleOptions.indexOf(role) === -1) {
     role = fallbackLayer.role || 'none'
   }
+  let rotate = Number.isFinite(base.rotate) ? base.rotate : parseInt(base.rotate, 10)
+  if (!Number.isFinite(rotate)) {
+    rotate = fallbackLayer.rotate
+  }
+  rotate = normalizeRotateValue(rotate, rig)
+  let rotatePivotY = Number.isFinite(base.rotatePivotY) ? base.rotatePivotY : parseInt(base.rotatePivotY, 10)
+  if (!Number.isFinite(rotatePivotY)) {
+    rotatePivotY = fallbackLayer.rotatePivotY
+  }
+  rotatePivotY = normalizeRotatePivot(rotatePivotY, rig)
   const srcFallback = typeof fallbackLayer.src === 'string' ? fallbackLayer.src : getDefaultRigSrc(rig)
   const altFallback = typeof fallbackLayer.altSrc === 'string' ? fallbackLayer.altSrc : ''
   const src = resolveInputSrc(base.src, srcFallback)
@@ -112,6 +179,8 @@ function normalizeLayer(layer, fallback) {
     display: typeof base.display === 'string' ? base.display : (fallbackLayer.display || ''),
     rig,
     role,
+    rotate,
+    rotatePivotY,
     altSrc,
     altDisplay: typeof base.altDisplay === 'string' ? base.altDisplay : (fallbackLayer.altDisplay || '')
   }

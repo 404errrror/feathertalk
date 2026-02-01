@@ -106,6 +106,14 @@ function updateAltRow(role, row, label) {
   }
 }
 
+function clampRotateValue(value, fallback) {
+  if (!Number.isFinite(value)) {
+    return fallback
+  }
+  return Math.min(100, Math.max(0, Math.round(value)))
+}
+
+
 function buildLayerItem(slotIndex, layer, layerIndex, slotLayers) {
   const item = document.createElement('div')
   item.className = 'layer-item'
@@ -134,6 +142,74 @@ function buildLayerItem(slotIndex, layer, layerIndex, slotLayers) {
 
   const rigSelect = buildSelect('Rig', rigOptions, layer.rig)
   const roleSelect = buildSelect('표정', roleOptions, layer.role)
+
+  const advancedRow = document.createElement('div')
+  advancedRow.className = 'layer-row'
+  const advancedLabel = document.createElement('label')
+  advancedLabel.textContent = '고급 기능'
+  const advancedInputRow = document.createElement('div')
+  advancedInputRow.className = 'input-row'
+  const advancedButton = document.createElement('button')
+  advancedButton.type = 'button'
+  advancedButton.className = 'layer-btn'
+  advancedButton.textContent = '열기'
+  advancedInputRow.appendChild(advancedButton)
+  advancedRow.appendChild(advancedLabel)
+  advancedRow.appendChild(advancedInputRow)
+
+  const rotateRow = document.createElement('div')
+  rotateRow.className = 'layer-row layer-row--advanced layer-row--rotate'
+  const rotateLabel = document.createElement('label')
+  rotateLabel.textContent = '회전 감도'
+  const rotateInputRow = document.createElement('div')
+  rotateInputRow.className = 'input-row input-row--range'
+  const rotateRange = document.createElement('input')
+  rotateRange.type = 'range'
+  rotateRange.min = '0'
+  rotateRange.max = '100'
+  const rotateValue = clampRotateValue(parseInt(layer.rotate, 10), 100)
+  layer.rotate = rotateValue
+  rotateRange.value = rotateValue
+  const rotateValueWrap = document.createElement('div')
+  rotateValueWrap.className = 'range-value'
+  rotateValueWrap.setAttribute('data-unit', '%')
+  const rotateValueInput = document.createElement('input')
+  rotateValueInput.type = 'text'
+  rotateValueInput.inputMode = 'numeric'
+  rotateValueInput.pattern = '-?[0-9]*'
+  rotateValueInput.value = rotateValue
+  rotateValueWrap.appendChild(rotateValueInput)
+  rotateInputRow.appendChild(rotateRange)
+  rotateInputRow.appendChild(rotateValueWrap)
+  rotateRow.appendChild(rotateLabel)
+  rotateRow.appendChild(rotateInputRow)
+
+  const pivotRow = document.createElement('div')
+  pivotRow.className = 'layer-row layer-row--advanced layer-row--pivot'
+  const pivotLabel = document.createElement('label')
+  pivotLabel.textContent = '회전 기준(Y)'
+  const pivotInputRow = document.createElement('div')
+  pivotInputRow.className = 'input-row input-row--range'
+  const pivotRange = document.createElement('input')
+  pivotRange.type = 'range'
+  pivotRange.min = '0'
+  pivotRange.max = '100'
+  const pivotValue = clampRotateValue(parseInt(layer.rotatePivotY, 10), 50)
+  layer.rotatePivotY = pivotValue
+  pivotRange.value = pivotValue
+  const pivotValueWrap = document.createElement('div')
+  pivotValueWrap.className = 'range-value'
+  pivotValueWrap.setAttribute('data-unit', '%')
+  const pivotValueInput = document.createElement('input')
+  pivotValueInput.type = 'text'
+  pivotValueInput.inputMode = 'numeric'
+  pivotValueInput.pattern = '-?[0-9]*'
+  pivotValueInput.value = pivotValue
+  pivotValueWrap.appendChild(pivotValueInput)
+  pivotInputRow.appendChild(pivotRange)
+  pivotInputRow.appendChild(pivotValueWrap)
+  pivotRow.appendChild(pivotLabel)
+  pivotRow.appendChild(pivotInputRow)
 
   const altRow = document.createElement('div')
   altRow.className = 'layer-row'
@@ -175,6 +251,9 @@ function buildLayerItem(slotIndex, layer, layerIndex, slotLayers) {
   fields.appendChild(srcRow)
   fields.appendChild(rigSelect.row)
   fields.appendChild(roleSelect.row)
+  fields.appendChild(advancedRow)
+  fields.appendChild(rotateRow)
+  fields.appendChild(pivotRow)
   fields.appendChild(altRow)
   fields.appendChild(actions)
 
@@ -210,6 +289,76 @@ function buildLayerItem(slotIndex, layer, layerIndex, slotLayers) {
   roleSelect.select.addEventListener('change', function() {
     layer.role = roleSelect.select.value
     updateAltRow(layer.role, altRow, altLabel)
+  })
+
+  function updateAdvancedToggle() {
+    var isOpen = item.classList.contains('is-advanced')
+    advancedButton.textContent = isOpen ? '접기' : '열기'
+  }
+
+  advancedButton.addEventListener('click', function() {
+    item.classList.toggle('is-advanced')
+    updateAdvancedToggle()
+  })
+
+  updateAdvancedToggle()
+
+  function syncRotateValue(nextValue) {
+    const clamped = clampRotateValue(nextValue, 100)
+    layer.rotate = clamped
+    rotateRange.value = clamped
+    rotateValueInput.value = clamped
+  }
+
+  rotateRange.addEventListener('input', function(e) {
+    syncRotateValue(parseInt(e.target.value, 10))
+  })
+
+  function commitRotateValue() {
+    const raw = rotateValueInput.value.trim()
+    if (!raw) {
+      rotateValueInput.value = rotateRange.value
+      return
+    }
+    syncRotateValue(parseInt(raw, 10))
+  }
+
+  rotateValueInput.addEventListener('change', commitRotateValue)
+  rotateValueInput.addEventListener('blur', commitRotateValue)
+  rotateValueInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      commitRotateValue()
+      rotateValueInput.blur()
+    }
+  })
+
+  function syncPivotValue(nextValue) {
+    const clamped = clampRotateValue(nextValue, 50)
+    layer.rotatePivotY = clamped
+    pivotRange.value = clamped
+    pivotValueInput.value = clamped
+  }
+
+  pivotRange.addEventListener('input', function(e) {
+    syncPivotValue(parseInt(e.target.value, 10))
+  })
+
+  function commitPivotValue() {
+    const raw = pivotValueInput.value.trim()
+    if (!raw) {
+      pivotValueInput.value = pivotRange.value
+      return
+    }
+    syncPivotValue(parseInt(raw, 10))
+  }
+
+  pivotValueInput.addEventListener('change', commitPivotValue)
+  pivotValueInput.addEventListener('blur', commitPivotValue)
+  pivotValueInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      commitPivotValue()
+      pivotValueInput.blur()
+    }
   })
 
   upButton.addEventListener('click', function() {
