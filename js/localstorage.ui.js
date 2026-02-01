@@ -113,6 +113,19 @@ function clampRotateValue(value, fallback) {
   return Math.min(100, Math.max(0, Math.round(value)))
 }
 
+function getDefaultRotatePivotY(rig) {
+  if (rig === 'bang' || rig === 'back') {
+    return 30
+  }
+  if (rig === 'eyes' || rig === 'mouth' || rig === 'face') {
+    return 45
+  }
+  if (rig === 'body') {
+    return 70
+  }
+  return 50
+}
+
 
 function buildLayerItem(slotIndex, layer, layerIndex, slotLayers) {
   const item = document.createElement('div')
@@ -273,24 +286,6 @@ function buildLayerItem(slotIndex, layer, layerIndex, slotLayers) {
     layer.altDisplay = resolved.display
   })
 
-  rigSelect.select.addEventListener('change', function() {
-    const previousRig = layer.rig
-    layer.rig = rigSelect.select.value
-    const previousDefault = getDefaultRigSrc(previousRig)
-    const nextDefault = getDefaultRigSrc(layer.rig)
-    if (!srcInput.value || layer.src === previousDefault) {
-      layer.src = nextDefault
-      layer.display = ''
-      setInputFromLayer(srcInput, layer.src, layer.display, nextDefault)
-      preview.src = layer.src || DEFAULT_SRC
-    }
-  })
-
-  roleSelect.select.addEventListener('change', function() {
-    layer.role = roleSelect.select.value
-    updateAltRow(layer.role, altRow, altLabel)
-  })
-
   function updateAdvancedToggle() {
     var isOpen = item.classList.contains('is-advanced')
     advancedButton.textContent = isOpen ? '접기' : '열기'
@@ -359,6 +354,25 @@ function buildLayerItem(slotIndex, layer, layerIndex, slotLayers) {
       commitPivotValue()
       pivotValueInput.blur()
     }
+  })
+
+  rigSelect.select.addEventListener('change', function() {
+    const previousRig = layer.rig
+    layer.rig = rigSelect.select.value
+    const previousDefault = getDefaultRigSrc(previousRig)
+    const nextDefault = getDefaultRigSrc(layer.rig)
+    if (!srcInput.value || layer.src === previousDefault) {
+      layer.src = nextDefault
+      layer.display = ''
+      setInputFromLayer(srcInput, layer.src, layer.display, nextDefault)
+      preview.src = layer.src || DEFAULT_SRC
+    }
+    syncPivotValue(getDefaultRotatePivotY(layer.rig))
+  })
+
+  roleSelect.select.addEventListener('change', function() {
+    layer.role = roleSelect.select.value
+    updateAltRow(layer.role, altRow, altLabel)
   })
 
   upButton.addEventListener('click', function() {
