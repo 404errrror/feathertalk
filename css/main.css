@@ -344,7 +344,7 @@ body {
 }
 
 .layer__split {
-    width: min(50vw, 50dvh);
+    width: calc(min(50vw, 50dvh) + 1px);
     height: min(100vw, 100dvh);
     overflow: hidden;
     position: absolute;
@@ -353,7 +353,7 @@ body {
 }
 
 .layer__split--right {
-    left: min(50vw, 50dvh);
+    left: calc(min(50vw, 50dvh) - 1px);
 }
 
 .layer__img {
