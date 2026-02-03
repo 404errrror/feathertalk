@@ -24,7 +24,15 @@ function readAssetArray(key, fallback) {
     const normalizedValue = normalizeAssetPath(values[i])
     normalized[i] = normalizedValue == null ? fallback : normalizedValue
   }
-  localStorage.setItem(key, JSON.stringify(normalized))
+  try {
+    localStorage.setItem(key, JSON.stringify(normalized))
+  } catch (error) {
+    if (isQuotaExceeded(error)) {
+      console.warn('localStorage quota exceeded while saving legacy assets.')
+    } else {
+      throw error
+    }
+  }
   return normalized
 }
 
@@ -41,6 +49,23 @@ const RIG_DEFAULT_SRC = {
 const rigOptions = ['bang', 'eyes', 'mouth', 'face', 'body', 'back']
 const splitRigOptions = ['bang', 'eyes', 'mouth', 'face']
 const roleOptions = ['none', 'blink', 'mouth']
+
+function isQuotaExceeded(error) {
+  return error && (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED' || error.code === 22 || error.code === 1014)
+}
+
+function trySaveLayerSlots(slots) {
+  try {
+    localStorage.setItem(LAYER_STORAGE_KEY, JSON.stringify(slots))
+    return true
+  } catch (error) {
+    if (isQuotaExceeded(error)) {
+      console.warn('localStorage quota exceeded while saving layers.')
+      return false
+    }
+    throw error
+  }
+}
 
 let layerIdSeed = Date.now()
 
@@ -198,7 +223,7 @@ function loadLayerSlots() {
       normalizedSlots[i] = [normalizeLayer({ rig: 'face', role: 'none' })]
     }
   }
-  localStorage.setItem(LAYER_STORAGE_KEY, JSON.stringify(normalizedSlots))
+  trySaveLayerSlots(normalizedSlots)
   return normalizedSlots
 }
 

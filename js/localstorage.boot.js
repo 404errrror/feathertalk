@@ -1,6 +1,14 @@
 const layerSlots = loadLayerSlots()
 renderAllSlots()
 
+function saveLayerSlotsOrAlert() {
+  const canSave = typeof trySaveLayerSlots === 'function' ? trySaveLayerSlots(layerSlots) : true
+  if (!canSave) {
+    alert('이미지 용량이 커서 브라우저 저장 공간을 초과했습니다. PNG 용량을 줄이거나 레이어 수를 줄인 뒤 다시 시도해주세요. 가능하면 이미지를 프로젝트 폴더에 두고 URL 입력(예: assets/BodyFront.png)으로 설정해 주세요.')
+  }
+  return canSave
+}
+
 function buildPresetPayload(slotIndex) {
   const slotLayers = Array.isArray(layerSlots[slotIndex]) ? layerSlots[slotIndex] : []
   const layers = slotLayers.map(function(layer) {
@@ -152,7 +160,7 @@ if (presetImportButton && presetImportInput) {
       }
       layerSlots[slotIndex] = normalizeImportedLayers(payload.layers)
       renderSlot(slotIndex)
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(layerSlots))
+      saveLayerSlotsOrAlert()
       alert(`${slotLabel}번 슬롯에 프리셋을 적용했어요.`)
       presetImportInput.value = ''
     }
@@ -161,6 +169,8 @@ if (presetImportButton && presetImportInput) {
 }
 
 document.querySelector('#submit').addEventListener('click', function() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(layerSlots))
+  if (!saveLayerSlotsOrAlert()) {
+    return
+  }
   location.href = 'live.html'
 })

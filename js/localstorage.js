@@ -10,6 +10,23 @@ const RIG_DEFAULT_SRC = {
   back: 'assets/back.png'
 }
 
+function isQuotaExceeded(error) {
+  return error && (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED' || error.code === 22 || error.code === 1014)
+}
+
+function trySaveLayerSlots(slots) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(slots))
+    return true
+  } catch (error) {
+    if (isQuotaExceeded(error)) {
+      console.warn('localStorage quota exceeded while saving layers.')
+      return false
+    }
+    throw error
+  }
+}
+
 const slotId = (index) => (index + 1) % SLOT_COUNT
 const rigOptions = ['bang', 'eyes', 'mouth', 'face', 'body', 'back']
 const roleOptions = ['none', 'blink', 'mouth']
@@ -279,7 +296,7 @@ function loadLayerSlots() {
       normalizedSlots[i] = [normalizeLayer({ rig: 'face', role: 'none' })]
     }
   }
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizedSlots))
+  trySaveLayerSlots(normalizedSlots)
   return normalizedSlots
 }
 
