@@ -101,6 +101,15 @@
         <span>카메라 좌우 반전</span>
         <button class="toggle-button" id="camera-invert-toggle" type="button" aria-pressed="false" data-off-label="정방향" data-on-label="반전">정방향</button>
       </div>
+      <div class="setting-item">
+        <div class="range-header">
+          <span>카메라 추적 반응 속도</span>
+          <div class="range-values range-values--input" id="camera-tracking-response-value" data-unit="%">
+            <input class="range-input" type="text" inputmode="numeric" pattern="-?[0-9]*">
+          </div>
+        </div>
+        <input id="camera-tracking-response" type="range" value="150" min="50" max="250">
+      </div>
       <div class="settings-divider" role="separator" aria-hidden="true"></div>
       <div class="setting-item">
         <div class="range-header">

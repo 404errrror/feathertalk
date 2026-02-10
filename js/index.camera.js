@@ -269,6 +269,12 @@ function applyCameraDeadzone(value, zone) {
   return (absValue - zone) / (1 - zone) * Math.sign(value)
 }
 
+function getFaceMeshSmoothing() {
+  var response = typeof cameraTrackingResponse === 'number' && Number.isFinite(cameraTrackingResponse) ? cameraTrackingResponse : 150
+  response = Math.max(50, Math.min(250, response))
+  return cameraSmoothing * (response / 100)
+}
+
 function applyCameraOffset(offsetX, offsetY, rollX, deltaMs) {
   var headYawStrength = Math.max(0.5, Math.min(2, (Number.isFinite(cameraHeadYawStrength) ? cameraHeadYawStrength : 100) / 100))
   var headPitchStrength = Math.max(0.5, Math.min(2, (Number.isFinite(cameraHeadPitchStrength) ? cameraHeadPitchStrength : 100) / 100))
@@ -302,7 +308,7 @@ function applyCameraOffset(offsetX, offsetY, rollX, deltaMs) {
   targetY = Math.max(0, Math.min(height, targetY + pixelOffsetY))
   rollTargetX = Math.max(0, Math.min(width, rollTargetX + rollOffsetX))
 
-  var baseSmoothing = cameraMode === 'motion' ? 0.12 : cameraSmoothing
+  var baseSmoothing = cameraMode === 'motion' ? 0.12 : getFaceMeshSmoothing()
   var smoothing = baseSmoothing
   if (Number.isFinite(deltaMs) && deltaMs > 0) {
     var step = deltaMs / 60
