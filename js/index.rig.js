@@ -27,6 +27,109 @@
     }, pointerIdleDelay)
   }
 
+  function readMotionRangeValue(value, fallback) {
+    var nextValue = Number.isFinite(value) ? value : parseInt(value, 10)
+    if (!Number.isFinite(nextValue)) {
+      nextValue = fallback
+    }
+    return Math.min(100, Math.max(0, Math.round(nextValue)))
+  }
+
+  function resolveMotionRange(minValue, maxValue, fallbackMin, fallbackMax) {
+    var min = readMotionRangeValue(minValue, fallbackMin)
+    var max = readMotionRangeValue(maxValue, fallbackMax)
+    if (min > max) {
+      var temp = min
+      min = max
+      max = temp
+    }
+    return { min, max }
+  }
+
+  function clampPointByRange(point, axisSize, minPercent, maxPercent) {
+    if (!Number.isFinite(point) || !Number.isFinite(axisSize) || axisSize <= 0) {
+      return point
+    }
+    var percent = point / axisSize * 100
+    var clampedPercent = Math.min(maxPercent, Math.max(minPercent, percent))
+    return clampedPercent / 100 * axisSize
+  }
+
+  function clampFaceRigX(pointX) {
+    var width = document.body.clientWidth
+    var range = resolveMotionRange(window.faceXMin, window.faceXMax, 0, 100)
+    return clampPointByRange(pointX, width, range.min, range.max)
+  }
+
+  function clampFaceRigY(pointY) {
+    var height = document.body.clientHeight
+    var range = resolveMotionRange(window.faceYMin, window.faceYMax, 0, 100)
+    return clampPointByRange(pointY, height, range.min, range.max)
+  }
+
+  function clampBodyRotateRigX(sourceX) {
+    var width = document.body.clientWidth
+    var range = resolveMotionRange(window.bodyRotateMin, window.bodyRotateMax, 0, 100)
+    return clampPointByRange(sourceX, width, range.min, range.max)
+  }
+
+  function resolveMotionRangePixels(axisSize, minValue, maxValue, fallbackMin, fallbackMax) {
+    var normalizedSize = Number.isFinite(axisSize) && axisSize > 0 ? axisSize : 0
+    var range = resolveMotionRange(minValue, maxValue, fallbackMin, fallbackMax)
+    return {
+      min: normalizedSize * range.min / 100,
+      max: normalizedSize * range.max / 100
+    }
+  }
+
+  function pickAutoTargetPoint() {
+    var width = document.body.clientWidth
+    var height = document.body.clientHeight
+    var ratioX = Math.random()
+    var ratioY = Math.random()
+    var faceXRange = resolveMotionRangePixels(width, window.faceXMin, window.faceXMax, 0, 100)
+    var faceYRange = resolveMotionRangePixels(height, window.faceYMin, window.faceYMax, 0, 100)
+    var bodyRotateRange = resolveMotionRangePixels(width, window.bodyRotateMin, window.bodyRotateMax, 0, 100)
+    return {
+      faceX: faceXRange.min + (faceXRange.max - faceXRange.min) * ratioX,
+      faceY: faceYRange.min + (faceYRange.max - faceYRange.min) * ratioY,
+      rotateX: bodyRotateRange.min + (bodyRotateRange.max - bodyRotateRange.min) * ratioX
+    }
+  }
+
+  let autoFaceX = NaN
+  let autoFaceY = NaN
+  let autoRotateX = NaN
+
+  function rememberAutoPose(faceX, faceY, rotateX) {
+    if (Number.isFinite(faceX)) {
+      autoFaceX = faceX
+    }
+    if (Number.isFinite(faceY)) {
+      autoFaceY = faceY
+    }
+    if (Number.isFinite(rotateX)) {
+      autoRotateX = rotateX
+    }
+  }
+
+  function resolveAutoSeedPoint(fallbackX, fallbackY) {
+    var width = document.body.clientWidth
+    var height = document.body.clientHeight
+    var seedFaceX = Number.isFinite(autoFaceX)
+      ? autoFaceX
+      : (Number.isFinite(fallbackX) ? fallbackX : width / 2)
+    var seedFaceY = Number.isFinite(autoFaceY)
+      ? autoFaceY
+      : (Number.isFinite(fallbackY) ? fallbackY : height / 2)
+    var seedRotateX = Number.isFinite(autoRotateX) ? autoRotateX : seedFaceX
+    return {
+      faceX: clampFaceRigX(seedFaceX),
+      faceY: clampFaceRigY(seedFaceY),
+      rotateX: clampBodyRotateRigX(seedRotateX)
+    }
+  }
+
 function scheduleAutoRig() {
     if (cameraEnabled) {
       return
@@ -34,23 +137,27 @@ function scheduleAutoRig() {
     clearAutoFrameTimers()
     var currentInterval = pickRandomInterval()
     var intervals = buildIntervals(currentInterval)
-    var lastRandomX = randomX
-    var lastRandomY = randomY
-    randomX = Math.random() * document.body.clientWidth / 3 + document.body.clientWidth / 3
-    randomY = Math.random() * document.body.clientHeight
-
-    function wait(sec) {
-        let start = Date.now(), now = start;
-        while (now - start < sec) {
-            now = Date.now();
-        }
-    }
+    var seedPoint = resolveAutoSeedPoint(randomX, randomY)
+    var startFaceX = seedPoint.faceX
+    var startFaceY = seedPoint.faceY
+    var startRotateX = seedPoint.rotateX
+    var targetPoint = pickAutoTargetPoint()
+    var targetFaceX = clampFaceRigX(targetPoint.faceX)
+    var targetFaceY = clampFaceRigY(targetPoint.faceY)
+    var targetRotateX = clampBodyRotateRigX(targetPoint.rotateX)
+    randomX = targetFaceX
+    randomY = targetFaceY
     for (let i of intervals) {
 
       scheduleAutoFrame(() => {
-        
-      var X = lastRandomX + (randomX - lastRandomX) * i / currentInterval
-      var Y = lastRandomY + (randomY - lastRandomY) * i / currentInterval
+      var progress = currentInterval > 0 ? i / currentInterval : 1
+      var X = startFaceX + (targetFaceX - startFaceX) * progress
+      var Y = startFaceY + (targetFaceY - startFaceY) * progress
+      var rotateX = startRotateX + (targetRotateX - startRotateX) * progress
+      X = clampFaceRigX(X)
+      Y = clampFaceRigY(Y)
+      rotateX = clampBodyRotateRigX(rotateX)
+      rememberAutoPose(X, Y, rotateX)
       
       var backStyle = `top: ${(5 - (Y / document.body.clientHeight) * 10) * rig / 100}px;`
       applyRigStyles('back', { img: backStyle })
@@ -79,7 +186,7 @@ function scheduleAutoRig() {
       var faceImgRStyle = `width: min(${100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 15 * rig / 100}vw, ${100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 15 * rig / 100}dvh);top: ${(-5 + (Y / document.body.clientHeight) * 10) * rig / 100}px;`
       applyRigStyles('face', { divL: faceDivLStyle, divR: faceDivRStyle, imgL: faceImgLStyle, imgR: faceImgRStyle })
 
-      setCharacterTransform((X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)
+      setCharacterTransform((rotateX - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)
       }, i*12/20);
     }
     if (!cameraEnabled) {
@@ -106,29 +213,33 @@ function scheduleAutoRigFromPointer(fallbackX, fallbackY) {
   clearAutoFrameTimers()
   var currentInterval = pickRandomInterval()
   var intervals = buildIntervals(currentInterval)
-  var lastRandomX = randomX ? randomX : fallbackX
-  var lastRandomY = randomY ? randomY : fallbackY
-  randomX = Math.random() * document.body.clientWidth
-  randomY = Math.random() * document.body.clientHeight
-
-  let X = lastRandomX
-  let Y = lastRandomY
-  let velocity = (randomX - X) * stiffness * damping;
-  let velocityY = (randomY - Y) * stiffness * damping;
+  var seedPoint = resolveAutoSeedPoint(fallbackX, fallbackY)
+  let X = seedPoint.faceX
+  let Y = seedPoint.faceY
+  let rotateX = seedPoint.rotateX
+  var targetPoint = pickAutoTargetPoint()
+  randomX = clampFaceRigX(targetPoint.faceX)
+  randomY = clampFaceRigY(targetPoint.faceY)
+  let velocityX = (randomX - X) * stiffness * damping
+  let velocityY = (randomY - Y) * stiffness * damping
+  let velocityRotateX = (targetPoint.rotateX - rotateX) * stiffness * damping
   for (let i of intervals) {
 
     scheduleAutoFrame(() => {
-        
-    // var t = i / currentInterval;
-    // var elasticT = Math.sin(-13 * (Math.PI / 2) * (t + 1)) * Math.pow(2, -10 * t) + 1;    
-    //var X = lastRandomX + (randomX - lastRandomX) * elasticT;
-    //var Y = lastRandomY + (randomY - lastRandomY) * elasticT;
-    velocity = (velocity + (randomX - X) * stiffness) * damping;
-    velocityY = (randomY - Y) * stiffness * damping;
-    X += velocity;
-    Y += velocityY;
-    // Squash/stretch based on horizontal velocity.
-    var squashStretch = Math.abs(velocity) * 0.0005;
+    var faceTargetX = clampFaceRigX(randomX)
+    var faceTargetY = clampFaceRigY(randomY)
+    var rotateTargetX = clampBodyRotateRigX(targetPoint.rotateX)
+    var previousX = X
+    velocityX = (velocityX + (faceTargetX - X) * stiffness) * damping
+    velocityY = (velocityY + (faceTargetY - Y) * stiffness) * damping
+    velocityRotateX = (velocityRotateX + (rotateTargetX - rotateX) * stiffness) * damping
+    X = clampFaceRigX(X + velocityX)
+    Y = clampFaceRigY(Y + velocityY)
+    rotateX = clampBodyRotateRigX(rotateX + velocityRotateX)
+    rememberAutoPose(X, Y, rotateX)
+    var effectiveDeltaX = X - previousX
+    // Squash/stretch based on effective horizontal movement.
+    var squashStretch = Math.abs(effectiveDeltaX) * 0.0005;
     var currentScaleY = 1 + 0.5 * squashStretch;
     var currentScaleNegY = 1 - 0.5 * squashStretch;
     var currentScaleX = 1 - squashStretch;
@@ -161,7 +272,7 @@ function scheduleAutoRigFromPointer(fallbackX, fallbackY) {
     var faceImgRStyle = `height: ${100 * currentScaleY}dvh; width: min(${(100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 15 * rig / 100) * currentScaleX}vw, ${(100 - (X - document.body.clientWidth / 2) / document.body.clientWidth * 15 * rig / 100) * currentScaleX}dvh);top: ${(-5 + (Y / document.body.clientHeight) * 10) * rig / 100}px;`
     applyRigStyles('face', { divL: faceDivLStyle, divR: faceDivRStyle, imgL: faceImgLStyle, imgR: faceImgRStyle })
 
-    setCharacterTransform((X - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)
+    setCharacterTransform((rotateX - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)
     }, i*12/20);
   }
   if (!cameraEnabled) {
@@ -172,6 +283,12 @@ function scheduleAutoRigFromPointer(fallbackX, fallbackY) {
 }
 
 function applyRigFromPoint(pointX, pointY, velocityX, rotateX) {
+  var clampedPointX = clampFaceRigX(pointX)
+  var clampedPointY = clampFaceRigY(pointY)
+  var clampedRotateX = clampBodyRotateRigX(Number.isFinite(rotateX) ? rotateX : pointX)
+  pointX = clampedPointX
+  pointY = clampedPointY
+  rememberAutoPose(pointX, pointY, clampedRotateX)
   var squashStretchM = Math.abs(velocityX) * 0.0005; // 0.1 강도 조절값
   var currentScaleYM = 1 + 2 * squashStretchM; // 위아래로 늘어짐
   var currentScaleNegYM = 1 - 2 * squashStretchM; // 위아래로 줄어듦
@@ -205,7 +322,7 @@ function applyRigFromPoint(pointX, pointY, velocityX, rotateX) {
   var faceImgRStyle = `height: ${100 * currentScaleYM}dvh; width: min(${(100 - (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 15 * rig / 100) * currentScaleXM}vw, ${(100 - (pointX - document.body.clientWidth / 2) / document.body.clientWidth * 15 * rig / 100) * currentScaleXM}dvh);top: ${(-5 + (pointY / document.body.clientHeight) * 10) * rig / 100}px;`
   applyRigStyles('face', { divL: faceDivLStyle, divR: faceDivRStyle, imgL: faceImgLStyle, imgR: faceImgRStyle })
 
-  var rotateSourceX = Number.isFinite(rotateX) ? rotateX : pointX
+  var rotateSourceX = clampedRotateX
   setCharacterTransform((rotateSourceX - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)
 }
 
@@ -224,8 +341,8 @@ document.addEventListener('mousemove', function(e) {
   lastX = X
   lastY = Y
 
-  randomX = 0
-  randomY = 0
+  randomX = NaN
+  randomY = NaN
 
   scheduleAutoResume(X, Y)
 })

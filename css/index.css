@@ -613,11 +613,17 @@ input {
     background: transparent;
 }
 
-#slot-interval-min {
+#slot-interval-min,
+#slot-face-x-min,
+#slot-face-y-min,
+#slot-body-rotate-min {
     z-index: 2;
 }
 
-#slot-interval-max {
+#slot-interval-max,
+#slot-face-x-max,
+#slot-face-y-max,
+#slot-body-rotate-max {
     z-index: 3;
 }
 

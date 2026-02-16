@@ -126,6 +126,63 @@
                             </div>
                         </div>
                     </div>
+                    <div class="slot-setting slot-interval slot-setting--full">
+                        <div class="slot-interval__controls">
+                            <div class="slot-setting__head range-header">
+                                <label for="slot-face-x-min">얼굴 좌/우 범위</label>
+                                <div class="range-values range-values--input range-values--interval" data-unit="%">
+                                    <input class="range-input" id="slot-face-x-min-value" type="text" inputmode="numeric" pattern="-?[0-9]*" aria-label="얼굴 좌우 최소 범위(%)">
+                                    <span class="range-separator">~</span>
+                                    <input class="range-input" id="slot-face-x-max-value" type="text" inputmode="numeric" pattern="-?[0-9]*" aria-label="얼굴 좌우 최대 범위(%)">
+                                </div>
+                            </div>
+                            <div class="range-slider" id="slot-face-x-range">
+                                <div class="range-track">
+                                    <div class="range-track__range" id="slot-face-x-range-fill"></div>
+                                </div>
+                                <input id="slot-face-x-min" type="range" min="0" max="100" value="0" aria-label="얼굴 좌우 최소 범위 슬라이더">
+                                <input id="slot-face-x-max" type="range" min="0" max="100" value="100" aria-label="얼굴 좌우 최대 범위 슬라이더">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="slot-setting slot-interval slot-setting--full">
+                        <div class="slot-interval__controls">
+                            <div class="slot-setting__head range-header">
+                                <label for="slot-face-y-min">얼굴 상/하 범위</label>
+                                <div class="range-values range-values--input range-values--interval" data-unit="%">
+                                    <input class="range-input" id="slot-face-y-min-value" type="text" inputmode="numeric" pattern="-?[0-9]*" aria-label="얼굴 하단 클램프 범위(%)">
+                                    <span class="range-separator">~</span>
+                                    <input class="range-input" id="slot-face-y-max-value" type="text" inputmode="numeric" pattern="-?[0-9]*" aria-label="얼굴 상단 클램프 범위(%)">
+                                </div>
+                            </div>
+                            <div class="range-slider" id="slot-face-y-range">
+                                <div class="range-track">
+                                    <div class="range-track__range" id="slot-face-y-range-fill"></div>
+                                </div>
+                                <input id="slot-face-y-min" type="range" min="0" max="100" value="0" aria-label="얼굴 하단 클램프 슬라이더">
+                                <input id="slot-face-y-max" type="range" min="0" max="100" value="100" aria-label="얼굴 상단 클램프 슬라이더">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="slot-setting slot-interval slot-setting--full">
+                        <div class="slot-interval__controls">
+                            <div class="slot-setting__head range-header">
+                                <label for="slot-body-rotate-min">몸 회전 범위</label>
+                                <div class="range-values range-values--input range-values--interval" data-unit="%">
+                                    <input class="range-input" id="slot-body-rotate-min-value" type="text" inputmode="numeric" pattern="-?[0-9]*" aria-label="몸 회전 최소 범위(%)">
+                                    <span class="range-separator">~</span>
+                                    <input class="range-input" id="slot-body-rotate-max-value" type="text" inputmode="numeric" pattern="-?[0-9]*" aria-label="몸 회전 최대 범위(%)">
+                                </div>
+                            </div>
+                            <div class="range-slider" id="slot-body-rotate-range">
+                                <div class="range-track">
+                                    <div class="range-track__range" id="slot-body-rotate-range-fill"></div>
+                                </div>
+                                <input id="slot-body-rotate-min" type="range" min="0" max="100" value="0" aria-label="몸 회전 최소 범위 슬라이더">
+                                <input id="slot-body-rotate-max" type="range" min="0" max="100" value="100" aria-label="몸 회전 최대 범위 슬라이더">
+                            </div>
+                        </div>
+                    </div>
                     <div class="slot-setting slot-setting--compact">
                         <label for="slot-color">배경색</label>
                         <div class="input-row slot-color-row">

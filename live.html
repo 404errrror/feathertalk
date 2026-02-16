@@ -34,6 +34,57 @@
         </div>
         <input id="threshold" type="range" value="70" min="0" max="100">
       </div>
+      <div class="setting-item range-wrap" id="face-x-range-wrap">
+        <div class="range-header">
+          <span>얼굴 좌/우 범위</span>
+          <div class="range-values range-values--input range-values--interval" data-unit="%">
+            <input class="range-input" id="face-x-min-value" type="text" inputmode="numeric" pattern="-?[0-9]*">
+            <span class="range-separator">~</span>
+            <input class="range-input" id="face-x-max-value" type="text" inputmode="numeric" pattern="-?[0-9]*">
+          </div>
+        </div>
+        <div class="range-slider" id="face-x-range">
+          <div class="range-track">
+            <div class="range-track__range" id="face-x-range-fill"></div>
+          </div>
+          <input id="face-x-min" type="range" value="0" min="0" max="100">
+          <input id="face-x-max" type="range" value="100" min="0" max="100">
+        </div>
+      </div>
+      <div class="setting-item range-wrap" id="face-y-range-wrap">
+        <div class="range-header">
+          <span>얼굴 상/하 범위</span>
+          <div class="range-values range-values--input range-values--interval" data-unit="%">
+            <input class="range-input" id="face-y-min-value" type="text" inputmode="numeric" pattern="-?[0-9]*">
+            <span class="range-separator">~</span>
+            <input class="range-input" id="face-y-max-value" type="text" inputmode="numeric" pattern="-?[0-9]*">
+          </div>
+        </div>
+        <div class="range-slider" id="face-y-range">
+          <div class="range-track">
+            <div class="range-track__range" id="face-y-range-fill"></div>
+          </div>
+          <input id="face-y-min" type="range" value="0" min="0" max="100">
+          <input id="face-y-max" type="range" value="100" min="0" max="100">
+        </div>
+      </div>
+      <div class="setting-item range-wrap" id="body-rotate-range-wrap">
+        <div class="range-header">
+          <span>몸 회전 범위</span>
+          <div class="range-values range-values--input range-values--interval" data-unit="%">
+            <input class="range-input" id="body-rotate-min-value" type="text" inputmode="numeric" pattern="-?[0-9]*">
+            <span class="range-separator">~</span>
+            <input class="range-input" id="body-rotate-max-value" type="text" inputmode="numeric" pattern="-?[0-9]*">
+          </div>
+        </div>
+        <div class="range-slider" id="body-rotate-range">
+          <div class="range-track">
+            <div class="range-track__range" id="body-rotate-range-fill"></div>
+          </div>
+          <input id="body-rotate-min" type="range" value="0" min="0" max="100">
+          <input id="body-rotate-max" type="range" value="100" min="0" max="100">
+        </div>
+      </div>
       <div class="setting-item">
         <div class="range-header">
           <span>리깅 강도</span>

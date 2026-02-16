@@ -12,6 +12,26 @@ const UPDATE_LOG_SEEN_KEY = 'ftSeenUpdateVersion'
 /** @type {UpdateLogEntry[]} */
 const UPDATE_LOG_ENTRIES = [
   {
+    version: 'v2026.02.16.04',
+    date: '2026-02-16',
+    summary: '\uc790\ub3d9 \ubaa8\uc158 \uacbd\uacc4 \ubcf4\uc815\uc774 \ucd94\uac00\ub418\uc5c8\uc5b4\uc694.',
+    details: [
+      '\ubc94\uc704 \uc81c\ud55c \uc0c1\ud0dc\uc5d0\uc11c \uc790\ub3d9 \ubaa8\uc158\uc774 \uacbd\uacc4\uc5d0 \ubd99\uc744 \ub54c \uc5b4\uc0c9\ud568\uc774 \uc904\uc5b4\ub4e4\ub3c4\ub85d \ubcf4\uc815\ud588\uc5b4\uc694.',
+      '\uc790\ub3d9 \ubaa8\uc158 \ubaa9\ud45c \uc88c\ud45c\ub97c \uba3c\uc800 \uc124\uc815\ub41c \ubc94\uc704 \ub0b4\uc5d0\uc11c \uc0dd\uc131\ud558\ub3c4\ub85d \ubc14\uafc8\uc5b4\uc694.',
+      '\uc2a4\ucffc\uc2dc/\uc2a4\ud2b8\ub808\uce58 \uacc4\uc0b0\uc740 \uc2e4\uc81c \ud654\uba74 \uc774\ub3d9\ub7c9 \uae30\uc900\uc73c\ub85c \uc801\uc6a9\ud574 \uacbd\uacc4\uc5d0\uc11c \ucc0c\uadf8\ub7ec\uc9d0 \uc794\ub958\uac10\uc744 \uc904\uc600\uc5b4\uc694.'
+    ]
+  },
+  {
+    version: 'v2026.02.16.03',
+    date: '2026-02-16',
+    summary: '슬롯별 모션 적용 범위(얼굴 좌/우·상/하·몸 회전) 설정을 추가했어요.',
+    details: [
+      '캐릭터 설정에서 얼굴 좌/우, 얼굴 상/하, 몸 회전의 최소~최대 범위를 각각 0~100%로 조절할 수 있어요.',
+      '설정한 범위는 마우스, 자동 모션, 카메라 입력 전체에 동일하게 클램프로 적용돼요.',
+      '새 범위 값은 슬롯별로 저장되고 프리셋 내보내기/가져오기에도 함께 포함돼요.'
+    ]
+  },
+  {
     version: 'v2026.02.16.02',
     date: '2026-02-16',
     summary: '라이브 캐릭터 셋팅을 슬롯 별로 완전히 분리했어요.',

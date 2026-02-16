@@ -484,11 +484,17 @@ input::-moz-range-thumb {
     min-width: 84px;
 }
 
-#interval-min {
+#interval-min,
+#face-x-min,
+#face-y-min,
+#body-rotate-min {
     z-index: 2;
 }
 
-#interval-max {
+#interval-max,
+#face-x-max,
+#face-y-max,
+#body-rotate-max {
     z-index: 3;
 }
 

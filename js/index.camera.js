@@ -334,8 +334,8 @@ function applyCameraOffset(offsetX, offsetY, rollX, deltaMs) {
 
   lastX = cameraLastX
   lastY = cameraLastY
-  randomX = 0
-  randomY = 0
+  randomX = NaN
+  randomY = NaN
 }
 
 function updateCameraTarget(offsetX, offsetY, rollX) {

@@ -16,6 +16,12 @@ var LIVE_SLOT_DEFAULTS = {
   offsetY: 0,
   intervalMin: 1500,
   intervalMax: 1500,
+  faceXMin: 0,
+  faceXMax: 100,
+  faceYMin: 0,
+  faceYMax: 100,
+  bodyRotateMin: 0,
+  bodyRotateMax: 100,
   color: '#00ff00'
 }
 
@@ -46,6 +52,12 @@ var rig = clampValue(parseInt(localStorage.getItem('ftRig'), 10), 0, 200, LIVE_S
 var color = normalizeColorValue(localStorage.getItem('ftColor'), LIVE_SLOT_DEFAULTS.color)
 var offsetX = clampValue(parseInt(localStorage.getItem('ftOffsetX'), 10), -500, 500, LIVE_SLOT_DEFAULTS.offsetX)
 var offsetY = clampValue(parseInt(localStorage.getItem('ftOffsetY'), 10), -500, 500, LIVE_SLOT_DEFAULTS.offsetY)
+var faceXMin = LIVE_SLOT_DEFAULTS.faceXMin
+var faceXMax = LIVE_SLOT_DEFAULTS.faceXMax
+var faceYMin = LIVE_SLOT_DEFAULTS.faceYMin
+var faceYMax = LIVE_SLOT_DEFAULTS.faceYMax
+var bodyRotateMin = LIVE_SLOT_DEFAULTS.bodyRotateMin
+var bodyRotateMax = LIVE_SLOT_DEFAULTS.bodyRotateMax
 
 var cameraEnabled = false
 if (localStorage.getItem('ftCameraEnabled')) {
@@ -346,10 +358,31 @@ function normalizeLiveSlotSettingsEntry(entry, fallback) {
   var nextOffsetY = clampValue(parseFiniteInt(source.offsetY, base.offsetY), -500, 500, base.offsetY)
   var nextIntervalMin = clampValue(parseFiniteInt(source.intervalMin, base.intervalMin), intervalLimitMin, intervalLimitMax, base.intervalMin)
   var nextIntervalMax = clampValue(parseFiniteInt(source.intervalMax, base.intervalMax), intervalLimitMin, intervalLimitMax, base.intervalMax)
+  var nextFaceXMin = clampValue(parseFiniteInt(source.faceXMin, base.faceXMin), 0, 100, base.faceXMin)
+  var nextFaceXMax = clampValue(parseFiniteInt(source.faceXMax, base.faceXMax), 0, 100, base.faceXMax)
+  var nextFaceYMin = clampValue(parseFiniteInt(source.faceYMin, base.faceYMin), 0, 100, base.faceYMin)
+  var nextFaceYMax = clampValue(parseFiniteInt(source.faceYMax, base.faceYMax), 0, 100, base.faceYMax)
+  var nextBodyRotateMin = clampValue(parseFiniteInt(source.bodyRotateMin, base.bodyRotateMin), 0, 100, base.bodyRotateMin)
+  var nextBodyRotateMax = clampValue(parseFiniteInt(source.bodyRotateMax, base.bodyRotateMax), 0, 100, base.bodyRotateMax)
   if (nextIntervalMin > nextIntervalMax) {
     var temp = nextIntervalMin
     nextIntervalMin = nextIntervalMax
     nextIntervalMax = temp
+  }
+  if (nextFaceXMin > nextFaceXMax) {
+    var tempFaceX = nextFaceXMin
+    nextFaceXMin = nextFaceXMax
+    nextFaceXMax = tempFaceX
+  }
+  if (nextFaceYMin > nextFaceYMax) {
+    var tempFaceY = nextFaceYMin
+    nextFaceYMin = nextFaceYMax
+    nextFaceYMax = tempFaceY
+  }
+  if (nextBodyRotateMin > nextBodyRotateMax) {
+    var tempBodyRotate = nextBodyRotateMin
+    nextBodyRotateMin = nextBodyRotateMax
+    nextBodyRotateMax = tempBodyRotate
   }
   var fallbackColor = normalizeColorValue(base.color, LIVE_SLOT_DEFAULTS.color)
   var nextColor = normalizeColorValue(source.color, fallbackColor)
@@ -359,6 +392,12 @@ function normalizeLiveSlotSettingsEntry(entry, fallback) {
     offsetY: nextOffsetY,
     intervalMin: nextIntervalMin,
     intervalMax: nextIntervalMax,
+    faceXMin: nextFaceXMin,
+    faceXMax: nextFaceXMax,
+    faceYMin: nextFaceYMin,
+    faceYMax: nextFaceYMax,
+    bodyRotateMin: nextBodyRotateMin,
+    bodyRotateMax: nextBodyRotateMax,
     color: nextColor
   }
 }
@@ -370,6 +409,12 @@ function cloneLiveSlotSettings(entry) {
     offsetY: entry.offsetY,
     intervalMin: entry.intervalMin,
     intervalMax: entry.intervalMax,
+    faceXMin: entry.faceXMin,
+    faceXMax: entry.faceXMax,
+    faceYMin: entry.faceYMin,
+    faceYMax: entry.faceYMax,
+    bodyRotateMin: entry.bodyRotateMin,
+    bodyRotateMax: entry.bodyRotateMax,
     color: entry.color
   }
 }
@@ -381,6 +426,12 @@ function readLegacyLiveSettingsSnapshot() {
     offsetY,
     intervalMin,
     intervalMax,
+    faceXMin,
+    faceXMax,
+    faceYMin,
+    faceYMax,
+    bodyRotateMin,
+    bodyRotateMax,
     color
   }, LIVE_SLOT_DEFAULTS)
 }
@@ -432,6 +483,12 @@ function applyLiveSlotEntryToRuntime(entry) {
   offsetY = entry.offsetY
   intervalMin = entry.intervalMin
   intervalMax = entry.intervalMax
+  faceXMin = entry.faceXMin
+  faceXMax = entry.faceXMax
+  faceYMin = entry.faceYMin
+  faceYMax = entry.faceYMax
+  bodyRotateMin = entry.bodyRotateMin
+  bodyRotateMax = entry.bodyRotateMax
   normalizeIntervalRange()
   applyBackgroundColorValue(entry.color)
   saveLegacyLiveSettings()
@@ -454,6 +511,12 @@ function persistCurrentLiveSlotSettings() {
     offsetY,
     intervalMin,
     intervalMax,
+    faceXMin,
+    faceXMax,
+    faceYMin,
+    faceYMax,
+    bodyRotateMin,
+    bodyRotateMax,
     color
   })
   saveLegacyLiveSettings()
@@ -473,6 +536,7 @@ function applyLiveSlotByIndex(slotIndex, options) {
     updateRigUI()
     updateOffsetUI()
     updateIntervalUI()
+    updateMotionRangeUI()
     updateColorUI()
     applyCharacterTransform()
   }
@@ -495,6 +559,24 @@ var intervalMaxValueInput = document.querySelector('#interval-max-value')
 var intervalRangeFill = document.querySelector('#interval-range-fill')
 var intervalRange = document.querySelector('#interval-range')
 var activeIntervalHandle = 'max'
+var faceXMinInput = document.querySelector('#face-x-min')
+var faceXMaxInput = document.querySelector('#face-x-max')
+var faceXMinValueInput = document.querySelector('#face-x-min-value')
+var faceXMaxValueInput = document.querySelector('#face-x-max-value')
+var faceXRangeFill = document.querySelector('#face-x-range-fill')
+var activeFaceXHandle = 'max'
+var faceYMinInput = document.querySelector('#face-y-min')
+var faceYMaxInput = document.querySelector('#face-y-max')
+var faceYMinValueInput = document.querySelector('#face-y-min-value')
+var faceYMaxValueInput = document.querySelector('#face-y-max-value')
+var faceYRangeFill = document.querySelector('#face-y-range-fill')
+var activeFaceYHandle = 'max'
+var bodyRotateMinInput = document.querySelector('#body-rotate-min')
+var bodyRotateMaxInput = document.querySelector('#body-rotate-max')
+var bodyRotateMinValueInput = document.querySelector('#body-rotate-min-value')
+var bodyRotateMaxValueInput = document.querySelector('#body-rotate-max-value')
+var bodyRotateRangeFill = document.querySelector('#body-rotate-range-fill')
+var activeBodyRotateHandle = 'max'
 var settingsToggle = document.querySelector('#settings-toggle')
 var settingsPanel = document.querySelector('#settings-panel')
 var settingsTabs = document.querySelectorAll('[data-settings-tab]')
@@ -752,6 +834,243 @@ function bindIntervalValueInput(input, handle) {
       input.blur()
     }
   })
+}
+
+function updateDualRangeHandleZ(minInput, maxInput, minValue, maxValue, activeHandle, limitMin, limitMax) {
+  if (!minInput || !maxInput) {
+    return
+  }
+  if (minValue === maxValue) {
+    if (minValue <= limitMin) {
+      minInput.style.zIndex = '3'
+      maxInput.style.zIndex = '4'
+    } else if (maxValue >= limitMax) {
+      minInput.style.zIndex = '4'
+      maxInput.style.zIndex = '3'
+    } else if (activeHandle === 'min') {
+      minInput.style.zIndex = '4'
+      maxInput.style.zIndex = '3'
+    } else {
+      minInput.style.zIndex = '3'
+      maxInput.style.zIndex = '4'
+    }
+  } else {
+    minInput.style.zIndex = '3'
+    maxInput.style.zIndex = '4'
+  }
+}
+
+function updateDualRangeFill(fillElement, minValue, maxValue, limitMin, limitMax) {
+  if (!fillElement) {
+    return
+  }
+  var span = limitMax - limitMin
+  if (!span) {
+    fillElement.style.left = '0%'
+    fillElement.style.width = '0%'
+    return
+  }
+  var minPercent = ((minValue - limitMin) / span) * 100
+  var maxPercent = ((maxValue - limitMin) / span) * 100
+  fillElement.style.left = `${minPercent}%`
+  fillElement.style.width = `${maxPercent - minPercent}%`
+}
+
+function setMotionRangeHandleActive(rangeKey, handle) {
+  if (rangeKey === 'faceX') {
+    activeFaceXHandle = handle
+  } else if (rangeKey === 'faceY') {
+    activeFaceYHandle = handle
+  } else if (rangeKey === 'bodyRotate') {
+    activeBodyRotateHandle = handle
+  }
+  updateMotionRangeHandleZ(rangeKey)
+}
+
+function getMotionRangePair(rangeKey) {
+  if (rangeKey === 'faceX') {
+    return { min: faceXMin, max: faceXMax }
+  }
+  if (rangeKey === 'faceY') {
+    return { min: faceYMin, max: faceYMax }
+  }
+  return { min: bodyRotateMin, max: bodyRotateMax }
+}
+
+function setMotionRangePair(rangeKey, minValue, maxValue) {
+  if (rangeKey === 'faceX') {
+    faceXMin = minValue
+    faceXMax = maxValue
+    return
+  }
+  if (rangeKey === 'faceY') {
+    faceYMin = minValue
+    faceYMax = maxValue
+    return
+  }
+  bodyRotateMin = minValue
+  bodyRotateMax = maxValue
+}
+
+function getFaceYUiRangePair() {
+  return {
+    min: 100 - faceYMax,
+    max: 100 - faceYMin
+  }
+}
+
+function setFaceYFromUiRangePair(uiMin, uiMax) {
+  faceYMin = 100 - uiMax
+  faceYMax = 100 - uiMin
+}
+
+function updateMotionRangeHandleZ(rangeKey) {
+  if (!rangeKey || rangeKey === 'faceX') {
+    updateDualRangeHandleZ(faceXMinInput, faceXMaxInput, faceXMin, faceXMax, activeFaceXHandle, 0, 100)
+  }
+  if (!rangeKey || rangeKey === 'faceY') {
+    var faceYUiPair = getFaceYUiRangePair()
+    updateDualRangeHandleZ(faceYMinInput, faceYMaxInput, faceYUiPair.min, faceYUiPair.max, activeFaceYHandle, 0, 100)
+  }
+  if (!rangeKey || rangeKey === 'bodyRotate') {
+    updateDualRangeHandleZ(bodyRotateMinInput, bodyRotateMaxInput, bodyRotateMin, bodyRotateMax, activeBodyRotateHandle, 0, 100)
+  }
+}
+
+function updateMotionRangeUI() {
+  if (faceXMinInput) {
+    faceXMinInput.value = String(faceXMin)
+  }
+  if (faceXMaxInput) {
+    faceXMaxInput.value = String(faceXMax)
+  }
+  if (faceXMinValueInput) {
+    faceXMinValueInput.value = String(faceXMin)
+  }
+  if (faceXMaxValueInput) {
+    faceXMaxValueInput.value = String(faceXMax)
+  }
+  updateDualRangeFill(faceXRangeFill, faceXMin, faceXMax, 0, 100)
+
+  var faceYUiPair = getFaceYUiRangePair()
+  if (faceYMinInput) {
+    faceYMinInput.value = String(faceYUiPair.min)
+  }
+  if (faceYMaxInput) {
+    faceYMaxInput.value = String(faceYUiPair.max)
+  }
+  if (faceYMinValueInput) {
+    faceYMinValueInput.value = String(faceYUiPair.min)
+  }
+  if (faceYMaxValueInput) {
+    faceYMaxValueInput.value = String(faceYUiPair.max)
+  }
+  updateDualRangeFill(faceYRangeFill, faceYUiPair.min, faceYUiPair.max, 0, 100)
+
+  if (bodyRotateMinInput) {
+    bodyRotateMinInput.value = String(bodyRotateMin)
+  }
+  if (bodyRotateMaxInput) {
+    bodyRotateMaxInput.value = String(bodyRotateMax)
+  }
+  if (bodyRotateMinValueInput) {
+    bodyRotateMinValueInput.value = String(bodyRotateMin)
+  }
+  if (bodyRotateMaxValueInput) {
+    bodyRotateMaxValueInput.value = String(bodyRotateMax)
+  }
+  updateDualRangeFill(bodyRotateRangeFill, bodyRotateMin, bodyRotateMax, 0, 100)
+
+  updateMotionRangeHandleZ()
+}
+
+function commitMotionRangeSetting(rangeKey, changedKey, rawValue) {
+  if (rangeKey === 'faceY') {
+    var faceYUiPair = getFaceYUiRangePair()
+    var nextUiMin = faceYUiPair.min
+    var nextUiMax = faceYUiPair.max
+    if (changedKey === 'min') {
+      setMotionRangeHandleActive('faceY', 'min')
+      nextUiMin = clampValue(parseFiniteInt(rawValue, nextUiMin), 0, 100, nextUiMin)
+    } else {
+      setMotionRangeHandleActive('faceY', 'max')
+      nextUiMax = clampValue(parseFiniteInt(rawValue, nextUiMax), 0, 100, nextUiMax)
+    }
+    if (nextUiMin > nextUiMax) {
+      if (changedKey === 'min') {
+        nextUiMax = nextUiMin
+      } else {
+        nextUiMin = nextUiMax
+      }
+    }
+    setFaceYFromUiRangePair(nextUiMin, nextUiMax)
+    persistCurrentLiveSlotSettings()
+    updateMotionRangeUI()
+    return
+  }
+
+  var pair = getMotionRangePair(rangeKey)
+  var nextMin = pair.min
+  var nextMax = pair.max
+
+  if (changedKey === 'min') {
+    setMotionRangeHandleActive(rangeKey, 'min')
+    nextMin = clampValue(parseFiniteInt(rawValue, nextMin), 0, 100, nextMin)
+  } else {
+    setMotionRangeHandleActive(rangeKey, 'max')
+    nextMax = clampValue(parseFiniteInt(rawValue, nextMax), 0, 100, nextMax)
+  }
+
+  if (nextMin > nextMax) {
+    if (changedKey === 'min') {
+      nextMax = nextMin
+    } else {
+      nextMin = nextMax
+    }
+  }
+
+  setMotionRangePair(rangeKey, nextMin, nextMax)
+  persistCurrentLiveSlotSettings()
+  updateMotionRangeUI()
+}
+
+function bindMotionRangeValueInput(input, rangeKey, handle) {
+  if (!input) {
+    return
+  }
+
+  function commitValue() {
+    var raw = input.value.trim()
+    if (!raw) {
+      updateMotionRangeUI()
+      return
+    }
+    var parsed = parseInt(raw, 10)
+    if (!Number.isFinite(parsed)) {
+      updateMotionRangeUI()
+      return
+    }
+    commitMotionRangeSetting(rangeKey, handle, parsed)
+  }
+
+  input.addEventListener('change', commitValue)
+  input.addEventListener('blur', commitValue)
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      commitValue()
+      input.blur()
+    }
+  })
+}
+
+function bindDualRangeHandleEvents(input, callback) {
+  if (!input || typeof callback !== 'function') {
+    return
+  }
+  input.addEventListener('pointerdown', callback)
+  input.addEventListener('mousedown', callback)
+  input.addEventListener('touchstart', callback, { passive: true })
+  input.addEventListener('focus', callback)
 }
 
 function updateOffsetUI() {
@@ -1100,6 +1419,7 @@ if (storedInterval && (!localStorage.getItem('ftIntervalMin') || !localStorage.g
 bindIntervalHandleEvents(intervalMinInput, 'min')
 bindIntervalHandleEvents(intervalMaxInput, 'max')
 updateIntervalUI()
+updateMotionRangeUI()
 updateOffsetUI()
 updateThresholdUI()
 updateRigUI()
@@ -1108,6 +1428,12 @@ updateCameraUI()
 
 bindIntervalValueInput(intervalMinValueInput, 'min')
 bindIntervalValueInput(intervalMaxValueInput, 'max')
+bindMotionRangeValueInput(faceXMinValueInput, 'faceX', 'min')
+bindMotionRangeValueInput(faceXMaxValueInput, 'faceX', 'max')
+bindMotionRangeValueInput(faceYMinValueInput, 'faceY', 'min')
+bindMotionRangeValueInput(faceYMaxValueInput, 'faceY', 'max')
+bindMotionRangeValueInput(bodyRotateMinValueInput, 'bodyRotate', 'min')
+bindMotionRangeValueInput(bodyRotateMaxValueInput, 'bodyRotate', 'max')
 bindRangeValueInput(thresholdInput, thresholdValue)
 bindRangeValueInput(rigInput, rigValue)
 bindRangeValueInput(offsetXInput, offsetXValue)
@@ -1367,6 +1693,61 @@ if (cameraMouthSensitivityInput) {
     cameraMouthBaseline = 0
     updateCameraMouthSettings()
     updateCameraUI()
+  })
+}
+
+bindDualRangeHandleEvents(faceXMinInput, function() {
+  setMotionRangeHandleActive('faceX', 'min')
+})
+bindDualRangeHandleEvents(faceXMaxInput, function() {
+  setMotionRangeHandleActive('faceX', 'max')
+})
+bindDualRangeHandleEvents(faceYMinInput, function() {
+  setMotionRangeHandleActive('faceY', 'min')
+})
+bindDualRangeHandleEvents(faceYMaxInput, function() {
+  setMotionRangeHandleActive('faceY', 'max')
+})
+bindDualRangeHandleEvents(bodyRotateMinInput, function() {
+  setMotionRangeHandleActive('bodyRotate', 'min')
+})
+bindDualRangeHandleEvents(bodyRotateMaxInput, function() {
+  setMotionRangeHandleActive('bodyRotate', 'max')
+})
+
+if (faceXMinInput) {
+  faceXMinInput.addEventListener('input', function(e) {
+    commitMotionRangeSetting('faceX', 'min', e.target.value)
+  })
+}
+
+if (faceXMaxInput) {
+  faceXMaxInput.addEventListener('input', function(e) {
+    commitMotionRangeSetting('faceX', 'max', e.target.value)
+  })
+}
+
+if (faceYMinInput) {
+  faceYMinInput.addEventListener('input', function(e) {
+    commitMotionRangeSetting('faceY', 'min', e.target.value)
+  })
+}
+
+if (faceYMaxInput) {
+  faceYMaxInput.addEventListener('input', function(e) {
+    commitMotionRangeSetting('faceY', 'max', e.target.value)
+  })
+}
+
+if (bodyRotateMinInput) {
+  bodyRotateMinInput.addEventListener('input', function(e) {
+    commitMotionRangeSetting('bodyRotate', 'min', e.target.value)
+  })
+}
+
+if (bodyRotateMaxInput) {
+  bodyRotateMaxInput.addEventListener('input', function(e) {
+    commitMotionRangeSetting('bodyRotate', 'max', e.target.value)
   })
 }
 
