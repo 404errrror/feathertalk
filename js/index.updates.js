@@ -12,6 +12,15 @@ const UPDATE_LOG_SEEN_KEY = 'ftSeenUpdateVersion'
 /** @type {UpdateLogEntry[]} */
 const UPDATE_LOG_ENTRIES = [
   {
+    version: 'v2026.02.16.07',
+    date: '2026-02-16',
+    summary: '스크롤 시 캐릭터 설정 카드가 상단 제목(Feather-Talk)을 가리던 문제를 수정했어요.',
+    details: [
+      'index 상단 내비게이션(#navbar)에 z-index를 추가해 제목 영역이 항상 위에 표시되도록 정리했어요.',
+      '이제 페이지를 아래로 스크롤해도 캐릭터 설정 카드가 제목을 덮지 않아요.'
+    ]
+  },
+  {
     version: 'v2026.02.16.06',
     date: '2026-02-16',
     summary: '새로고침(F5) 이후 자동 모션 느낌이 달라지던 문제를 고쳤어요.',

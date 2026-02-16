@@ -50,6 +50,7 @@ body {
     left: 0;
     height: 3rem;
     width: 100vw;
+    z-index: 1000;
 }
 
 #logo h2 {
