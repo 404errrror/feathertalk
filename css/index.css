@@ -356,17 +356,42 @@ input {
 .slot-settings__grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px 16px;
+    gap: 20px 18px;
+}
+
+.slot-settings__divider {
+    grid-column: 1 / -1;
+    height: 1px;
+    margin: -6px 0;
+    background: linear-gradient(90deg, rgba(110, 143, 163, 0.15), rgba(110, 143, 163, 0.45), rgba(110, 143, 163, 0.15));
 }
 
 .slot-setting {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
+}
+
+.slot-setting.is-disabled {
+    opacity: 0.58;
+}
+
+.slot-setting.is-disabled .slot-setting__head label,
+.slot-setting.is-disabled .range-values,
+.slot-setting.is-disabled .range-separator {
+    color: #8ea0ad;
+}
+
+.slot-setting.is-disabled .range-values--input::after {
+    color: #8ea0ad;
 }
 
 .slot-setting--full {
     grid-column: 1 / -1;
+}
+
+.slot-setting--col-start {
+    grid-column: 1;
 }
 
 .slot-setting__head {
@@ -388,6 +413,42 @@ input {
     font-weight: 700;
     color: var(--text-muted);
     line-height: 1.2;
+}
+
+.slot-setting--toggle {
+    gap: 0;
+}
+
+.slot-setting--toggle .slot-setting__head {
+    gap: 14px;
+}
+
+.slot-toggle-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--line-strong);
+    background: #fff;
+    color: var(--text-main);
+    border-radius: 999px;
+    min-height: 34px;
+    padding: 0 12px;
+    font-size: 0.82rem;
+    line-height: 1;
+    min-width: 64px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.slot-toggle-button[aria-pressed="true"] {
+    background: var(--accent-strong);
+    color: #fff;
+    border-color: var(--accent-strong);
+}
+
+.slot-toggle-button:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
 }
 
 .slot-settings input[type="text"] {
@@ -451,13 +512,13 @@ input {
 }
 
 .slot-interval {
-    gap: 10px;
+    gap: 12px;
 }
 
 .slot-interval__controls {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
     width: 100%;
 }
 
@@ -536,7 +597,7 @@ input {
     align-items: center;
     padding: 0;
     box-sizing: border-box;
-    margin-top: -4px;
+    margin-top: 0;
 }
 
 .slot-interval .range-track {
@@ -864,7 +925,11 @@ input {
 
     .slot-settings__grid {
         grid-template-columns: 1fr;
-        gap: 12px;
+        gap: 14px;
+    }
+
+    .slot-settings__divider {
+        margin: -3px 0;
     }
 
     .slot-settings {

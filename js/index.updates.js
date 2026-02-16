@@ -12,12 +12,23 @@ const UPDATE_LOG_SEEN_KEY = 'ftSeenUpdateVersion'
 /** @type {UpdateLogEntry[]} */
 const UPDATE_LOG_ENTRIES = [
   {
+    version: 'v2026.02.16.05',
+    date: '2026-02-16',
+    summary: '자동 모션 토글과 index 캐릭터 설정 레이아웃 개선을 적용했어요.',
+    details: [
+      'index/live 모두에 자동 모션 켜짐/꺼짐 토글을 추가하고, ON/OFF 상태가 슬롯별 설정으로 저장되도록 연결했어요.',
+      '자동 모션이 꺼진 상태에서는 자동 모션 속도 컨트롤을 비활성화해 설정 의도를 더 명확하게 만들었어요.',
+      '캐릭터 설정 행을 리깅/XY/자동모션/범위/배경색 흐름으로 재정렬하고, 항목 간 간격을 넓혀 읽기 쉽게 정리했어요.',
+      '행 단위 구분선을 추가해 설정 그룹 경계를 더 명확하게 구분했어요.',
+    ]
+  },
+  {
     version: 'v2026.02.16.04',
     date: '2026-02-16',
     summary: '내용 없음',
     details: [
       '내용 없음'
-      ]
+    ]
   },
   {
     version: 'v2026.02.16.03',

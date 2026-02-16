@@ -16,6 +16,7 @@ var LIVE_SLOT_DEFAULTS = {
   offsetY: 0,
   intervalMin: 1500,
   intervalMax: 1500,
+  autoMotion: true,
   faceXMin: 0,
   faceXMax: 100,
   faceYMin: 0,
@@ -41,6 +42,21 @@ function normalizeColorValue(value, fallback) {
   return source
 }
 
+function normalizeBooleanValue(value, fallback) {
+  if (typeof value === 'boolean') {
+    return value
+  }
+  if (typeof value === 'string') {
+    if (value === 'true') {
+      return true
+    }
+    if (value === 'false') {
+      return false
+    }
+  }
+  return Boolean(fallback)
+}
+
 function normalizeLiveSlotIndex(value, fallback) {
   if (!Number.isFinite(value)) {
     return fallback
@@ -58,6 +74,7 @@ var faceYMin = LIVE_SLOT_DEFAULTS.faceYMin
 var faceYMax = LIVE_SLOT_DEFAULTS.faceYMax
 var bodyRotateMin = LIVE_SLOT_DEFAULTS.bodyRotateMin
 var bodyRotateMax = LIVE_SLOT_DEFAULTS.bodyRotateMax
+var autoMotionEnabled = normalizeBooleanValue(localStorage.getItem('ftAutoMotion'), LIVE_SLOT_DEFAULTS.autoMotion)
 
 var cameraEnabled = false
 if (localStorage.getItem('ftCameraEnabled')) {
@@ -392,6 +409,7 @@ function normalizeLiveSlotSettingsEntry(entry, fallback) {
     offsetY: nextOffsetY,
     intervalMin: nextIntervalMin,
     intervalMax: nextIntervalMax,
+    autoMotion: normalizeBooleanValue(source.autoMotion, base.autoMotion),
     faceXMin: nextFaceXMin,
     faceXMax: nextFaceXMax,
     faceYMin: nextFaceYMin,
@@ -409,6 +427,7 @@ function cloneLiveSlotSettings(entry) {
     offsetY: entry.offsetY,
     intervalMin: entry.intervalMin,
     intervalMax: entry.intervalMax,
+    autoMotion: entry.autoMotion,
     faceXMin: entry.faceXMin,
     faceXMax: entry.faceXMax,
     faceYMin: entry.faceYMin,
@@ -426,6 +445,7 @@ function readLegacyLiveSettingsSnapshot() {
     offsetY,
     intervalMin,
     intervalMax,
+    autoMotion: autoMotionEnabled,
     faceXMin,
     faceXMax,
     faceYMin,
@@ -474,6 +494,7 @@ function saveLegacyLiveSettings() {
   localStorage.setItem('ftOffsetY', String(offsetY))
   localStorage.setItem('ftIntervalMin', String(intervalMin))
   localStorage.setItem('ftIntervalMax', String(intervalMax))
+  localStorage.setItem('ftAutoMotion', String(autoMotionEnabled))
   localStorage.setItem('ftColor', color)
 }
 
@@ -483,6 +504,7 @@ function applyLiveSlotEntryToRuntime(entry) {
   offsetY = entry.offsetY
   intervalMin = entry.intervalMin
   intervalMax = entry.intervalMax
+  autoMotionEnabled = normalizeBooleanValue(entry.autoMotion, LIVE_SLOT_DEFAULTS.autoMotion)
   faceXMin = entry.faceXMin
   faceXMax = entry.faceXMax
   faceYMin = entry.faceYMin
@@ -511,6 +533,7 @@ function persistCurrentLiveSlotSettings() {
     offsetY,
     intervalMin,
     intervalMax,
+    autoMotion: autoMotionEnabled,
     faceXMin,
     faceXMax,
     faceYMin,
@@ -532,9 +555,13 @@ function applyLiveSlotByIndex(slotIndex, options) {
   liveSlotSettings[activeLiveSlot] = cloneLiveSlotSettings(slotEntry)
   saveLiveSlotSettingsToStorage()
   applyLiveSlotEntryToRuntime(slotEntry)
+  if (typeof window.syncAutoMotionRigState === 'function') {
+    window.syncAutoMotionRigState()
+  }
   if (opts.syncUI !== false) {
     updateRigUI()
     updateOffsetUI()
+    updateAutoMotionUI()
     updateIntervalUI()
     updateMotionRangeUI()
     updateColorUI()
@@ -586,6 +613,7 @@ var offsetYInput = document.querySelector('#offset-y')
 var thresholdInput = document.querySelector('#threshold')
 var rigInput = document.querySelector('#rig')
 var colorInput = document.querySelector('#color')
+var autoMotionToggle = document.querySelector('#auto-motion-toggle')
 var thresholdValue = document.querySelector('#threshold-value')
 var rigValue = document.querySelector('#rig-value')
 var offsetXValue = document.querySelector('#offset-x-value')
@@ -1105,6 +1133,28 @@ function updateColorUI() {
   }
 }
 
+function updateAutoMotionUI() {
+  var isEnabled = Boolean(autoMotionEnabled)
+  var disabled = !isEnabled
+  updateToggleButton(autoMotionToggle, isEnabled)
+
+  if (intervalMinInput) {
+    intervalMinInput.disabled = disabled
+  }
+  if (intervalMaxInput) {
+    intervalMaxInput.disabled = disabled
+  }
+  if (intervalMinValueInput) {
+    intervalMinValueInput.disabled = disabled
+  }
+  if (intervalMaxValueInput) {
+    intervalMaxValueInput.disabled = disabled
+  }
+  if (intervalRange) {
+    setSettingItemDisabled(intervalRange, disabled)
+  }
+}
+
 
 function updateToggleButton(button, enabled) {
   if (!button) {
@@ -1424,6 +1474,7 @@ updateOffsetUI()
 updateThresholdUI()
 updateRigUI()
 updateColorUI()
+updateAutoMotionUI()
 updateCameraUI()
 
 bindIntervalValueInput(intervalMinValueInput, 'min')
@@ -1510,6 +1561,17 @@ if (colorInput) {
     applyBackgroundColorValue(e.target.value)
     persistCurrentLiveSlotSettings()
     updateColorUI()
+  })
+}
+
+if (autoMotionToggle) {
+  autoMotionToggle.addEventListener('click', function() {
+    autoMotionEnabled = !autoMotionEnabled
+    persistCurrentLiveSlotSettings()
+    updateAutoMotionUI()
+    if (typeof window.syncAutoMotionRigState === 'function') {
+      window.syncAutoMotionRigState()
+    }
   })
 }
 

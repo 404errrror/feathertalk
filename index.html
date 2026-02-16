@@ -85,7 +85,8 @@
                             <input id="slot-rig" type="range" min="0" max="200" value="100">
                         </div>
                     </div>
-                    <div class="slot-setting">
+                    <div class="slot-settings__divider" aria-hidden="true"></div>
+                    <div class="slot-setting slot-setting--col-start">
                         <div class="slot-setting__head">
                             <label for="slot-offset-x">X 위치</label>
                             <div class="range-value" data-unit="px">
@@ -107,6 +108,13 @@
                             <input id="slot-offset-y" type="range" min="-500" max="500" value="0">
                         </div>
                     </div>
+                    <div class="slot-settings__divider" aria-hidden="true"></div>
+                    <div class="slot-setting slot-setting--toggle">
+                        <div class="slot-setting__head">
+                            <label for="slot-auto-motion-toggle">자동 모션</label>
+                            <button type="button" class="slot-toggle-button" id="slot-auto-motion-toggle" aria-pressed="true" data-off-label="꺼짐" data-on-label="켜짐">켜짐</button>
+                        </div>
+                    </div>
                     <div class="slot-setting slot-interval">
                         <div class="slot-interval__controls">
                             <div class="slot-setting__head range-header">
@@ -126,7 +134,8 @@
                             </div>
                         </div>
                     </div>
-                    <div class="slot-setting slot-interval slot-setting--full">
+                    <div class="slot-settings__divider" aria-hidden="true"></div>
+                    <div class="slot-setting slot-interval">
                         <div class="slot-interval__controls">
                             <div class="slot-setting__head range-header">
                                 <label for="slot-face-x-min">얼굴 좌/우 범위</label>
@@ -145,7 +154,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="slot-setting slot-interval slot-setting--full">
+                    <div class="slot-setting slot-interval">
                         <div class="slot-interval__controls">
                             <div class="slot-setting__head range-header">
                                 <label for="slot-face-y-min">얼굴 상/하 범위</label>
@@ -164,7 +173,8 @@
                             </div>
                         </div>
                     </div>
-                    <div class="slot-setting slot-interval slot-setting--full">
+                    <div class="slot-settings__divider" aria-hidden="true"></div>
+                    <div class="slot-setting slot-interval">
                         <div class="slot-interval__controls">
                             <div class="slot-setting__head range-header">
                                 <label for="slot-body-rotate-min">몸 회전 범위</label>
@@ -183,7 +193,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="slot-setting slot-setting--compact">
+                    <div class="slot-setting">
                         <label for="slot-color">배경색</label>
                         <div class="input-row slot-color-row">
                             <input id="slot-color" type="color" value="#00ff00" aria-label="배경색 선택">

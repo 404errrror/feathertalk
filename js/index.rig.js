@@ -3,6 +3,13 @@
   let autoFrameTimers = []
   var pointerIdleDelay = 1500
 
+  function isAutoMotionEnabled() {
+    if (typeof window.autoMotionEnabled === 'boolean') {
+      return window.autoMotionEnabled
+    }
+    return true
+  }
+
   function clearAutoFrameTimers() {
     for (let i = 0; i < autoFrameTimers.length; i++) {
       clearTimeout(autoFrameTimers[i])
@@ -21,6 +28,10 @@
   }
 
   function scheduleAutoResume(fallbackX, fallbackY) {
+    if (!isAutoMotionEnabled()) {
+      clearTimeout(autoResumeTimer)
+      return
+    }
     clearTimeout(autoResumeTimer)
     autoResumeTimer = setTimeout(function() {
       scheduleAutoRigFromPointer(fallbackX, fallbackY)
@@ -131,7 +142,7 @@
   }
 
 function scheduleAutoRig() {
-    if (cameraEnabled) {
+    if (cameraEnabled || !isAutoMotionEnabled()) {
       return
     }
     clearAutoFrameTimers()
@@ -189,7 +200,7 @@ function scheduleAutoRig() {
       setCharacterTransform((rotateX - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)
       }, i*12/20);
     }
-    if (!cameraEnabled) {
+    if (!cameraEnabled && isAutoMotionEnabled()) {
       autoRig = setTimeout(scheduleAutoRig, currentInterval)
     }
   }
@@ -207,7 +218,7 @@ let Y = lastY
 let velocity = 0
 
 function scheduleAutoRigFromPointer(fallbackX, fallbackY) {
-  if (cameraEnabled) {
+  if (cameraEnabled || !isAutoMotionEnabled()) {
     return
   }
   clearAutoFrameTimers()
@@ -275,12 +286,23 @@ function scheduleAutoRigFromPointer(fallbackX, fallbackY) {
     setCharacterTransform((rotateX - document.body.clientWidth/2)/document.body.clientWidth*15*rig/100)
     }, i*12/20);
   }
-  if (!cameraEnabled) {
+  if (!cameraEnabled && isAutoMotionEnabled()) {
     autoRig = setTimeout(() => {
       scheduleAutoRigFromPointer(fallbackX, fallbackY)
     }, currentInterval)
   }
 }
+
+function syncAutoMotionRigState() {
+  stopAutoRig()
+  clearTimeout(autoResumeTimer)
+  if (cameraEnabled || !isAutoMotionEnabled()) {
+    return
+  }
+  scheduleAutoRigFromPointer(lastX || document.body.clientWidth / 2, lastY || document.body.clientHeight / 2)
+}
+
+window.syncAutoMotionRigState = syncAutoMotionRigState
 
 function applyRigFromPoint(pointX, pointY, velocityX, rotateX) {
   var clampedPointX = clampFaceRigX(pointX)

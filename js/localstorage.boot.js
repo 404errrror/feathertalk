@@ -9,6 +9,7 @@ const LIVE_SLOT_DEFAULTS = {
   offsetY: 0,
   intervalMin: 1500,
   intervalMax: 1500,
+  autoMotion: true,
   faceXMin: 0,
   faceXMax: 100,
   faceYMin: 0,
@@ -37,6 +38,21 @@ function normalizeColorValue(value, fallback) {
     return fallback
   }
   return source
+}
+
+function normalizeBooleanValue(value, fallback) {
+  if (typeof value === 'boolean') {
+    return value
+  }
+  if (typeof value === 'string') {
+    if (value === 'true') {
+      return true
+    }
+    if (value === 'false') {
+      return false
+    }
+  }
+  return Boolean(fallback)
 }
 
 function normalizeSlotIndex(value, fallback) {
@@ -84,6 +100,7 @@ function normalizeLiveSlotSettingsEntry(entry, fallback) {
     offsetY: clampValue(parseFiniteInt(source.offsetY, base.offsetY), -500, 500, base.offsetY),
     intervalMin: nextIntervalMin,
     intervalMax: nextIntervalMax,
+    autoMotion: normalizeBooleanValue(source.autoMotion, base.autoMotion),
     faceXMin: nextFaceXMin,
     faceXMax: nextFaceXMax,
     faceYMin: nextFaceYMin,
@@ -101,6 +118,7 @@ function cloneLiveSlotSettings(entry) {
     offsetY: entry.offsetY,
     intervalMin: entry.intervalMin,
     intervalMax: entry.intervalMax,
+    autoMotion: entry.autoMotion,
     faceXMin: entry.faceXMin,
     faceXMax: entry.faceXMax,
     faceYMin: entry.faceYMin,
@@ -116,6 +134,7 @@ function buildLegacyLiveSettings() {
   const legacyOffsetX = parseFiniteInt(localStorage.getItem('ftOffsetX'), LIVE_SLOT_DEFAULTS.offsetX)
   const legacyOffsetY = parseFiniteInt(localStorage.getItem('ftOffsetY'), LIVE_SLOT_DEFAULTS.offsetY)
   const legacyColor = localStorage.getItem('ftColor')
+  const legacyAutoMotion = normalizeBooleanValue(localStorage.getItem('ftAutoMotion'), LIVE_SLOT_DEFAULTS.autoMotion)
 
   let legacyIntervalMin = parseFiniteInt(localStorage.getItem('ftIntervalMin'), NaN)
   let legacyIntervalMax = parseFiniteInt(localStorage.getItem('ftIntervalMax'), NaN)
@@ -133,6 +152,7 @@ function buildLegacyLiveSettings() {
     offsetY: legacyOffsetY,
     intervalMin: legacyIntervalMin,
     intervalMax: legacyIntervalMax,
+    autoMotion: legacyAutoMotion,
     color: legacyColor
   }, LIVE_SLOT_DEFAULTS)
 }
@@ -268,6 +288,7 @@ const slotIntervalMaxInput = document.querySelector('#slot-interval-max')
 const slotIntervalMinValueInput = document.querySelector('#slot-interval-min-value')
 const slotIntervalMaxValueInput = document.querySelector('#slot-interval-max-value')
 const slotIntervalRangeFill = document.querySelector('#slot-interval-range-fill')
+const slotAutoMotionToggle = document.querySelector('#slot-auto-motion-toggle')
 const slotFaceXMinInput = document.querySelector('#slot-face-x-min')
 const slotFaceXMaxInput = document.querySelector('#slot-face-x-max')
 const slotFaceXMinValueInput = document.querySelector('#slot-face-x-min-value')
@@ -301,6 +322,46 @@ function getCurrentSlotIndex() {
 
 function formatIntervalMs(value) {
   return (value / 1000).toFixed(1)
+}
+
+function updateSlotToggleButton(button, enabled) {
+  if (!button) {
+    return
+  }
+  const isEnabled = Boolean(enabled)
+  const onLabel = button.getAttribute('data-on-label') || '켜짐'
+  const offLabel = button.getAttribute('data-off-label') || '꺼짐'
+  button.setAttribute('aria-pressed', isEnabled ? 'true' : 'false')
+  button.textContent = isEnabled ? onLabel : offLabel
+}
+
+function updateSlotAutoMotionUI(slotSettings) {
+  const settings = slotSettings && typeof slotSettings === 'object'
+    ? slotSettings
+    : getLiveSlotSettings(getCurrentSlotIndex())
+  const disabled = !settings.autoMotion
+  const intervalSetting = slotIntervalMinInput ? slotIntervalMinInput.closest('.slot-setting') : null
+
+  if (slotIntervalMinInput) {
+    slotIntervalMinInput.disabled = disabled
+  }
+  if (slotIntervalMaxInput) {
+    slotIntervalMaxInput.disabled = disabled
+  }
+  if (slotIntervalMinValueInput) {
+    slotIntervalMinValueInput.disabled = disabled
+  }
+  if (slotIntervalMaxValueInput) {
+    slotIntervalMaxValueInput.disabled = disabled
+  }
+  if (intervalSetting) {
+    intervalSetting.classList.toggle('is-disabled', disabled)
+    if (disabled) {
+      intervalSetting.setAttribute('aria-disabled', 'true')
+    } else {
+      intervalSetting.removeAttribute('aria-disabled')
+    }
+  }
 }
 
 function updateSlotIntervalHandleZ(slotSettings) {
@@ -489,6 +550,8 @@ function syncSlotSettingsUI(slotIndex) {
   }
   updateSlotIntervalRangeFill(settings)
   updateSlotIntervalHandleZ(settings)
+  updateSlotToggleButton(slotAutoMotionToggle, settings.autoMotion)
+  updateSlotAutoMotionUI(settings)
   if (slotFaceXMinInput) {
     slotFaceXMinInput.value = String(settings.faceXMin)
   }
@@ -585,6 +648,10 @@ function commitSimpleSlotSetting(key, rawValue, minValue, maxValue) {
 function commitIntervalSlotSetting(changedKey, rawValue) {
   const slotIndex = getCurrentSlotIndex()
   const current = getLiveSlotSettings(slotIndex)
+  if (!current.autoMotion) {
+    syncSlotSettingsUI(slotIndex)
+    return
+  }
   let nextMin = current.intervalMin
   let nextMax = current.intervalMax
   if (changedKey === 'min') {
@@ -946,6 +1013,15 @@ if (slotColorInput) {
     const current = getLiveSlotSettings(slotIndex)
     const nextColor = normalizeColorValue(e.target.value, current.color)
     setLiveSlotSettings(slotIndex, { color: nextColor })
+    syncSlotSettingsUI(slotIndex)
+  })
+}
+
+if (slotAutoMotionToggle) {
+  slotAutoMotionToggle.addEventListener('click', function() {
+    const slotIndex = getCurrentSlotIndex()
+    const current = getLiveSlotSettings(slotIndex)
+    setLiveSlotSettings(slotIndex, { autoMotion: !current.autoMotion })
     syncSlotSettingsUI(slotIndex)
   })
 }
