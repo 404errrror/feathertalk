@@ -205,8 +205,6 @@ function scheduleAutoRig() {
     }
   }
 
-  scheduleAutoRig()
-  
 audio()
 
 let lastX = 0
@@ -303,6 +301,7 @@ function syncAutoMotionRigState() {
 }
 
 window.syncAutoMotionRigState = syncAutoMotionRigState
+syncAutoMotionRigState()
 
 function applyRigFromPoint(pointX, pointY, velocityX, rotateX) {
   var clampedPointX = clampFaceRigX(pointX)
