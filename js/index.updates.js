@@ -12,6 +12,15 @@ const UPDATE_LOG_SEEN_KEY = 'ftSeenUpdateVersion'
 /** @type {UpdateLogEntry[]} */
 const UPDATE_LOG_ENTRIES = [
   {
+    version: 'v2026.02.16.08',
+    date: '2026-02-16',
+    summary: '모션 범위 클램프가 리깅 강도와 독립적으로 동작하도록 보정했어요.',
+    details: [
+      '얼굴 좌/우, 얼굴 상/하, 몸 회전 범위를 리깅 강도와 분리된 기준으로 다시 계산하도록 조정했어요.',
+      '마우스 입력, 자동 모션, 카메라 적용 경로가 동일한 클램프 계산을 사용하도록 정리했어요.'
+    ]
+  },
+  {
     version: 'v2026.02.16.07',
     date: '2026-02-16',
     summary: '스크롤 시 캐릭터 설정 카드가 상단 제목(Feather-Talk)을 가리던 문제를 수정했어요.',
