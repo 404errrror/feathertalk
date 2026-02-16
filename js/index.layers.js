@@ -419,7 +419,30 @@ function applyPreset(index) {
   }
 }
 
-applyPreset(0)
+function normalizeSlotIndex(value) {
+  if (!Number.isFinite(value)) {
+    return 0
+  }
+  return ((Math.round(value) % 10) + 10) % 10
+}
+
+function applyPresetWithLiveSettings(index) {
+  var nextIndex = normalizeSlotIndex(index)
+  applyPreset(nextIndex)
+  if (typeof window.applyLiveSlotByIndex === 'function') {
+    window.applyLiveSlotByIndex(nextIndex)
+  } else {
+    localStorage.setItem('ftLiveSlot', String(nextIndex))
+  }
+}
+
+var initialPresetIndex = 0
+if (typeof window.getLiveActiveSlotIndex === 'function') {
+  initialPresetIndex = normalizeSlotIndex(window.getLiveActiveSlotIndex())
+} else {
+  initialPresetIndex = normalizeSlotIndex(parseInt(localStorage.getItem('ftLiveSlot'), 10))
+}
+applyPresetWithLiveSettings(initialPresetIndex)
 
 window.addEventListener('keydown', function(e) {
   var target = e.target
@@ -431,7 +454,7 @@ window.addEventListener('keydown', function(e) {
     return
   }
   const index = (digit + 9) % 10
-  applyPreset(index)
+  applyPresetWithLiveSettings(index)
 })
 
 function updateExpression(volume) {

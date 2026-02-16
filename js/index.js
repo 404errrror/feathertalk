@@ -7,35 +7,45 @@ if (!Number.isFinite(thres)) {
 }
 thres = Math.min(100, Math.max(0, thres))
 
-var rig = 100
-if (localStorage.getItem('ftRig')) {
-  rig = localStorage.getItem('ftRig')
-  document.querySelector('#rig').value=rig
+var LIVE_SLOT_COUNT = 10
+var LIVE_SLOT_SETTINGS_KEY = 'ftLiveSlotSettings'
+var LIVE_SLOT_KEY = 'ftLiveSlot'
+var LIVE_SLOT_DEFAULTS = {
+  rig: 100,
+  offsetX: 0,
+  offsetY: 0,
+  intervalMin: 1500,
+  intervalMax: 1500,
+  color: '#00ff00'
 }
 
-
-var color = '#00ff00'
-if (localStorage.getItem('ftColor')) {
-  color = localStorage.getItem('ftColor')
-  document.querySelector('#color').value=color
-}
-document.body.setAttribute('style', `background: ${color};`)
-
-var offsetX = 0
-if (localStorage.getItem('ftOffsetX')) {
-  offsetX = parseInt(localStorage.getItem('ftOffsetX'), 10)
-}
-if (!Number.isFinite(offsetX)) {
-  offsetX = 0
+function clampValue(value, minValue, maxValue, fallback) {
+  var nextValue = Number.isFinite(value) ? value : fallback
+  if (!Number.isFinite(nextValue)) {
+    nextValue = fallback
+  }
+  return Math.min(maxValue, Math.max(minValue, Math.round(nextValue)))
 }
 
-var offsetY = 0
-if (localStorage.getItem('ftOffsetY')) {
-  offsetY = parseInt(localStorage.getItem('ftOffsetY'), 10)
+function normalizeColorValue(value, fallback) {
+  var source = typeof value === 'string' ? value.trim().toLowerCase() : ''
+  if (!/^#[0-9a-f]{6}$/.test(source)) {
+    return fallback
+  }
+  return source
 }
-if (!Number.isFinite(offsetY)) {
-  offsetY = 0
+
+function normalizeLiveSlotIndex(value, fallback) {
+  if (!Number.isFinite(value)) {
+    return fallback
+  }
+  return ((Math.round(value) % LIVE_SLOT_COUNT) + LIVE_SLOT_COUNT) % LIVE_SLOT_COUNT
 }
+
+var rig = clampValue(parseInt(localStorage.getItem('ftRig'), 10), 0, 200, LIVE_SLOT_DEFAULTS.rig)
+var color = normalizeColorValue(localStorage.getItem('ftColor'), LIVE_SLOT_DEFAULTS.color)
+var offsetX = clampValue(parseInt(localStorage.getItem('ftOffsetX'), 10), -500, 500, LIVE_SLOT_DEFAULTS.offsetX)
+var offsetY = clampValue(parseInt(localStorage.getItem('ftOffsetY'), 10), -500, 500, LIVE_SLOT_DEFAULTS.offsetY)
 
 var cameraEnabled = false
 if (localStorage.getItem('ftCameraEnabled')) {
@@ -323,6 +333,160 @@ function pickRandomInterval() {
 
 normalizeIntervalRange()
 
+function parseFiniteInt(value, fallback) {
+  var parsed = Number.isFinite(value) ? value : parseInt(value, 10)
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+function normalizeLiveSlotSettingsEntry(entry, fallback) {
+  var source = entry && typeof entry === 'object' ? entry : {}
+  var base = fallback && typeof fallback === 'object' ? fallback : LIVE_SLOT_DEFAULTS
+  var nextRig = clampValue(parseFiniteInt(source.rig, base.rig), 0, 200, base.rig)
+  var nextOffsetX = clampValue(parseFiniteInt(source.offsetX, base.offsetX), -500, 500, base.offsetX)
+  var nextOffsetY = clampValue(parseFiniteInt(source.offsetY, base.offsetY), -500, 500, base.offsetY)
+  var nextIntervalMin = clampValue(parseFiniteInt(source.intervalMin, base.intervalMin), intervalLimitMin, intervalLimitMax, base.intervalMin)
+  var nextIntervalMax = clampValue(parseFiniteInt(source.intervalMax, base.intervalMax), intervalLimitMin, intervalLimitMax, base.intervalMax)
+  if (nextIntervalMin > nextIntervalMax) {
+    var temp = nextIntervalMin
+    nextIntervalMin = nextIntervalMax
+    nextIntervalMax = temp
+  }
+  var fallbackColor = normalizeColorValue(base.color, LIVE_SLOT_DEFAULTS.color)
+  var nextColor = normalizeColorValue(source.color, fallbackColor)
+  return {
+    rig: nextRig,
+    offsetX: nextOffsetX,
+    offsetY: nextOffsetY,
+    intervalMin: nextIntervalMin,
+    intervalMax: nextIntervalMax,
+    color: nextColor
+  }
+}
+
+function cloneLiveSlotSettings(entry) {
+  return {
+    rig: entry.rig,
+    offsetX: entry.offsetX,
+    offsetY: entry.offsetY,
+    intervalMin: entry.intervalMin,
+    intervalMax: entry.intervalMax,
+    color: entry.color
+  }
+}
+
+function readLegacyLiveSettingsSnapshot() {
+  return normalizeLiveSlotSettingsEntry({
+    rig,
+    offsetX,
+    offsetY,
+    intervalMin,
+    intervalMax,
+    color
+  }, LIVE_SLOT_DEFAULTS)
+}
+
+function loadLiveSlotSettings(legacySnapshot) {
+  var fallback = normalizeLiveSlotSettingsEntry(legacySnapshot, LIVE_SLOT_DEFAULTS)
+  var parsed = null
+  var stored = localStorage.getItem(LIVE_SLOT_SETTINGS_KEY)
+  if (stored && stored[0] === '[') {
+    try {
+      parsed = JSON.parse(stored)
+    } catch (error) {
+      parsed = null
+    }
+  }
+  var nextSlots = new Array(LIVE_SLOT_COUNT)
+  for (var i = 0; i < LIVE_SLOT_COUNT; i++) {
+    var sourceEntry = Array.isArray(parsed) ? parsed[i] : null
+    nextSlots[i] = normalizeLiveSlotSettingsEntry(sourceEntry, fallback)
+  }
+  localStorage.setItem(LIVE_SLOT_SETTINGS_KEY, JSON.stringify(nextSlots))
+  return nextSlots
+}
+
+var liveSlotSettings = loadLiveSlotSettings(readLegacyLiveSettingsSnapshot())
+var activeLiveSlot = normalizeLiveSlotIndex(parseFiniteInt(localStorage.getItem(LIVE_SLOT_KEY), 0), 0)
+
+function saveLiveSlotSettingsToStorage() {
+  localStorage.setItem(LIVE_SLOT_SETTINGS_KEY, JSON.stringify(liveSlotSettings))
+}
+
+function applyBackgroundColorValue(nextColor) {
+  color = normalizeColorValue(nextColor, LIVE_SLOT_DEFAULTS.color)
+  document.body.style.background = color
+}
+
+function saveLegacyLiveSettings() {
+  localStorage.setItem('ftRig', String(rig))
+  localStorage.setItem('ftOffsetX', String(offsetX))
+  localStorage.setItem('ftOffsetY', String(offsetY))
+  localStorage.setItem('ftIntervalMin', String(intervalMin))
+  localStorage.setItem('ftIntervalMax', String(intervalMax))
+  localStorage.setItem('ftColor', color)
+}
+
+function applyLiveSlotEntryToRuntime(entry) {
+  rig = entry.rig
+  offsetX = entry.offsetX
+  offsetY = entry.offsetY
+  intervalMin = entry.intervalMin
+  intervalMax = entry.intervalMax
+  normalizeIntervalRange()
+  applyBackgroundColorValue(entry.color)
+  saveLegacyLiveSettings()
+}
+
+function setLiveSlotSettingPatch(patch) {
+  if (!Array.isArray(liveSlotSettings) || !liveSlotSettings.length) {
+    liveSlotSettings = loadLiveSlotSettings(readLegacyLiveSettingsSnapshot())
+  }
+  var current = normalizeLiveSlotSettingsEntry(liveSlotSettings[activeLiveSlot], LIVE_SLOT_DEFAULTS)
+  var merged = Object.assign({}, current, patch || {})
+  liveSlotSettings[activeLiveSlot] = normalizeLiveSlotSettingsEntry(merged, current)
+  saveLiveSlotSettingsToStorage()
+}
+
+function persistCurrentLiveSlotSettings() {
+  setLiveSlotSettingPatch({
+    rig,
+    offsetX,
+    offsetY,
+    intervalMin,
+    intervalMax,
+    color
+  })
+  saveLegacyLiveSettings()
+}
+
+function applyLiveSlotByIndex(slotIndex, options) {
+  var opts = options || {}
+  activeLiveSlot = normalizeLiveSlotIndex(slotIndex, 0)
+  if (opts.persistSlot !== false) {
+    localStorage.setItem(LIVE_SLOT_KEY, String(activeLiveSlot))
+  }
+  var slotEntry = normalizeLiveSlotSettingsEntry(liveSlotSettings[activeLiveSlot], LIVE_SLOT_DEFAULTS)
+  liveSlotSettings[activeLiveSlot] = cloneLiveSlotSettings(slotEntry)
+  saveLiveSlotSettingsToStorage()
+  applyLiveSlotEntryToRuntime(slotEntry)
+  if (opts.syncUI !== false) {
+    updateRigUI()
+    updateOffsetUI()
+    updateIntervalUI()
+    updateColorUI()
+    applyCharacterTransform()
+  }
+}
+
+function getLiveActiveSlotIndex() {
+  return activeLiveSlot
+}
+
+window.applyLiveSlotByIndex = applyLiveSlotByIndex
+window.getLiveActiveSlotIndex = getLiveActiveSlotIndex
+
+applyLiveSlotByIndex(activeLiveSlot, { persistSlot: true, syncUI: false })
+
 var intervalMinInput = document.querySelector('#interval-min')
 var intervalMaxInput = document.querySelector('#interval-max')
 var intervalDisplay = document.querySelector('#interval-values')
@@ -339,6 +503,7 @@ var offsetXInput = document.querySelector('#offset-x')
 var offsetYInput = document.querySelector('#offset-y')
 var thresholdInput = document.querySelector('#threshold')
 var rigInput = document.querySelector('#rig')
+var colorInput = document.querySelector('#color')
 var thresholdValue = document.querySelector('#threshold-value')
 var rigValue = document.querySelector('#rig-value')
 var offsetXValue = document.querySelector('#offset-x-value')
@@ -575,8 +740,7 @@ function bindIntervalValueInput(input, handle) {
       intervalMax = nextValue
       clampIntervalRange('max')
     }
-    localStorage.setItem('ftIntervalMin', intervalMin)
-    localStorage.setItem('ftIntervalMax', intervalMax)
+    persistCurrentLiveSlotSettings()
     updateIntervalUI()
   }
 
@@ -614,6 +778,12 @@ function updateRigUI() {
     rigInput.value = rig
   }
   setRangeValueText(rigValue, rig)
+}
+
+function updateColorUI() {
+  if (colorInput) {
+    colorInput.value = color
+  }
 }
 
 
@@ -933,6 +1103,7 @@ updateIntervalUI()
 updateOffsetUI()
 updateThresholdUI()
 updateRigUI()
+updateColorUI()
 updateCameraUI()
 
 bindIntervalValueInput(intervalMinValueInput, 'min')
@@ -1000,25 +1171,27 @@ if (thresholdInput) {
 
 if (rigInput) {
   rigInput.addEventListener('change', function(e){
-    var nextValue = parseInt(e.target.value, 10)
-    rig = Number.isFinite(nextValue) ? nextValue : rig
-    localStorage.setItem('ftRig', rig)
+    var nextValue = parseFiniteInt(e.target.value, rig)
+    rig = clampValue(nextValue, 0, 200, rig)
+    persistCurrentLiveSlotSettings()
     updateRigUI()
   })
 }
 
 
-document.querySelector('#color').addEventListener('change', function(e){
-  document.body.setAttribute('style', `background: ${e.target.value};`)
-  color = e.target.value
-  localStorage.setItem('ftColor', color)
-})
+if (colorInput) {
+  colorInput.addEventListener('change', function(e){
+    applyBackgroundColorValue(e.target.value)
+    persistCurrentLiveSlotSettings()
+    updateColorUI()
+  })
+}
 
 if (offsetXInput) {
   offsetXInput.addEventListener('input', function(e) {
-    var nextValue = parseInt(e.target.value, 10)
-    offsetX = Number.isFinite(nextValue) ? nextValue : 0
-    localStorage.setItem('ftOffsetX', offsetX)
+    var nextValue = parseFiniteInt(e.target.value, offsetX)
+    offsetX = clampValue(nextValue, -500, 500, offsetX)
+    persistCurrentLiveSlotSettings()
     updateOffsetUI()
     applyCharacterTransform()
   })
@@ -1026,9 +1199,9 @@ if (offsetXInput) {
 
 if (offsetYInput) {
   offsetYInput.addEventListener('input', function(e) {
-    var nextValue = parseInt(e.target.value, 10)
-    offsetY = Number.isFinite(nextValue) ? nextValue : 0
-    localStorage.setItem('ftOffsetY', offsetY)
+    var nextValue = parseFiniteInt(e.target.value, offsetY)
+    offsetY = clampValue(nextValue, -500, 500, offsetY)
+    persistCurrentLiveSlotSettings()
     updateOffsetUI()
     applyCharacterTransform()
   })
@@ -1202,8 +1375,7 @@ if (intervalMinInput) {
     setIntervalHandleActive('min')
     intervalMin = parseInt(e.target.value, 10)
     clampIntervalRange('min')
-    localStorage.setItem('ftIntervalMin', intervalMin)
-    localStorage.setItem('ftIntervalMax', intervalMax)
+    persistCurrentLiveSlotSettings()
     updateIntervalUI()
   })
 }
@@ -1213,8 +1385,7 @@ if (intervalMaxInput) {
     setIntervalHandleActive('max')
     intervalMax = parseInt(e.target.value, 10)
     clampIntervalRange('max')
-    localStorage.setItem('ftIntervalMin', intervalMin)
-    localStorage.setItem('ftIntervalMax', intervalMax)
+    persistCurrentLiveSlotSettings()
     updateIntervalUI()
   })
 }

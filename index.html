@@ -68,6 +68,72 @@
                     <input type="file" id="preset-import-file" class="file-input" accept=".json,.ftpreset,application/json">
                 </div>
             </div>
+            <div class="slot-settings" id="slot-settings">
+                <div class="slot-settings__header">
+                    <strong>캐릭터 설정</strong>
+                    <span class="slot-settings__slot" id="slot-settings-label">1번 슬롯</span>
+                </div>
+                <div class="slot-settings__grid">
+                    <div class="slot-setting">
+                        <div class="slot-setting__head">
+                            <label for="slot-rig">리깅 강도</label>
+                            <div class="range-value" data-unit="%">
+                                <input id="slot-rig-value" type="text" inputmode="numeric" pattern="-?[0-9]*">
+                            </div>
+                        </div>
+                        <div class="input-row input-row--range">
+                            <input id="slot-rig" type="range" min="0" max="200" value="100">
+                        </div>
+                    </div>
+                    <div class="slot-setting">
+                        <div class="slot-setting__head">
+                            <label for="slot-offset-x">X 위치</label>
+                            <div class="range-value" data-unit="px">
+                                <input id="slot-offset-x-value" type="text" inputmode="numeric" pattern="-?[0-9]*">
+                            </div>
+                        </div>
+                        <div class="input-row input-row--range">
+                            <input id="slot-offset-x" type="range" min="-500" max="500" value="0">
+                        </div>
+                    </div>
+                    <div class="slot-setting">
+                        <div class="slot-setting__head">
+                            <label for="slot-offset-y">Y 위치</label>
+                            <div class="range-value" data-unit="px">
+                                <input id="slot-offset-y-value" type="text" inputmode="numeric" pattern="-?[0-9]*">
+                            </div>
+                        </div>
+                        <div class="input-row input-row--range">
+                            <input id="slot-offset-y" type="range" min="-500" max="500" value="0">
+                        </div>
+                    </div>
+                    <div class="slot-setting slot-interval">
+                        <div class="slot-interval__controls">
+                            <div class="slot-setting__head range-header">
+                                <label for="slot-interval-min">자동 모션 속도</label>
+                                <div class="range-values range-values--input range-values--interval" data-unit="s">
+                                    <input class="range-input" id="slot-interval-min-value" type="text" inputmode="decimal" pattern="[0-9.]*" aria-label="자동 모션 최소 속도(초)">
+                                    <span class="range-separator">~</span>
+                                    <input class="range-input" id="slot-interval-max-value" type="text" inputmode="decimal" pattern="[0-9.]*" aria-label="자동 모션 최대 속도(초)">
+                                </div>
+                            </div>
+                            <div class="range-slider" id="slot-interval-range">
+                                <div class="range-track">
+                                    <div class="range-track__range" id="slot-interval-range-fill"></div>
+                                </div>
+                                <input id="slot-interval-min" type="range" min="200" max="3000" value="1500" aria-label="자동 모션 최소 속도 슬라이더">
+                                <input id="slot-interval-max" type="range" min="200" max="3000" value="1500" aria-label="자동 모션 최대 속도 슬라이더">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="slot-setting slot-setting--compact">
+                        <label for="slot-color">배경색</label>
+                        <div class="input-row slot-color-row">
+                            <input id="slot-color" type="color" value="#00ff00" aria-label="배경색 선택">
+                        </div>
+                    </div>
+                </div>
+            </div>
                         <div id="form1" class="form activated">
                 <div class="layer-header">
                     <div class="layer-note">레이어 순서: 위가 앞</div>
