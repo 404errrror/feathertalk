@@ -235,14 +235,25 @@ if (localStorage.getItem('ftCameraMouthSensitivity')) {
 if (!Number.isFinite(cameraMouthSensitivity)) {
   cameraMouthSensitivity = 100
 }
-var cameraTrackingResponse = 150
-if (localStorage.getItem('ftCameraTrackingResponse')) {
-  cameraTrackingResponse = parseInt(localStorage.getItem('ftCameraTrackingResponse'), 10)
+var cameraInterpolationStrength = 100
+var storedCameraInterpolationStrength = localStorage.getItem('ftCameraInterpolationStrength')
+if (storedCameraInterpolationStrength != null) {
+  cameraInterpolationStrength = parseInt(storedCameraInterpolationStrength, 10)
+} else {
+  var legacyCameraTrackingResponse = localStorage.getItem('ftCameraTrackingResponse')
+  if (legacyCameraTrackingResponse != null) {
+    var parsedLegacyCameraTrackingResponse = parseInt(legacyCameraTrackingResponse, 10)
+    if (Number.isFinite(parsedLegacyCameraTrackingResponse)) {
+      var clampedLegacyCameraTrackingResponse = Math.min(250, Math.max(50, parsedLegacyCameraTrackingResponse))
+      cameraInterpolationStrength = Math.min(200, Math.max(1, 250 - clampedLegacyCameraTrackingResponse))
+      localStorage.setItem('ftCameraInterpolationStrength', cameraInterpolationStrength)
+    }
+  }
 }
-if (!Number.isFinite(cameraTrackingResponse)) {
-  cameraTrackingResponse = 150
+if (!Number.isFinite(cameraInterpolationStrength)) {
+  cameraInterpolationStrength = 100
 }
-cameraTrackingResponse = Math.min(250, Math.max(50, cameraTrackingResponse))
+cameraInterpolationStrength = Math.min(200, Math.max(1, cameraInterpolationStrength))
 
 var cameraSupported = navigator.mediaDevices && navigator.mediaDevices.getUserMedia
 var cameraMode = 'motion'
@@ -621,11 +632,11 @@ var offsetYValue = document.querySelector('#offset-y-value')
 var cameraToggle = document.querySelector('#camera-toggle')
 var cameraHeadYawRange = document.querySelector('#camera-head-yaw-range')
 var cameraHeadPitchRange = document.querySelector('#camera-head-pitch-range')
-var cameraTrackingResponseInput = document.querySelector('#camera-tracking-response')
+var cameraInterpolationStrengthInput = document.querySelector('#camera-interpolation-strength')
 var cameraBodyRange = document.querySelector('#camera-body-range')
 var cameraHeadYawRangeValue = document.querySelector('#camera-head-yaw-range-value')
 var cameraHeadPitchRangeValue = document.querySelector('#camera-head-pitch-range-value')
-var cameraTrackingResponseValue = document.querySelector('#camera-tracking-response-value')
+var cameraInterpolationStrengthValue = document.querySelector('#camera-interpolation-strength-value')
 var cameraBodyRangeValue = document.querySelector('#camera-body-range-value')
 var cameraStatus = document.querySelector('#camera-status')
 var cameraPreviewModeSelect = document.querySelector('#camera-preview-mode')
@@ -1315,12 +1326,12 @@ function updateCameraUI() {
   if (cameraHeadPitchRangeValue) {
     setRangeValueText(cameraHeadPitchRangeValue, cameraHeadPitchStrength)
   }
-  if (cameraTrackingResponseInput) {
-    cameraTrackingResponseInput.value = cameraTrackingResponse
-    cameraTrackingResponseInput.disabled = !cameraControlsEnabled
+  if (cameraInterpolationStrengthInput) {
+    cameraInterpolationStrengthInput.value = cameraInterpolationStrength
+    cameraInterpolationStrengthInput.disabled = !cameraControlsEnabled
   }
-  if (cameraTrackingResponseValue) {
-    setRangeValueText(cameraTrackingResponseValue, cameraTrackingResponse)
+  if (cameraInterpolationStrengthValue) {
+    setRangeValueText(cameraInterpolationStrengthValue, cameraInterpolationStrength)
   }
   if (cameraBodyRange) {
     cameraBodyRange.value = cameraBodyStrength
@@ -1397,7 +1408,7 @@ function updateCameraUI() {
   setSettingItemDisabled(cameraInvertToggle, cameraInvertToggle && cameraInvertToggle.disabled)
   setSettingItemDisabled(cameraHeadYawRange, cameraHeadYawRange && cameraHeadYawRange.disabled)
   setSettingItemDisabled(cameraHeadPitchRange, cameraHeadPitchRange && cameraHeadPitchRange.disabled)
-  setSettingItemDisabled(cameraTrackingResponseInput, cameraTrackingResponseInput && cameraTrackingResponseInput.disabled)
+  setSettingItemDisabled(cameraInterpolationStrengthInput, cameraInterpolationStrengthInput && cameraInterpolationStrengthInput.disabled)
   setSettingItemDisabled(cameraHeadOffsetXInput, cameraHeadOffsetXInput && cameraHeadOffsetXInput.disabled)
   setSettingItemDisabled(cameraHeadOffsetYInput, cameraHeadOffsetYInput && cameraHeadOffsetYInput.disabled)
   setSettingItemDisabled(cameraBodyRange, cameraBodyRange && cameraBodyRange.disabled)
@@ -1408,7 +1419,7 @@ function updateCameraUI() {
   setSettingItemDisabled(cameraMouthSensitivityInput, cameraMouthSensitivityInput && cameraMouthSensitivityInput.disabled)
   setRangeValueDisabled(cameraHeadYawRangeValue, cameraHeadYawRange && cameraHeadYawRange.disabled)
   setRangeValueDisabled(cameraHeadPitchRangeValue, cameraHeadPitchRange && cameraHeadPitchRange.disabled)
-  setRangeValueDisabled(cameraTrackingResponseValue, cameraTrackingResponseInput && cameraTrackingResponseInput.disabled)
+  setRangeValueDisabled(cameraInterpolationStrengthValue, cameraInterpolationStrengthInput && cameraInterpolationStrengthInput.disabled)
   setRangeValueDisabled(cameraBodyRangeValue, cameraBodyRange && cameraBodyRange.disabled)
   setRangeValueDisabled(cameraHeadOffsetXValue, cameraHeadOffsetXInput && cameraHeadOffsetXInput.disabled)
   setRangeValueDisabled(cameraHeadOffsetYValue, cameraHeadOffsetYInput && cameraHeadOffsetYInput.disabled)
@@ -1491,7 +1502,7 @@ bindRangeValueInput(offsetXInput, offsetXValue)
 bindRangeValueInput(offsetYInput, offsetYValue)
 bindRangeValueInput(cameraHeadYawRange, cameraHeadYawRangeValue)
 bindRangeValueInput(cameraHeadPitchRange, cameraHeadPitchRangeValue)
-bindRangeValueInput(cameraTrackingResponseInput, cameraTrackingResponseValue)
+bindRangeValueInput(cameraInterpolationStrengthInput, cameraInterpolationStrengthValue)
 bindRangeValueInput(cameraBodyRange, cameraBodyRangeValue)
 bindRangeValueInput(cameraHeadOffsetXInput, cameraHeadOffsetXValue)
 bindRangeValueInput(cameraHeadOffsetYInput, cameraHeadOffsetYValue)
@@ -1613,14 +1624,14 @@ if (cameraHeadPitchRange) {
   })
 }
 
-if (cameraTrackingResponseInput) {
-  cameraTrackingResponseInput.addEventListener('input', function(e) {
+if (cameraInterpolationStrengthInput) {
+  cameraInterpolationStrengthInput.addEventListener('input', function(e) {
     var nextValue = parseInt(e.target.value, 10)
     if (!Number.isFinite(nextValue)) {
-      nextValue = 150
+      nextValue = 100
     }
-    cameraTrackingResponse = Math.min(250, Math.max(50, nextValue))
-    localStorage.setItem('ftCameraTrackingResponse', cameraTrackingResponse)
+    cameraInterpolationStrength = Math.min(200, Math.max(1, nextValue))
+    localStorage.setItem('ftCameraInterpolationStrength', cameraInterpolationStrength)
     updateCameraUI()
   })
 }
