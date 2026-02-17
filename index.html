@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Feather-Talk</title>
     <meta name="summary" content="저사양 유저를 겨냥한 움직이는 버츄얼 캐릭터">
-    <link rel="stylesheet" media="screen" href="css/index.css?v=0.0.5">
+    <link rel="stylesheet" media="screen" href="css/index.css?v=0.0.6">
     <link rel="icon" type="image/x-icon" href="assets/icon.png">
     <meta property="og:image" content="assets/icon.png" />
     <meta property="og:title" content="Feather-Talk" />
@@ -68,151 +68,7 @@
                     <input type="file" id="preset-import-file" class="file-input" accept=".json,.ftpreset,application/json">
                 </div>
             </div>
-            <div class="slot-settings" id="slot-settings">
-                <div class="slot-settings__header">
-                    <strong>캐릭터 설정</strong>
-                    <span class="slot-settings__slot" id="slot-settings-label">1번 슬롯</span>
-                </div>
-                <div class="slot-settings__grid">
-                    <div class="slot-setting">
-                        <div class="slot-setting__head">
-                            <label for="slot-rig">리깅 강도</label>
-                            <div class="range-value" data-unit="%">
-                                <input id="slot-rig-value" type="text" inputmode="numeric" pattern="-?[0-9]*">
-                            </div>
-                        </div>
-                        <div class="input-row input-row--range">
-                            <input id="slot-rig" type="range" min="0" max="200" value="100">
-                        </div>
-                    </div>
-                    <div class="slot-setting">
-                        <div class="slot-setting__head">
-                            <label for="slot-scale">캐릭터 크기</label>
-                            <div class="range-value" data-unit="%">
-                                <input id="slot-scale-value" type="text" inputmode="numeric" pattern="-?[0-9]*">
-                            </div>
-                        </div>
-                        <div class="input-row input-row--range">
-                            <input id="slot-scale" type="range" min="30" max="300" value="100">
-                        </div>
-                    </div>
-                    <div class="slot-settings__divider" aria-hidden="true"></div>
-                    <div class="slot-setting slot-setting--col-start">
-                        <div class="slot-setting__head">
-                            <label for="slot-offset-x">X 위치</label>
-                            <div class="range-value" data-unit="px">
-                                <input id="slot-offset-x-value" type="text" inputmode="numeric" pattern="-?[0-9]*">
-                            </div>
-                        </div>
-                        <div class="input-row input-row--range">
-                            <input id="slot-offset-x" type="range" min="-500" max="500" value="0">
-                        </div>
-                    </div>
-                    <div class="slot-setting">
-                        <div class="slot-setting__head">
-                            <label for="slot-offset-y">Y 위치</label>
-                            <div class="range-value" data-unit="px">
-                                <input id="slot-offset-y-value" type="text" inputmode="numeric" pattern="-?[0-9]*">
-                            </div>
-                        </div>
-                        <div class="input-row input-row--range">
-                            <input id="slot-offset-y" type="range" min="-500" max="500" value="0">
-                        </div>
-                    </div>
-                    <div class="slot-settings__divider" aria-hidden="true"></div>
-                    <div class="slot-setting slot-setting--toggle">
-                        <div class="slot-setting__head">
-                            <label for="slot-auto-motion-toggle">자동 모션</label>
-                            <button type="button" class="slot-toggle-button" id="slot-auto-motion-toggle" aria-pressed="true" data-off-label="꺼짐" data-on-label="켜짐">켜짐</button>
-                        </div>
-                    </div>
-                    <div class="slot-setting slot-interval">
-                        <div class="slot-interval__controls">
-                            <div class="slot-setting__head range-header">
-                                <label for="slot-interval-min">자동 모션 속도</label>
-                                <div class="range-values range-values--input range-values--interval" data-unit="s">
-                                    <input class="range-input" id="slot-interval-min-value" type="text" inputmode="decimal" pattern="[0-9.]*" aria-label="자동 모션 최소 속도(초)">
-                                    <span class="range-separator">~</span>
-                                    <input class="range-input" id="slot-interval-max-value" type="text" inputmode="decimal" pattern="[0-9.]*" aria-label="자동 모션 최대 속도(초)">
-                                </div>
-                            </div>
-                            <div class="range-slider" id="slot-interval-range">
-                                <div class="range-track">
-                                    <div class="range-track__range" id="slot-interval-range-fill"></div>
-                                </div>
-                                <input id="slot-interval-min" type="range" min="200" max="3000" value="1500" aria-label="자동 모션 최소 속도 슬라이더">
-                                <input id="slot-interval-max" type="range" min="200" max="3000" value="1500" aria-label="자동 모션 최대 속도 슬라이더">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="slot-settings__divider" aria-hidden="true"></div>
-                    <div class="slot-setting slot-interval">
-                        <div class="slot-interval__controls">
-                            <div class="slot-setting__head range-header">
-                                <label for="slot-face-x-min">얼굴 좌/우 범위</label>
-                                <div class="range-values range-values--input range-values--interval" data-unit="%">
-                                    <input class="range-input" id="slot-face-x-min-value" type="text" inputmode="numeric" pattern="-?[0-9]*" aria-label="얼굴 좌우 최소 범위(%)">
-                                    <span class="range-separator">~</span>
-                                    <input class="range-input" id="slot-face-x-max-value" type="text" inputmode="numeric" pattern="-?[0-9]*" aria-label="얼굴 좌우 최대 범위(%)">
-                                </div>
-                            </div>
-                            <div class="range-slider" id="slot-face-x-range">
-                                <div class="range-track">
-                                    <div class="range-track__range" id="slot-face-x-range-fill"></div>
-                                </div>
-                                <input id="slot-face-x-min" type="range" min="0" max="100" value="0" aria-label="얼굴 좌우 최소 범위 슬라이더">
-                                <input id="slot-face-x-max" type="range" min="0" max="100" value="100" aria-label="얼굴 좌우 최대 범위 슬라이더">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="slot-setting slot-interval">
-                        <div class="slot-interval__controls">
-                            <div class="slot-setting__head range-header">
-                                <label for="slot-face-y-min">얼굴 상/하 범위</label>
-                                <div class="range-values range-values--input range-values--interval" data-unit="%">
-                                    <input class="range-input" id="slot-face-y-min-value" type="text" inputmode="numeric" pattern="-?[0-9]*" aria-label="얼굴 하단 클램프 범위(%)">
-                                    <span class="range-separator">~</span>
-                                    <input class="range-input" id="slot-face-y-max-value" type="text" inputmode="numeric" pattern="-?[0-9]*" aria-label="얼굴 상단 클램프 범위(%)">
-                                </div>
-                            </div>
-                            <div class="range-slider" id="slot-face-y-range">
-                                <div class="range-track">
-                                    <div class="range-track__range" id="slot-face-y-range-fill"></div>
-                                </div>
-                                <input id="slot-face-y-min" type="range" min="0" max="100" value="0" aria-label="얼굴 하단 클램프 슬라이더">
-                                <input id="slot-face-y-max" type="range" min="0" max="100" value="100" aria-label="얼굴 상단 클램프 슬라이더">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="slot-settings__divider" aria-hidden="true"></div>
-                    <div class="slot-setting slot-interval">
-                        <div class="slot-interval__controls">
-                            <div class="slot-setting__head range-header">
-                                <label for="slot-body-rotate-min">몸 회전 범위</label>
-                                <div class="range-values range-values--input range-values--interval" data-unit="%">
-                                    <input class="range-input" id="slot-body-rotate-min-value" type="text" inputmode="numeric" pattern="-?[0-9]*" aria-label="몸 회전 최소 범위(%)">
-                                    <span class="range-separator">~</span>
-                                    <input class="range-input" id="slot-body-rotate-max-value" type="text" inputmode="numeric" pattern="-?[0-9]*" aria-label="몸 회전 최대 범위(%)">
-                                </div>
-                            </div>
-                            <div class="range-slider" id="slot-body-rotate-range">
-                                <div class="range-track">
-                                    <div class="range-track__range" id="slot-body-rotate-range-fill"></div>
-                                </div>
-                                <input id="slot-body-rotate-min" type="range" min="0" max="100" value="0" aria-label="몸 회전 최소 범위 슬라이더">
-                                <input id="slot-body-rotate-max" type="range" min="0" max="100" value="100" aria-label="몸 회전 최대 범위 슬라이더">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="slot-setting">
-                        <label for="slot-color">배경색</label>
-                        <div class="input-row slot-color-row">
-                            <input id="slot-color" type="color" value="#00ff00" aria-label="배경색 선택">
-                        </div>
-                    </div>
-                </div>
-            </div>
-                        <div id="form1" class="form activated">
+            <div id="form1" class="form activated">
                 <div class="layer-header">
                     <div class="layer-note">레이어 순서: 위가 앞</div>
                     <button type="button" class="layer-add" data-slot="1">레이어 추가</button>
@@ -316,8 +172,8 @@
 </div>
 <script src="./js/localstorage.js?v=0.0.6"></script>
 <script src="./js/localstorage.ui.js?v=0.0.6"></script>
-<script src="./js/localstorage.boot.js?v=0.0.6"></script>
-<script src="./js/index.updates.js?v=0.0.8"></script>
+<script src="./js/localstorage.boot.js?v=0.0.7"></script>
+<script src="./js/index.updates.js?v=0.0.9"></script>
 </body>
 </html>
 

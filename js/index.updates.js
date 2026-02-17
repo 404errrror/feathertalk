@@ -12,6 +12,16 @@ const UPDATE_LOG_SEEN_KEY = 'ftSeenUpdateVersion'
 /** @type {UpdateLogEntry[]} */
 const UPDATE_LOG_ENTRIES = [
   {
+    version: 'v2026.02.17.06',
+    date: '2026-02-17',
+    summary: '설정 페이지를 더 간단하게 정리했어요.',
+    details: [
+      'index 페이지에서 캐릭터 설정 영역을 제거해서 이미지/레이어 설정에만 집중할 수 있어요.',
+      '캐릭터 크기, 위치, 자동 모션 같은 조정은 라이브 화면의 설정 버튼에서 변경하면 돼요.',
+      '기존 슬롯 저장 방식과 프리셋 가져오기/내보내기는 이전과 동일하게 사용할 수 있어요.'
+    ]
+  },
+  {
     version: 'v2026.02.17.05',
     date: '2026-02-17',
     summary: '몸 회전 범위의 실제 움직임 폭을 더 넓혔어요.',
