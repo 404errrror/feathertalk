@@ -12,6 +12,14 @@ const UPDATE_LOG_SEEN_KEY = 'ftSeenUpdateVersion'
 /** @type {UpdateLogEntry[]} */
 const UPDATE_LOG_ENTRIES = [
   {
+    version: 'v2026.02.17.03',
+    date: '2026-02-17',
+    summary: '캐릭터 크기 조절 기능을 추가했어요.',
+    details: [
+      '캐릭터 설정에 크기 조절 항목을 추가하고, 30~300% 범위로 조절할 수 있게 했어요.',
+    ]
+  },
+  {
     version: 'v2026.02.17.02',
     date: '2026-02-17',
     summary: '카메라 추적 지연을 줄이기 위한 성능 프로필을 추가했어요.',

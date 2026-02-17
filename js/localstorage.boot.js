@@ -5,6 +5,7 @@ const LIVE_SLOT_SETTINGS_KEY = 'ftLiveSlotSettings'
 const LIVE_SLOT_KEY = 'ftLiveSlot'
 const LIVE_SLOT_DEFAULTS = {
   rig: 100,
+  scale: 100,
   offsetX: 0,
   offsetY: 0,
   intervalMin: 1500,
@@ -96,6 +97,7 @@ function normalizeLiveSlotSettingsEntry(entry, fallback) {
   const fallbackColor = normalizeColorValue(base.color, LIVE_SLOT_DEFAULTS.color)
   return {
     rig: clampValue(parseFiniteInt(source.rig, base.rig), 0, 200, base.rig),
+    scale: clampValue(parseFiniteInt(source.scale, base.scale), 30, 300, base.scale),
     offsetX: clampValue(parseFiniteInt(source.offsetX, base.offsetX), -500, 500, base.offsetX),
     offsetY: clampValue(parseFiniteInt(source.offsetY, base.offsetY), -500, 500, base.offsetY),
     intervalMin: nextIntervalMin,
@@ -114,6 +116,7 @@ function normalizeLiveSlotSettingsEntry(entry, fallback) {
 function cloneLiveSlotSettings(entry) {
   return {
     rig: entry.rig,
+    scale: entry.scale,
     offsetX: entry.offsetX,
     offsetY: entry.offsetY,
     intervalMin: entry.intervalMin,
@@ -131,6 +134,7 @@ function cloneLiveSlotSettings(entry) {
 
 function buildLegacyLiveSettings() {
   const legacyRig = parseFiniteInt(localStorage.getItem('ftRig'), LIVE_SLOT_DEFAULTS.rig)
+  const legacyScale = parseFiniteInt(localStorage.getItem('ftScale'), LIVE_SLOT_DEFAULTS.scale)
   const legacyOffsetX = parseFiniteInt(localStorage.getItem('ftOffsetX'), LIVE_SLOT_DEFAULTS.offsetX)
   const legacyOffsetY = parseFiniteInt(localStorage.getItem('ftOffsetY'), LIVE_SLOT_DEFAULTS.offsetY)
   const legacyColor = localStorage.getItem('ftColor')
@@ -148,6 +152,7 @@ function buildLegacyLiveSettings() {
 
   return normalizeLiveSlotSettingsEntry({
     rig: legacyRig,
+    scale: legacyScale,
     offsetX: legacyOffsetX,
     offsetY: legacyOffsetY,
     intervalMin: legacyIntervalMin,
@@ -279,6 +284,8 @@ function downloadPayload(payload, fileName) {
 const slotSettingsLabel = document.querySelector('#slot-settings-label')
 const slotRigInput = document.querySelector('#slot-rig')
 const slotRigValueInput = document.querySelector('#slot-rig-value')
+const slotScaleInput = document.querySelector('#slot-scale')
+const slotScaleValueInput = document.querySelector('#slot-scale-value')
 const slotOffsetXInput = document.querySelector('#slot-offset-x')
 const slotOffsetXValueInput = document.querySelector('#slot-offset-x-value')
 const slotOffsetYInput = document.querySelector('#slot-offset-y')
@@ -523,6 +530,12 @@ function syncSlotSettingsUI(slotIndex) {
   }
   if (slotRigValueInput) {
     slotRigValueInput.value = String(settings.rig)
+  }
+  if (slotScaleInput) {
+    slotScaleInput.value = settings.scale
+  }
+  if (slotScaleValueInput) {
+    slotScaleValueInput.value = String(settings.scale)
   }
   if (slotOffsetXInput) {
     slotOffsetXInput.value = settings.offsetX
@@ -823,6 +836,7 @@ for (let i = 0; i < SLOT_COUNT; i++) {
 }
 
 bindRangeWithValueInput(slotRigInput, slotRigValueInput, 'rig', 0, 200)
+bindRangeWithValueInput(slotScaleInput, slotScaleValueInput, 'scale', 30, 300)
 bindRangeWithValueInput(slotOffsetXInput, slotOffsetXValueInput, 'offsetX', -500, 500)
 bindRangeWithValueInput(slotOffsetYInput, slotOffsetYValueInput, 'offsetY', -500, 500)
 

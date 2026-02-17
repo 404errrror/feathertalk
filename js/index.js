@@ -12,6 +12,7 @@ var LIVE_SLOT_SETTINGS_KEY = 'ftLiveSlotSettings'
 var LIVE_SLOT_KEY = 'ftLiveSlot'
 var LIVE_SLOT_DEFAULTS = {
   rig: 100,
+  scale: 100,
   offsetX: 0,
   offsetY: 0,
   intervalMin: 1500,
@@ -72,6 +73,7 @@ function normalizeCameraPerformanceProfile(value) {
 }
 
 var rig = clampValue(parseInt(localStorage.getItem('ftRig'), 10), 0, 200, LIVE_SLOT_DEFAULTS.rig)
+var characterScale = clampValue(parseInt(localStorage.getItem('ftScale'), 10), 30, 300, LIVE_SLOT_DEFAULTS.scale)
 var color = normalizeColorValue(localStorage.getItem('ftColor'), LIVE_SLOT_DEFAULTS.color)
 var offsetX = clampValue(parseInt(localStorage.getItem('ftOffsetX'), 10), -500, 500, LIVE_SLOT_DEFAULTS.offsetX)
 var offsetY = clampValue(parseInt(localStorage.getItem('ftOffsetY'), 10), -500, 500, LIVE_SLOT_DEFAULTS.offsetY)
@@ -395,6 +397,7 @@ function normalizeLiveSlotSettingsEntry(entry, fallback) {
   var source = entry && typeof entry === 'object' ? entry : {}
   var base = fallback && typeof fallback === 'object' ? fallback : LIVE_SLOT_DEFAULTS
   var nextRig = clampValue(parseFiniteInt(source.rig, base.rig), 0, 200, base.rig)
+  var nextScale = clampValue(parseFiniteInt(source.scale, base.scale), 30, 300, base.scale)
   var nextOffsetX = clampValue(parseFiniteInt(source.offsetX, base.offsetX), -500, 500, base.offsetX)
   var nextOffsetY = clampValue(parseFiniteInt(source.offsetY, base.offsetY), -500, 500, base.offsetY)
   var nextIntervalMin = clampValue(parseFiniteInt(source.intervalMin, base.intervalMin), intervalLimitMin, intervalLimitMax, base.intervalMin)
@@ -429,6 +432,7 @@ function normalizeLiveSlotSettingsEntry(entry, fallback) {
   var nextColor = normalizeColorValue(source.color, fallbackColor)
   return {
     rig: nextRig,
+    scale: nextScale,
     offsetX: nextOffsetX,
     offsetY: nextOffsetY,
     intervalMin: nextIntervalMin,
@@ -447,6 +451,7 @@ function normalizeLiveSlotSettingsEntry(entry, fallback) {
 function cloneLiveSlotSettings(entry) {
   return {
     rig: entry.rig,
+    scale: entry.scale,
     offsetX: entry.offsetX,
     offsetY: entry.offsetY,
     intervalMin: entry.intervalMin,
@@ -465,6 +470,7 @@ function cloneLiveSlotSettings(entry) {
 function readLegacyLiveSettingsSnapshot() {
   return normalizeLiveSlotSettingsEntry({
     rig,
+    scale: characterScale,
     offsetX,
     offsetY,
     intervalMin,
@@ -514,6 +520,7 @@ function applyBackgroundColorValue(nextColor) {
 
 function saveLegacyLiveSettings() {
   localStorage.setItem('ftRig', String(rig))
+  localStorage.setItem('ftScale', String(characterScale))
   localStorage.setItem('ftOffsetX', String(offsetX))
   localStorage.setItem('ftOffsetY', String(offsetY))
   localStorage.setItem('ftIntervalMin', String(intervalMin))
@@ -524,6 +531,7 @@ function saveLegacyLiveSettings() {
 
 function applyLiveSlotEntryToRuntime(entry) {
   rig = entry.rig
+  characterScale = entry.scale
   offsetX = entry.offsetX
   offsetY = entry.offsetY
   intervalMin = entry.intervalMin
@@ -553,6 +561,7 @@ function setLiveSlotSettingPatch(patch) {
 function persistCurrentLiveSlotSettings() {
   setLiveSlotSettingPatch({
     rig,
+    scale: characterScale,
     offsetX,
     offsetY,
     intervalMin,
@@ -584,6 +593,7 @@ function applyLiveSlotByIndex(slotIndex, options) {
   }
   if (opts.syncUI !== false) {
     updateRigUI()
+    updateScaleUI()
     updateOffsetUI()
     updateAutoMotionUI()
     updateIntervalUI()
@@ -636,10 +646,12 @@ var offsetXInput = document.querySelector('#offset-x')
 var offsetYInput = document.querySelector('#offset-y')
 var thresholdInput = document.querySelector('#threshold')
 var rigInput = document.querySelector('#rig')
+var scaleInput = document.querySelector('#scale')
 var colorInput = document.querySelector('#color')
 var autoMotionToggle = document.querySelector('#auto-motion-toggle')
 var thresholdValue = document.querySelector('#threshold-value')
 var rigValue = document.querySelector('#rig-value')
+var scaleValue = document.querySelector('#scale-value')
 var offsetXValue = document.querySelector('#offset-x-value')
 var offsetYValue = document.querySelector('#offset-y-value')
 var cameraToggle = document.querySelector('#camera-toggle')
@@ -1152,6 +1164,13 @@ function updateRigUI() {
   setRangeValueText(rigValue, rig)
 }
 
+function updateScaleUI() {
+  if (scaleInput) {
+    scaleInput.value = characterScale
+  }
+  setRangeValueText(scaleValue, characterScale)
+}
+
 function updateColorUI() {
   if (colorInput) {
     colorInput.value = color
@@ -1452,7 +1471,8 @@ function applyCharacterTransform() {
   if (!character) {
     return
   }
-  character.style.transform = `translate(${offsetX}px, ${-offsetY}px) rotate(${currentRotate}deg)`
+  var scaleRatio = characterScale / 100
+  character.style.transform = `translate(${offsetX}px, ${-offsetY}px) scale(${scaleRatio}) rotate(${currentRotate}deg)`
   if (typeof applyRigRotationSensitivity === 'function') {
     applyRigRotationSensitivity(currentRotate)
   }
@@ -1503,6 +1523,7 @@ updateMotionRangeUI()
 updateOffsetUI()
 updateThresholdUI()
 updateRigUI()
+updateScaleUI()
 updateColorUI()
 updateAutoMotionUI()
 updateCameraUI()
@@ -1517,6 +1538,7 @@ bindMotionRangeValueInput(bodyRotateMinValueInput, 'bodyRotate', 'min')
 bindMotionRangeValueInput(bodyRotateMaxValueInput, 'bodyRotate', 'max')
 bindRangeValueInput(thresholdInput, thresholdValue)
 bindRangeValueInput(rigInput, rigValue)
+bindRangeValueInput(scaleInput, scaleValue)
 bindRangeValueInput(offsetXInput, offsetXValue)
 bindRangeValueInput(offsetYInput, offsetYValue)
 bindRangeValueInput(cameraHeadYawRange, cameraHeadYawRangeValue)
@@ -1582,6 +1604,16 @@ if (rigInput) {
     rig = clampValue(nextValue, 0, 200, rig)
     persistCurrentLiveSlotSettings()
     updateRigUI()
+  })
+}
+
+if (scaleInput) {
+  scaleInput.addEventListener('input', function(e) {
+    var nextValue = parseFiniteInt(e.target.value, characterScale)
+    characterScale = clampValue(nextValue, 30, 300, characterScale)
+    persistCurrentLiveSlotSettings()
+    updateScaleUI()
+    applyCharacterTransform()
   })
 }
 
