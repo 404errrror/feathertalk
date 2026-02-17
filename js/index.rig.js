@@ -2,6 +2,7 @@
   let autoResumeTimer = null
   let autoFrameTimers = []
   var pointerIdleDelay = 1500
+  var bodyRotateRangeDeg = 36
 
   function isAutoMotionEnabled() {
     if (typeof window.autoMotionEnabled === 'boolean') {
@@ -236,7 +237,7 @@
     var faceImgRStyle = `width: min(${100 - xDelta * 15}vw, ${100 - xDelta * 15}dvh);top: ${yDelta * 10}px;`
     applyRigStyles('face', { divL: faceDivLStyle, divR: faceDivRStyle, imgL: faceImgLStyle, imgR: faceImgRStyle })
 
-    setCharacterTransform(rotateDelta * 15)
+    setCharacterTransform(rotateDelta * bodyRotateRangeDeg)
   }
 
   function applyScaledRigPose(xDelta, yDelta, rotateDelta, scaleY, scaleX, scaleNegX) {
@@ -270,7 +271,7 @@
     var faceImgRStyle = `height: ${100 * normalizedScaleY}dvh; width: min(${(100 - xDelta * 15) * normalizedScaleX}vw, ${(100 - xDelta * 15) * normalizedScaleX}dvh);top: ${yDelta * 10}px;`
     applyRigStyles('face', { divL: faceDivLStyle, divR: faceDivRStyle, imgL: faceImgLStyle, imgR: faceImgRStyle })
 
-    setCharacterTransform(rotateDelta * 15)
+    setCharacterTransform(rotateDelta * bodyRotateRangeDeg)
   }
 
 function scheduleAutoRig() {

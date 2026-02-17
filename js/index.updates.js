@@ -12,6 +12,16 @@ const UPDATE_LOG_SEEN_KEY = 'ftSeenUpdateVersion'
 /** @type {UpdateLogEntry[]} */
 const UPDATE_LOG_ENTRIES = [
   {
+    version: 'v2026.02.17.05',
+    date: '2026-02-17',
+    summary: '몸 회전 범위의 실제 움직임 폭을 더 넓혔어요.',
+    details: [
+      '몸 회전 범위 설정 UI는 기존과 동일하게 0~100%를 유지해요.',
+      '같은 퍼센트 값에서도 캐릭터의 실제 회전 각도가 더 크게 적용되도록 조정했어요.',
+      '마우스 리깅, 자동 모션, 카메라 추적 경로 모두 동일한 확대 폭으로 반영돼요.'
+    ]
+  },
+  {
     version: 'v2026.02.17.04',
     date: '2026-02-17',
     summary: '캐릭터 아웃라인 기능을 추가했어요.',
