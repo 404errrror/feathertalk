@@ -12,6 +12,14 @@ const UPDATE_LOG_SEEN_KEY = 'ftSeenUpdateVersion'
 /** @type {UpdateLogEntry[]} */
 const UPDATE_LOG_ENTRIES = [
   {
+    version: 'v2026.02.17.04',
+    date: '2026-02-17',
+    summary: '캐릭터 아웃라인 기능을 추가했어요.',
+    details: [
+      '프리셋별로 아웃라인 켜기/끄기, 색상, 두께(0~20px)를 저장할 수 있어요.',
+    ]
+  },
+  {
     version: 'v2026.02.17.03',
     date: '2026-02-17',
     summary: '캐릭터 크기 조절 기능을 추가했어요.',

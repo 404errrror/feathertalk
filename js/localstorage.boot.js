@@ -17,10 +17,15 @@ const LIVE_SLOT_DEFAULTS = {
   faceYMax: 100,
   bodyRotateMin: 0,
   bodyRotateMax: 100,
-  color: '#00ff00'
+  color: '#00ff00',
+  outlineEnabled: false,
+  outlineColor: '#000000',
+  outlineWidth: 3
 }
 const SLOT_INTERVAL_LIMIT_MIN = 200
 const SLOT_INTERVAL_LIMIT_MAX = 3000
+const SLOT_OUTLINE_WIDTH_MIN = 0
+const SLOT_OUTLINE_WIDTH_MAX = 20
 
 function parseFiniteInt(value, fallback) {
   const parsed = Number.isFinite(value) ? value : parseInt(value, 10)
@@ -54,6 +59,11 @@ function normalizeBooleanValue(value, fallback) {
     }
   }
   return Boolean(fallback)
+}
+
+function normalizeOutlineWidthValue(value, fallback) {
+  const base = parseFiniteInt(fallback, LIVE_SLOT_DEFAULTS.outlineWidth)
+  return clampValue(parseFiniteInt(value, base), SLOT_OUTLINE_WIDTH_MIN, SLOT_OUTLINE_WIDTH_MAX, base)
 }
 
 function normalizeSlotIndex(value, fallback) {
@@ -95,6 +105,9 @@ function normalizeLiveSlotSettingsEntry(entry, fallback) {
     nextBodyRotateMax = temp
   }
   const fallbackColor = normalizeColorValue(base.color, LIVE_SLOT_DEFAULTS.color)
+  const baseOutlineEnabled = normalizeBooleanValue(base.outlineEnabled, LIVE_SLOT_DEFAULTS.outlineEnabled)
+  const fallbackOutlineColor = normalizeColorValue(base.outlineColor, LIVE_SLOT_DEFAULTS.outlineColor)
+  const baseOutlineWidth = normalizeOutlineWidthValue(base.outlineWidth, LIVE_SLOT_DEFAULTS.outlineWidth)
   return {
     rig: clampValue(parseFiniteInt(source.rig, base.rig), 0, 200, base.rig),
     scale: clampValue(parseFiniteInt(source.scale, base.scale), 30, 300, base.scale),
@@ -109,7 +122,10 @@ function normalizeLiveSlotSettingsEntry(entry, fallback) {
     faceYMax: nextFaceYMax,
     bodyRotateMin: nextBodyRotateMin,
     bodyRotateMax: nextBodyRotateMax,
-    color: normalizeColorValue(source.color, fallbackColor)
+    color: normalizeColorValue(source.color, fallbackColor),
+    outlineEnabled: normalizeBooleanValue(source.outlineEnabled, baseOutlineEnabled),
+    outlineColor: normalizeColorValue(source.outlineColor, fallbackOutlineColor),
+    outlineWidth: normalizeOutlineWidthValue(source.outlineWidth, baseOutlineWidth)
   }
 }
 
@@ -128,7 +144,10 @@ function cloneLiveSlotSettings(entry) {
     faceYMax: entry.faceYMax,
     bodyRotateMin: entry.bodyRotateMin,
     bodyRotateMax: entry.bodyRotateMax,
-    color: entry.color
+    color: entry.color,
+    outlineEnabled: entry.outlineEnabled,
+    outlineColor: entry.outlineColor,
+    outlineWidth: entry.outlineWidth
   }
 }
 
@@ -139,6 +158,9 @@ function buildLegacyLiveSettings() {
   const legacyOffsetY = parseFiniteInt(localStorage.getItem('ftOffsetY'), LIVE_SLOT_DEFAULTS.offsetY)
   const legacyColor = localStorage.getItem('ftColor')
   const legacyAutoMotion = normalizeBooleanValue(localStorage.getItem('ftAutoMotion'), LIVE_SLOT_DEFAULTS.autoMotion)
+  const legacyOutlineEnabled = normalizeBooleanValue(localStorage.getItem('ftOutlineEnabled'), LIVE_SLOT_DEFAULTS.outlineEnabled)
+  const legacyOutlineColor = localStorage.getItem('ftOutlineColor')
+  const legacyOutlineWidth = parseFiniteInt(localStorage.getItem('ftOutlineWidth'), LIVE_SLOT_DEFAULTS.outlineWidth)
 
   let legacyIntervalMin = parseFiniteInt(localStorage.getItem('ftIntervalMin'), NaN)
   let legacyIntervalMax = parseFiniteInt(localStorage.getItem('ftIntervalMax'), NaN)
@@ -158,7 +180,10 @@ function buildLegacyLiveSettings() {
     intervalMin: legacyIntervalMin,
     intervalMax: legacyIntervalMax,
     autoMotion: legacyAutoMotion,
-    color: legacyColor
+    color: legacyColor,
+    outlineEnabled: legacyOutlineEnabled,
+    outlineColor: legacyOutlineColor,
+    outlineWidth: legacyOutlineWidth
   }, LIVE_SLOT_DEFAULTS)
 }
 

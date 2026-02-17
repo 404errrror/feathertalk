@@ -146,6 +146,23 @@
         <span>배경색</span>
         <input id="color" type="color" value="#00ff00">
       </div>
+      <div class="setting-item setting-item--inline">
+        <span>아웃라인</span>
+        <button class="toggle-button" id="outline-toggle" type="button" aria-pressed="false" data-off-label="꺼짐" data-on-label="켜짐">꺼짐</button>
+      </div>
+      <div class="setting-item">
+        <span>아웃라인 색상</span>
+        <input id="outline-color" type="color" value="#000000">
+      </div>
+      <div class="setting-item">
+        <div class="range-header">
+          <span>아웃라인 두께</span>
+          <div class="range-values range-values--input" id="outline-width-value" data-unit="px">
+            <input class="range-input" type="text" inputmode="numeric" pattern="-?[0-9]*">
+          </div>
+        </div>
+        <input id="outline-width" type="range" value="3" min="0" max="20">
+      </div>
     </div>
     <div id="settings-camera" class="settings-group" data-settings-group="camera" role="tabpanel" hidden>
       <div class="setting-item setting-item--inline">
@@ -276,6 +293,20 @@
   <video id="camera-preview-video" autoplay muted playsinline></video>
   <canvas id="camera-preview-overlay" hidden></canvas>
 </div>
+<svg width="0" height="0" style="position:absolute;visibility:hidden" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="ft-outline-filter" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feMorphology id="ft-outline-morph" in="SourceAlpha" operator="dilate" radius="1" result="outline-alpha"></feMorphology>
+      <feFlood id="ft-outline-flood" flood-color="#000000" flood-opacity="1" result="outline-color"></feFlood>
+      <feComposite in="outline-color" in2="outline-alpha" operator="in" result="outline-fill"></feComposite>
+      <feComposite in="outline-fill" in2="SourceAlpha" operator="out" result="outline-only"></feComposite>
+      <feMerge>
+        <feMergeNode in="outline-only"></feMergeNode>
+        <feMergeNode in="SourceGraphic"></feMergeNode>
+      </feMerge>
+    </filter>
+  </defs>
+</svg>
 
 <script src="./js/index.js?v=0.0.8"></script>
 <script src="./js/index.layers.js?v=0.0.6"></script>

@@ -24,8 +24,13 @@ var LIVE_SLOT_DEFAULTS = {
   faceYMax: 100,
   bodyRotateMin: 0,
   bodyRotateMax: 100,
-  color: '#00ff00'
+  color: '#00ff00',
+  outlineEnabled: false,
+  outlineColor: '#000000',
+  outlineWidth: 3
 }
+var OUTLINE_WIDTH_MIN = 0
+var OUTLINE_WIDTH_MAX = 20
 
 function clampValue(value, minValue, maxValue, fallback) {
   var nextValue = Number.isFinite(value) ? value : fallback
@@ -41,6 +46,10 @@ function normalizeColorValue(value, fallback) {
     return fallback
   }
   return source
+}
+
+function normalizeOutlineWidthValue(value, fallback) {
+  return clampValue(parseInt(value, 10), OUTLINE_WIDTH_MIN, OUTLINE_WIDTH_MAX, fallback)
 }
 
 function normalizeBooleanValue(value, fallback) {
@@ -75,6 +84,9 @@ function normalizeCameraPerformanceProfile(value) {
 var rig = clampValue(parseInt(localStorage.getItem('ftRig'), 10), 0, 200, LIVE_SLOT_DEFAULTS.rig)
 var characterScale = clampValue(parseInt(localStorage.getItem('ftScale'), 10), 30, 300, LIVE_SLOT_DEFAULTS.scale)
 var color = normalizeColorValue(localStorage.getItem('ftColor'), LIVE_SLOT_DEFAULTS.color)
+var outlineEnabled = normalizeBooleanValue(localStorage.getItem('ftOutlineEnabled'), LIVE_SLOT_DEFAULTS.outlineEnabled)
+var outlineColor = normalizeColorValue(localStorage.getItem('ftOutlineColor'), LIVE_SLOT_DEFAULTS.outlineColor)
+var outlineWidth = normalizeOutlineWidthValue(localStorage.getItem('ftOutlineWidth'), LIVE_SLOT_DEFAULTS.outlineWidth)
 var offsetX = clampValue(parseInt(localStorage.getItem('ftOffsetX'), 10), -500, 500, LIVE_SLOT_DEFAULTS.offsetX)
 var offsetY = clampValue(parseInt(localStorage.getItem('ftOffsetY'), 10), -500, 500, LIVE_SLOT_DEFAULTS.offsetY)
 var faceXMin = LIVE_SLOT_DEFAULTS.faceXMin
@@ -430,6 +442,11 @@ function normalizeLiveSlotSettingsEntry(entry, fallback) {
   }
   var fallbackColor = normalizeColorValue(base.color, LIVE_SLOT_DEFAULTS.color)
   var nextColor = normalizeColorValue(source.color, fallbackColor)
+  var baseOutlineEnabled = normalizeBooleanValue(base.outlineEnabled, LIVE_SLOT_DEFAULTS.outlineEnabled)
+  var fallbackOutlineColor = normalizeColorValue(base.outlineColor, LIVE_SLOT_DEFAULTS.outlineColor)
+  var nextOutlineColor = normalizeColorValue(source.outlineColor, fallbackOutlineColor)
+  var baseOutlineWidth = normalizeOutlineWidthValue(base.outlineWidth, LIVE_SLOT_DEFAULTS.outlineWidth)
+  var nextOutlineWidth = normalizeOutlineWidthValue(source.outlineWidth, baseOutlineWidth)
   return {
     rig: nextRig,
     scale: nextScale,
@@ -444,7 +461,10 @@ function normalizeLiveSlotSettingsEntry(entry, fallback) {
     faceYMax: nextFaceYMax,
     bodyRotateMin: nextBodyRotateMin,
     bodyRotateMax: nextBodyRotateMax,
-    color: nextColor
+    color: nextColor,
+    outlineEnabled: normalizeBooleanValue(source.outlineEnabled, baseOutlineEnabled),
+    outlineColor: nextOutlineColor,
+    outlineWidth: nextOutlineWidth
   }
 }
 
@@ -463,7 +483,10 @@ function cloneLiveSlotSettings(entry) {
     faceYMax: entry.faceYMax,
     bodyRotateMin: entry.bodyRotateMin,
     bodyRotateMax: entry.bodyRotateMax,
-    color: entry.color
+    color: entry.color,
+    outlineEnabled: entry.outlineEnabled,
+    outlineColor: entry.outlineColor,
+    outlineWidth: entry.outlineWidth
   }
 }
 
@@ -482,7 +505,10 @@ function readLegacyLiveSettingsSnapshot() {
     faceYMax,
     bodyRotateMin,
     bodyRotateMax,
-    color
+    color,
+    outlineEnabled,
+    outlineColor,
+    outlineWidth
   }, LIVE_SLOT_DEFAULTS)
 }
 
@@ -518,6 +544,79 @@ function applyBackgroundColorValue(nextColor) {
   document.body.style.background = color
 }
 
+var outlineSvgFilterSupport = null
+
+function buildOutlineFallbackFilter(colorValue, widthValue) {
+  var safeColor = normalizeColorValue(colorValue, LIVE_SLOT_DEFAULTS.outlineColor)
+  var safeWidth = normalizeOutlineWidthValue(widthValue, LIVE_SLOT_DEFAULTS.outlineWidth)
+  if (safeWidth <= 0) {
+    return ''
+  }
+  return [
+    `drop-shadow(${safeWidth}px 0 0 ${safeColor})`,
+    `drop-shadow(${-safeWidth}px 0 0 ${safeColor})`,
+    `drop-shadow(0 ${safeWidth}px 0 ${safeColor})`,
+    `drop-shadow(0 ${-safeWidth}px 0 ${safeColor})`,
+    `drop-shadow(${safeWidth}px ${safeWidth}px 0 ${safeColor})`,
+    `drop-shadow(${safeWidth}px ${-safeWidth}px 0 ${safeColor})`,
+    `drop-shadow(${-safeWidth}px ${safeWidth}px 0 ${safeColor})`,
+    `drop-shadow(${-safeWidth}px ${-safeWidth}px 0 ${safeColor})`
+  ].join(' ')
+}
+
+function isSvgOutlineFilterSupported() {
+  if (!outlineMorphologyNode || !outlineFloodNode) {
+    return false
+  }
+  if (!character) {
+    return false
+  }
+  if (outlineSvgFilterSupport != null) {
+    return outlineSvgFilterSupport
+  }
+  if (!window.CSS || typeof window.CSS.supports !== 'function') {
+    outlineSvgFilterSupport = false
+    return outlineSvgFilterSupport
+  }
+  if (!window.CSS.supports('filter', 'url(#ft-outline-filter)')) {
+    outlineSvgFilterSupport = false
+    return outlineSvgFilterSupport
+  }
+  var previousFilter = character.style.filter
+  character.style.filter = 'url(#ft-outline-filter)'
+  var computedFilter = ''
+  if (typeof window.getComputedStyle === 'function') {
+    computedFilter = window.getComputedStyle(character).filter || ''
+  }
+  character.style.filter = previousFilter
+  outlineSvgFilterSupport = Boolean(computedFilter) && computedFilter !== 'none'
+  return outlineSvgFilterSupport
+}
+
+function applyCharacterOutlineStyle() {
+  if (!character) {
+    return
+  }
+  var safeWidth = normalizeOutlineWidthValue(outlineWidth, LIVE_SLOT_DEFAULTS.outlineWidth)
+  var safeColor = normalizeColorValue(outlineColor, LIVE_SLOT_DEFAULTS.outlineColor)
+  if (!outlineEnabled || safeWidth <= 0) {
+    character.style.removeProperty('filter')
+    return
+  }
+  if (isSvgOutlineFilterSupported()) {
+    outlineMorphologyNode.setAttribute('radius', String(safeWidth))
+    outlineFloodNode.setAttribute('flood-color', safeColor)
+    character.style.filter = 'url(#ft-outline-filter)'
+    return
+  }
+  var fallbackFilter = buildOutlineFallbackFilter(safeColor, safeWidth)
+  if (fallbackFilter) {
+    character.style.filter = fallbackFilter
+  } else {
+    character.style.removeProperty('filter')
+  }
+}
+
 function saveLegacyLiveSettings() {
   localStorage.setItem('ftRig', String(rig))
   localStorage.setItem('ftScale', String(characterScale))
@@ -527,6 +626,9 @@ function saveLegacyLiveSettings() {
   localStorage.setItem('ftIntervalMax', String(intervalMax))
   localStorage.setItem('ftAutoMotion', String(autoMotionEnabled))
   localStorage.setItem('ftColor', color)
+  localStorage.setItem('ftOutlineEnabled', String(outlineEnabled))
+  localStorage.setItem('ftOutlineColor', outlineColor)
+  localStorage.setItem('ftOutlineWidth', String(outlineWidth))
 }
 
 function applyLiveSlotEntryToRuntime(entry) {
@@ -543,8 +645,12 @@ function applyLiveSlotEntryToRuntime(entry) {
   faceYMax = entry.faceYMax
   bodyRotateMin = entry.bodyRotateMin
   bodyRotateMax = entry.bodyRotateMax
+  outlineEnabled = normalizeBooleanValue(entry.outlineEnabled, LIVE_SLOT_DEFAULTS.outlineEnabled)
+  outlineColor = normalizeColorValue(entry.outlineColor, LIVE_SLOT_DEFAULTS.outlineColor)
+  outlineWidth = normalizeOutlineWidthValue(entry.outlineWidth, LIVE_SLOT_DEFAULTS.outlineWidth)
   normalizeIntervalRange()
   applyBackgroundColorValue(entry.color)
+  applyCharacterOutlineStyle()
   saveLegacyLiveSettings()
 }
 
@@ -573,7 +679,10 @@ function persistCurrentLiveSlotSettings() {
     faceYMax,
     bodyRotateMin,
     bodyRotateMax,
-    color
+    color,
+    outlineEnabled,
+    outlineColor,
+    outlineWidth
   })
   saveLegacyLiveSettings()
 }
@@ -599,6 +708,8 @@ function applyLiveSlotByIndex(slotIndex, options) {
     updateIntervalUI()
     updateMotionRangeUI()
     updateColorUI()
+    updateOutlineUI()
+    applyCharacterOutlineStyle()
     applyCharacterTransform()
   }
 }
@@ -648,12 +759,16 @@ var thresholdInput = document.querySelector('#threshold')
 var rigInput = document.querySelector('#rig')
 var scaleInput = document.querySelector('#scale')
 var colorInput = document.querySelector('#color')
+var outlineToggle = document.querySelector('#outline-toggle')
+var outlineColorInput = document.querySelector('#outline-color')
+var outlineWidthInput = document.querySelector('#outline-width')
 var autoMotionToggle = document.querySelector('#auto-motion-toggle')
 var thresholdValue = document.querySelector('#threshold-value')
 var rigValue = document.querySelector('#rig-value')
 var scaleValue = document.querySelector('#scale-value')
 var offsetXValue = document.querySelector('#offset-x-value')
 var offsetYValue = document.querySelector('#offset-y-value')
+var outlineWidthValue = document.querySelector('#outline-width-value')
 var cameraToggle = document.querySelector('#camera-toggle')
 var cameraHeadYawRange = document.querySelector('#camera-head-yaw-range')
 var cameraHeadPitchRange = document.querySelector('#camera-head-pitch-range')
@@ -682,6 +797,8 @@ var cameraBodyRollOffsetXValue = document.querySelector('#camera-body-roll-offse
 var cameraPreview = document.querySelector('#camera-preview')
 var cameraPreviewVideo = document.querySelector('#camera-preview-video')
 var cameraPreviewOverlay = document.querySelector('#camera-preview-overlay')
+var outlineMorphologyNode = document.querySelector('#ft-outline-morph')
+var outlineFloodNode = document.querySelector('#ft-outline-flood')
 var character = document.querySelector('#character')
 var currentRotate = 0
 
@@ -1177,6 +1294,26 @@ function updateColorUI() {
   }
 }
 
+function updateOutlineUI() {
+  var isEnabled = Boolean(outlineEnabled)
+  updateToggleButton(outlineToggle, isEnabled)
+
+  if (outlineColorInput) {
+    outlineColorInput.value = outlineColor
+    outlineColorInput.disabled = !isEnabled
+    setSettingItemDisabled(outlineColorInput, !isEnabled)
+  }
+  if (outlineWidthInput) {
+    outlineWidthInput.value = outlineWidth
+    outlineWidthInput.disabled = !isEnabled
+    setSettingItemDisabled(outlineWidthInput, !isEnabled)
+  }
+  if (outlineWidthValue) {
+    setRangeValueText(outlineWidthValue, outlineWidth)
+    setRangeValueDisabled(outlineWidthValue, !isEnabled)
+  }
+}
+
 function updateAutoMotionUI() {
   var isEnabled = Boolean(autoMotionEnabled)
   var disabled = !isEnabled
@@ -1525,6 +1662,7 @@ updateThresholdUI()
 updateRigUI()
 updateScaleUI()
 updateColorUI()
+updateOutlineUI()
 updateAutoMotionUI()
 updateCameraUI()
 
@@ -1539,6 +1677,7 @@ bindMotionRangeValueInput(bodyRotateMaxValueInput, 'bodyRotate', 'max')
 bindRangeValueInput(thresholdInput, thresholdValue)
 bindRangeValueInput(rigInput, rigValue)
 bindRangeValueInput(scaleInput, scaleValue)
+bindRangeValueInput(outlineWidthInput, outlineWidthValue)
 bindRangeValueInput(offsetXInput, offsetXValue)
 bindRangeValueInput(offsetYInput, offsetYValue)
 bindRangeValueInput(cameraHeadYawRange, cameraHeadYawRangeValue)
@@ -1551,6 +1690,7 @@ bindRangeValueInput(cameraBodyRollOffsetXInput, cameraBodyRollOffsetXValue)
 bindRangeValueInput(cameraBlinkSensitivityInput, cameraBlinkSensitivityValue)
 bindRangeValueInput(cameraMouthSensitivityInput, cameraMouthSensitivityValue)
 applyCharacterTransform()
+applyCharacterOutlineStyle()
 
 if (settingsToggle && settingsPanel) {
   settingsToggle.addEventListener('click', function() {
@@ -1623,6 +1763,33 @@ if (colorInput) {
     applyBackgroundColorValue(e.target.value)
     persistCurrentLiveSlotSettings()
     updateColorUI()
+  })
+}
+
+if (outlineToggle) {
+  outlineToggle.addEventListener('click', function() {
+    outlineEnabled = !outlineEnabled
+    persistCurrentLiveSlotSettings()
+    updateOutlineUI()
+    applyCharacterOutlineStyle()
+  })
+}
+
+if (outlineColorInput) {
+  outlineColorInput.addEventListener('change', function(e) {
+    outlineColor = normalizeColorValue(e.target.value, LIVE_SLOT_DEFAULTS.outlineColor)
+    persistCurrentLiveSlotSettings()
+    updateOutlineUI()
+    applyCharacterOutlineStyle()
+  })
+}
+
+if (outlineWidthInput) {
+  outlineWidthInput.addEventListener('input', function(e) {
+    outlineWidth = normalizeOutlineWidthValue(e.target.value, outlineWidth)
+    persistCurrentLiveSlotSettings()
+    updateOutlineUI()
+    applyCharacterOutlineStyle()
   })
 }
 
