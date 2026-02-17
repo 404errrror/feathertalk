@@ -64,6 +64,13 @@ function normalizeLiveSlotIndex(value, fallback) {
   return ((Math.round(value) % LIVE_SLOT_COUNT) + LIVE_SLOT_COUNT) % LIVE_SLOT_COUNT
 }
 
+function normalizeCameraPerformanceProfile(value) {
+  if (value === 'low-latency' || value === 'balanced' || value === 'low-cpu') {
+    return value
+  }
+  return 'low-latency'
+}
+
 var rig = clampValue(parseInt(localStorage.getItem('ftRig'), 10), 0, 200, LIVE_SLOT_DEFAULTS.rig)
 var color = normalizeColorValue(localStorage.getItem('ftColor'), LIVE_SLOT_DEFAULTS.color)
 var offsetX = clampValue(parseInt(localStorage.getItem('ftOffsetX'), 10), -500, 500, LIVE_SLOT_DEFAULTS.offsetX)
@@ -96,6 +103,12 @@ if (storedPreviewMode) {
 }
 if (['off', 'video', 'facemesh'].indexOf(cameraPreviewMode) === -1) {
   cameraPreviewMode = 'off'
+}
+
+var storedCameraPerformanceProfile = localStorage.getItem('ftCameraPerformanceProfile')
+var cameraPerformanceProfile = normalizeCameraPerformanceProfile(storedCameraPerformanceProfile)
+if (storedCameraPerformanceProfile !== cameraPerformanceProfile) {
+  localStorage.setItem('ftCameraPerformanceProfile', cameraPerformanceProfile)
 }
 
 var cameraInvertX = false
@@ -235,7 +248,7 @@ if (localStorage.getItem('ftCameraMouthSensitivity')) {
 if (!Number.isFinite(cameraMouthSensitivity)) {
   cameraMouthSensitivity = 100
 }
-var cameraInterpolationStrength = 100
+var cameraInterpolationStrength = 30
 var storedCameraInterpolationStrength = localStorage.getItem('ftCameraInterpolationStrength')
 if (storedCameraInterpolationStrength != null) {
   cameraInterpolationStrength = parseInt(storedCameraInterpolationStrength, 10)
@@ -251,7 +264,7 @@ if (storedCameraInterpolationStrength != null) {
   }
 }
 if (!Number.isFinite(cameraInterpolationStrength)) {
-  cameraInterpolationStrength = 100
+  cameraInterpolationStrength = 30
 }
 cameraInterpolationStrength = Math.min(200, Math.max(1, cameraInterpolationStrength))
 
@@ -640,6 +653,7 @@ var cameraInterpolationStrengthValue = document.querySelector('#camera-interpola
 var cameraBodyRangeValue = document.querySelector('#camera-body-range-value')
 var cameraStatus = document.querySelector('#camera-status')
 var cameraPreviewModeSelect = document.querySelector('#camera-preview-mode')
+var cameraPerformanceProfileSelect = document.querySelector('#camera-performance-profile')
 var cameraInvertToggle = document.querySelector('#camera-invert-toggle')
 var cameraBlinkToggle = document.querySelector('#camera-blink-toggle')
 var cameraBlinkSensitivityInput = document.querySelector('#camera-blink-sensitivity')
@@ -1369,6 +1383,10 @@ function updateCameraUI() {
     cameraPreviewModeSelect.value = cameraPreviewMode
     cameraPreviewModeSelect.disabled = !cameraControlsEnabled
   }
+  if (cameraPerformanceProfileSelect) {
+    cameraPerformanceProfileSelect.value = cameraPerformanceProfile
+    cameraPerformanceProfileSelect.disabled = !cameraControlsEnabled
+  }
   if (cameraInvertToggle) {
     updateToggleButton(cameraInvertToggle, cameraInvertX)
     cameraInvertToggle.disabled = !cameraControlsEnabled
@@ -1405,6 +1423,7 @@ function updateCameraUI() {
     }
   }
   setSettingItemDisabled(cameraPreviewModeSelect, cameraPreviewModeSelect && cameraPreviewModeSelect.disabled)
+  setSettingItemDisabled(cameraPerformanceProfileSelect, cameraPerformanceProfileSelect && cameraPerformanceProfileSelect.disabled)
   setSettingItemDisabled(cameraInvertToggle, cameraInvertToggle && cameraInvertToggle.disabled)
   setSettingItemDisabled(cameraHeadYawRange, cameraHeadYawRange && cameraHeadYawRange.disabled)
   setSettingItemDisabled(cameraHeadPitchRange, cameraHeadPitchRange && cameraHeadPitchRange.disabled)
@@ -1700,6 +1719,21 @@ if (cameraPreviewModeSelect) {
     cameraPreviewMode = nextMode
     localStorage.setItem('ftCameraPreviewMode', cameraPreviewMode)
     updateCameraPreviewVisibility()
+  })
+}
+
+if (cameraPerformanceProfileSelect) {
+  cameraPerformanceProfileSelect.addEventListener('change', function(e) {
+    var nextProfile = normalizeCameraPerformanceProfile(e.target.value)
+    cameraPerformanceProfile = nextProfile
+    localStorage.setItem('ftCameraPerformanceProfile', cameraPerformanceProfile)
+    cameraPerformanceProfileSelect.value = cameraPerformanceProfile
+    if (typeof applyCameraPerformanceProfileRuntime === 'function') {
+      Promise.resolve(applyCameraPerformanceProfileRuntime()).catch(function(error) {
+        console.warn('Camera performance profile apply failed', error)
+      })
+    }
+    updateCameraUI()
   })
 }
 

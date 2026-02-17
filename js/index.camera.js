@@ -7,8 +7,9 @@ var cameraHasRoll = false
 var cameraLastX = 0
 var cameraLastY = 0
 var cameraLastRollX = 0
-var cameraIntervalMs = 60
 var cameraSmoothing = 0.18
+var cameraInferEmaMs = 0
+var cameraInferEmaAlpha = 0.25
 var cameraInvertX = typeof cameraInvertX === 'boolean' ? cameraInvertX : false
 var motionCanvas = null
 var motionCtx = null
@@ -39,6 +40,159 @@ var cameraTargetRollX = 0
 var cameraTargetReady = false
 var cameraLastApplyTime = 0
 var cameraPreviewBound = false
+var cameraPerformanceProfiles = {
+  'low-latency': {
+    baseMs: 33,
+    maxMs: 80,
+    maxWidth: 640,
+    maxHeight: 360,
+    idealFps: 30,
+    maxFps: 30
+  },
+  balanced: {
+    baseMs: 45,
+    maxMs: 110,
+    maxWidth: 640,
+    maxHeight: 360,
+    idealFps: 24,
+    maxFps: 30
+  },
+  'low-cpu': {
+    baseMs: 75,
+    maxMs: 180,
+    maxWidth: 480,
+    maxHeight: 270,
+    idealFps: 15,
+    maxFps: 15
+  }
+}
+
+function getNowMs() {
+  if (typeof performance !== 'undefined' && performance && typeof performance.now === 'function') {
+    return performance.now()
+  }
+  return Date.now()
+}
+
+function getCameraPerformanceProfilePreset() {
+  var key = typeof cameraPerformanceProfile === 'string' ? cameraPerformanceProfile : 'low-latency'
+  if (!cameraPerformanceProfiles[key]) {
+    key = 'low-latency'
+  }
+  return cameraPerformanceProfiles[key]
+}
+
+function getCameraVideoConstraintsForProfile() {
+  var preset = getCameraPerformanceProfilePreset()
+  return {
+    facingMode: 'user',
+    width: { ideal: preset.maxWidth, max: preset.maxWidth },
+    height: { ideal: preset.maxHeight, max: preset.maxHeight },
+    frameRate: { ideal: preset.idealFps, max: preset.maxFps }
+  }
+}
+
+function resetCameraInferenceTiming() {
+  cameraInferEmaMs = 0
+}
+
+function updateCameraInferenceEma(elapsedMs) {
+  if (!Number.isFinite(elapsedMs) || elapsedMs <= 0) {
+    return
+  }
+  if (!cameraInferEmaMs) {
+    cameraInferEmaMs = elapsedMs
+    return
+  }
+  cameraInferEmaMs = cameraInferEmaMs * (1 - cameraInferEmaAlpha) + elapsedMs * cameraInferEmaAlpha
+}
+
+function getNextCameraDetectDelayMs(elapsedMs) {
+  var preset = getCameraPerformanceProfilePreset()
+  if (Number.isFinite(elapsedMs) && elapsedMs > 0) {
+    updateCameraInferenceEma(elapsedMs)
+  }
+  var adaptiveMs = preset.baseMs
+  if (cameraInferEmaMs > 0) {
+    adaptiveMs = Math.round(cameraInferEmaMs * 1.2 + 4)
+  }
+  var targetMs = Math.max(preset.baseMs, adaptiveMs)
+  return Math.max(preset.baseMs, Math.min(preset.maxMs, targetMs))
+}
+
+function clearCameraDetectionLoop() {
+  if (cameraTimer) {
+    clearTimeout(cameraTimer)
+    cameraTimer = null
+  }
+}
+
+function scheduleCameraDetectionLoop(delayMs) {
+  clearCameraDetectionLoop()
+  if (!cameraEnabled) {
+    return
+  }
+  var waitMs = Number.isFinite(delayMs) ? delayMs : 0
+  waitMs = Math.max(0, Math.round(waitMs))
+  cameraTimer = setTimeout(runCameraDetectionLoop, waitMs)
+}
+
+async function runCameraDetectionLoop() {
+  cameraTimer = null
+  if (!cameraEnabled) {
+    return
+  }
+  var elapsedMs = await detectCameraFrame()
+  if (!cameraEnabled) {
+    return
+  }
+  scheduleCameraDetectionLoop(getNextCameraDetectDelayMs(elapsedMs))
+}
+
+function startCameraDetectionLoop() {
+  resetCameraInferenceTiming()
+  scheduleCameraDetectionLoop(0)
+}
+
+function getPrimaryCameraVideoTrack(stream) {
+  var targetStream = stream || cameraStream
+  if (!targetStream || typeof targetStream.getVideoTracks !== 'function') {
+    return null
+  }
+  var tracks = targetStream.getVideoTracks()
+  if (!tracks || !tracks.length) {
+    return null
+  }
+  return tracks[0]
+}
+
+function ensureCameraVideoElement() {
+  if (!cameraVideo) {
+    cameraVideo = cameraPreviewVideo || document.createElement('video')
+    cameraVideo.setAttribute('playsinline', '')
+    cameraVideo.muted = true
+  }
+  if (!cameraPreviewBound) {
+    cameraVideo.addEventListener('loadedmetadata', function() {
+      syncCameraOverlaySize()
+    })
+    cameraPreviewBound = true
+  }
+  return cameraVideo
+}
+
+async function requestCameraStreamForCurrentProfile() {
+  try {
+    return await navigator.mediaDevices.getUserMedia({
+      video: getCameraVideoConstraintsForProfile()
+    })
+  } catch (error) {
+    console.warn('Constrained camera getUserMedia failed', error)
+    return navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user' }
+    })
+  }
+}
 
 function setCameraEnabled(enabled) {
   var nextEnabled = Boolean(enabled)
@@ -68,23 +222,23 @@ function setCameraEnabled(enabled) {
   }
 }
 
-async function startCameraTracking() {
+async function startCameraTracking(skipConfirm) {
   if (!cameraSupported || cameraStream) {
     return
   }
-  var confirmed = window.confirm('카메라 권한을 요청합니다.\n카메라에 비친 사람이 브라우저 화면에 표시될 수 있습니다.\n방송 중이면 실제 얼굴이 노출될 수 있으니 주의하세요.\n계속하시겠습니까?')
-  if (!confirmed) {
-    cameraEnabled = false
-    localStorage.setItem('ftCameraEnabled', 'false')
-    setCameraStatus('카메라 권한 요청 취소')
-    updateCameraUI()
-    scheduleAutoRigFromPointer(lastX || document.body.clientWidth / 2, lastY || document.body.clientHeight / 2)
-    return
+  if (!skipConfirm) {
+    var confirmed = window.confirm('카메라 권한을 요청합니다.\n카메라에 비친 사람이 브라우저 화면에 표시될 수 있습니다.\n방송 중이면 실제 얼굴이 노출될 수 있으니 주의하세요.\n계속하시겠습니까?')
+    if (!confirmed) {
+      cameraEnabled = false
+      localStorage.setItem('ftCameraEnabled', 'false')
+      setCameraStatus('카메라 권한 요청 취소')
+      updateCameraUI()
+      scheduleAutoRigFromPointer(lastX || document.body.clientWidth / 2, lastY || document.body.clientHeight / 2)
+      return
+    }
   }
   try {
-    cameraStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'user' }
-    })
+    cameraStream = await requestCameraStreamForCurrentProfile()
   } catch (error) {
     cameraEnabled = false
     localStorage.setItem('ftCameraEnabled', 'false')
@@ -99,20 +253,10 @@ async function startCameraTracking() {
     return
   }
 
-  if (!cameraVideo) {
-    cameraVideo = cameraPreviewVideo || document.createElement('video')
-    cameraVideo.setAttribute('playsinline', '')
-    cameraVideo.muted = true
-  }
-  cameraVideo.srcObject = cameraStream
-  if (!cameraPreviewBound) {
-    cameraVideo.addEventListener('loadedmetadata', function() {
-      syncCameraOverlaySize()
-    })
-    cameraPreviewBound = true
-  }
+  var nextVideo = ensureCameraVideoElement()
+  nextVideo.srcObject = cameraStream
   try {
-    await cameraVideo.play()
+    await nextVideo.play()
   } catch (error) {
     console.warn('Camera play was blocked', error)
   }
@@ -130,15 +274,14 @@ async function startCameraTracking() {
   stopAutoRig()
   clearTimeout(autoResumeTimer)
   cameraHasPosition = false
-  cameraTimer = setInterval(detectCameraFrame, cameraIntervalMs)
+  cameraHasRoll = false
+  cameraTargetReady = false
+  startCameraDetectionLoop()
   startCameraAnimation()
 }
 
 function stopCameraTracking() {
-  if (cameraTimer) {
-    clearInterval(cameraTimer)
-    cameraTimer = null
-  }
+  clearCameraDetectionLoop()
   cameraDetecting = false
   cameraHasPosition = false
   cameraHasRoll = false
@@ -151,6 +294,7 @@ function stopCameraTracking() {
   cameraMouthActive = false
   cameraMouthLastUpdate = 0
   cameraMouthBaseline = 0
+  resetCameraInferenceTiming()
   stopCameraAnimation()
   if (cameraStream) {
     cameraStream.getTracks().forEach(function(track) {
@@ -162,6 +306,66 @@ function stopCameraTracking() {
     cameraVideo.srcObject = null
   }
   updateCameraPreviewVisibility()
+}
+
+async function applyCameraPerformanceProfileRuntime() {
+  if (!cameraEnabled || !cameraStream) {
+    return
+  }
+  var currentStream = cameraStream
+  var track = getPrimaryCameraVideoTrack(currentStream)
+  var constraints = getCameraVideoConstraintsForProfile()
+  if (track && typeof track.applyConstraints === 'function') {
+    try {
+      await track.applyConstraints(constraints)
+      resetCameraInferenceTiming()
+      scheduleCameraDetectionLoop(0)
+      setCameraStatus('')
+      updateCameraUI()
+      return
+    } catch (error) {
+      console.warn('Camera applyConstraints failed', error)
+    }
+  }
+
+  try {
+    var nextStream = await requestCameraStreamForCurrentProfile()
+    if (!nextStream) {
+      throw new Error('Camera stream unavailable')
+    }
+    if (!cameraEnabled) {
+      nextStream.getTracks().forEach(function(nextTrack) {
+        nextTrack.stop()
+      })
+      return
+    }
+    cameraStream = nextStream
+    var nextVideo = ensureCameraVideoElement()
+    nextVideo.srcObject = nextStream
+    try {
+      await nextVideo.play()
+    } catch (error) {
+      console.warn('Camera play was blocked', error)
+    }
+    if (currentStream && currentStream !== nextStream) {
+      currentStream.getTracks().forEach(function(oldTrack) {
+        oldTrack.stop()
+      })
+    }
+    cameraHasPosition = false
+    cameraHasRoll = false
+    cameraTargetReady = false
+    cameraDetecting = false
+    resetCameraInferenceTiming()
+    scheduleCameraDetectionLoop(0)
+    updateCameraPreviewVisibility()
+    setCameraStatus('')
+    updateCameraUI()
+  } catch (error) {
+    console.warn('Camera stream restart failed', error)
+    setCameraStatus('성능 프로필 적용 실패 (기존 스트림 유지)')
+    updateCameraUI()
+  }
 }
 
 function ensureMotionCanvas() {
@@ -639,29 +843,36 @@ function drawFaceMeshOverlay(landmarks) {
   }
 }
 
-function detectCameraFrame() {
+async function detectCameraFrame() {
   if (!cameraEnabled || !cameraVideo || cameraDetecting) {
-    return
+    return null
   }
   if (cameraVideo.readyState < 2) {
-    return
+    return null
   }
+  var startedAt = getNowMs()
   if (cameraMode === 'motion' || !faceMeshReady || !faceMesh) {
     cameraDetecting = true
-    detectMotionFrame()
-    cameraDetecting = false
-    return
+    try {
+      detectMotionFrame()
+    } finally {
+      cameraDetecting = false
+    }
+    return Math.max(0, getNowMs() - startedAt)
   }
   cameraDetecting = true
-  faceMesh.send({ image: cameraVideo }).catch(function(error) {
+  try {
+    await faceMesh.send({ image: cameraVideo })
+  } catch (error) {
     console.warn('FaceMesh detection failed', error)
     cameraMode = 'motion'
     setCameraStatus('모션 추적 사용')
     updateCameraUI()
     ensureMotionCanvas()
-  }).finally(function() {
+  } finally {
     cameraDetecting = false
-  })
+  }
+  return Math.max(0, getNowMs() - startedAt)
 }
 
 function initCameraControls() {

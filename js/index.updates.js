@@ -12,6 +12,15 @@ const UPDATE_LOG_SEEN_KEY = 'ftSeenUpdateVersion'
 /** @type {UpdateLogEntry[]} */
 const UPDATE_LOG_ENTRIES = [
   {
+    version: 'v2026.02.17.02',
+    date: '2026-02-17',
+    summary: '카메라 추적 지연을 줄이기 위한 성능 프로필을 추가했어요.',
+    details: [
+      '카메라 성능 프로필(저지연/균형/저부하)을 추가 했어요.',
+      '카메라 보간 강도 기본값을 30%로 줄였어요.'
+    ]
+  },
+  {
     version: 'v2026.02.17.01',
     date: '2026-02-17',
     summary: '카메라 추적 반응 속도를 카메라 보간 강도로 전환하고 최소값 동작을 안정화했어요.',

@@ -152,6 +152,14 @@
           <option value="facemesh">FaceMesh 표시</option>
         </select>
       </div>
+      <div class="setting-item">
+        <span>카메라 성능 프로필</span>
+        <select id="camera-performance-profile">
+          <option value="low-latency">저지연</option>
+          <option value="balanced">균형</option>
+          <option value="low-cpu">저부하</option>
+        </select>
+      </div>
       <div class="setting-item setting-item--inline">
         <span>카메라 좌우 반전</span>
         <button class="toggle-button" id="camera-invert-toggle" type="button" aria-pressed="false" data-off-label="정방향" data-on-label="반전">정방향</button>
@@ -163,7 +171,7 @@
             <input class="range-input" type="text" inputmode="numeric" pattern="-?[0-9]*">
           </div>
         </div>
-        <input id="camera-interpolation-strength" type="range" value="100" min="1" max="200">
+        <input id="camera-interpolation-strength" type="range" value="30" min="1" max="200">
       </div>
       <div class="settings-divider" role="separator" aria-hidden="true"></div>
       <div class="setting-item">
@@ -260,9 +268,9 @@
   <canvas id="camera-preview-overlay" hidden></canvas>
 </div>
 
-<script src="./js/index.js?v=0.0.6"></script>
+<script src="./js/index.js?v=0.0.8"></script>
 <script src="./js/index.layers.js?v=0.0.6"></script>
 <script src="./js/index.rig.js?v=0.0.6"></script>
-<script src="./js/index.camera.js?v=0.0.6"></script>
+<script src="./js/index.camera.js?v=0.0.7"></script>
 </body>
 </html>
