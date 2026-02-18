@@ -28,14 +28,14 @@
     clearAutoFrameTimers()
   }
 
-  function scheduleAutoResume(fallbackX, fallbackY) {
+  function scheduleAutoResume(fallbackX, fallbackY, fallbackRotateX) {
     if (!isAutoMotionEnabled()) {
       clearTimeout(autoResumeTimer)
       return
     }
     clearTimeout(autoResumeTimer)
     autoResumeTimer = setTimeout(function() {
-      scheduleAutoRigFromPointer(fallbackX, fallbackY)
+      scheduleAutoRigFromPointer(fallbackX, fallbackY, fallbackRotateX)
     }, pointerIdleDelay)
   }
 
@@ -192,7 +192,7 @@
     }
   }
 
-  function resolveAutoSeedPoint(fallbackX, fallbackY) {
+  function resolveAutoSeedPoint(fallbackX, fallbackY, fallbackRotateX) {
     var width = document.body.clientWidth
     var height = document.body.clientHeight
     var seedFaceX = Number.isFinite(autoFaceX)
@@ -201,7 +201,9 @@
     var seedFaceY = Number.isFinite(autoFaceY)
       ? autoFaceY
       : (Number.isFinite(fallbackY) ? fallbackY : height / 2)
-    var seedRotateX = Number.isFinite(autoRotateX) ? autoRotateX : seedFaceX
+    var seedRotateX = Number.isFinite(autoRotateX)
+      ? autoRotateX
+      : (Number.isFinite(fallbackRotateX) ? fallbackRotateX : seedFaceX)
     return {
       faceX: clampFaceRigX(seedFaceX),
       faceY: clampFaceRigY(seedFaceY),
@@ -321,14 +323,14 @@ let X = lastX
 let Y = lastY
 let velocity = 0
 
-function scheduleAutoRigFromPointer(fallbackX, fallbackY) {
+function scheduleAutoRigFromPointer(fallbackX, fallbackY, fallbackRotateX) {
   if (cameraEnabled || !isAutoMotionEnabled()) {
     return
   }
   clearAutoFrameTimers()
   var currentInterval = pickRandomInterval()
   var intervals = buildIntervals(currentInterval)
-  var seedPoint = resolveAutoSeedPoint(fallbackX, fallbackY)
+  var seedPoint = resolveAutoSeedPoint(fallbackX, fallbackY, fallbackRotateX)
   let X = seedPoint.faceX
   let Y = seedPoint.faceY
   let rotateX = seedPoint.rotateX
@@ -364,7 +366,7 @@ function scheduleAutoRigFromPointer(fallbackX, fallbackY) {
   }
   if (!cameraEnabled && isAutoMotionEnabled()) {
     autoRig = setTimeout(() => {
-      scheduleAutoRigFromPointer(fallbackX, fallbackY)
+      scheduleAutoRigFromPointer(fallbackX, fallbackY, fallbackRotateX)
     }, currentInterval)
   }
 }
@@ -375,7 +377,11 @@ function syncAutoMotionRigState() {
   if (cameraEnabled || !isAutoMotionEnabled()) {
     return
   }
-  scheduleAutoRigFromPointer(lastX || document.body.clientWidth / 2, lastY || document.body.clientHeight / 2)
+  scheduleAutoRigFromPointer(
+    lastX || document.body.clientWidth / 2,
+    lastY || document.body.clientHeight / 2,
+    lastX || document.body.clientWidth / 2
+  )
 }
 
 window.syncAutoMotionRigState = syncAutoMotionRigState
@@ -409,7 +415,7 @@ document.addEventListener('mousemove', function(e) {
   Y = nextY
   velocity = (lastX - nextX) * stiffness * damping
 
-  applyRigFromPoint(nextX, nextY, velocity)
+  applyRigFromPoint(nextX, nextY, velocity, e.clientX)
 
   lastX = nextX
   lastY = nextY
@@ -417,8 +423,7 @@ document.addEventListener('mousemove', function(e) {
   randomX = NaN
   randomY = NaN
 
-  scheduleAutoResume(nextX, nextY)
+  scheduleAutoResume(nextX, nextY, e.clientX)
 })
-
 
 

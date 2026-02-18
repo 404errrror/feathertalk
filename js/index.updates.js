@@ -12,6 +12,15 @@ const UPDATE_LOG_SEEN_KEY = 'ftSeenUpdateVersion'
 /** @type {UpdateLogEntry[]} */
 const UPDATE_LOG_ENTRIES = [
   {
+    version: 'v2026.02.18.01',
+    date: '2026-02-18',
+    summary: '얼굴 좌/우 범위를 수정할 시, 몸 회전 범위에도 영향을 미치는 버그를 수정했어요.',
+    details: [
+      '얼굴 좌/우 범위와 몸 회전 범위가 함께 묶이던 클램프를 분리했어요.',
+      '자동 모션의 좌/우 방향 연동감은 기존처럼 유지하면서, 얼굴/몸 범위 클램프만 독립적으로 적용되도록 정리했어요.'
+    ]
+  },
+  {
     version: 'v2026.02.17.06',
     date: '2026-02-17',
     summary: '설정 페이지를 더 간단하게 정리했어요.',
