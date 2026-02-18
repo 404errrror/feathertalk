@@ -801,6 +801,11 @@ var outlineMorphologyNode = document.querySelector('#ft-outline-morph')
 var outlineFloodNode = document.querySelector('#ft-outline-flood')
 var character = document.querySelector('#character')
 var currentRotate = 0
+var rigRotateLagTargetDeg = NaN
+
+function setRigRotationLagTarget(rotateDeg) {
+  rigRotateLagTargetDeg = Number.isFinite(rotateDeg) ? rotateDeg : NaN
+}
 
 function getMicSensitivityValue() {
   return Math.min(100, Math.max(0, 100 - thres))
@@ -1610,8 +1615,10 @@ function applyCharacterTransform() {
   }
   var scaleRatio = characterScale / 100
   character.style.transform = `translate(${offsetX}px, ${-offsetY}px) scale(${scaleRatio}) rotate(${currentRotate}deg)`
+  var rotateLagTarget = Number.isFinite(rigRotateLagTargetDeg) ? rigRotateLagTargetDeg : currentRotate
+  rigRotateLagTargetDeg = NaN
   if (typeof applyRigRotationSensitivity === 'function') {
-    applyRigRotationSensitivity(currentRotate)
+    applyRigRotationSensitivity(currentRotate, rotateLagTarget)
   }
 }
 

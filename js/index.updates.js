@@ -12,6 +12,15 @@ const UPDATE_LOG_SEEN_KEY = 'ftSeenUpdateVersion'
 /** @type {UpdateLogEntry[]} */
 const UPDATE_LOG_ENTRIES = [
   {
+    version: 'v2026.02.18.03',
+    date: '2026-02-18',
+    summary: '레이어별 회전 지연과 반동 효과를 추가했어요.',
+    details: [
+      '각 레이어가 회전을 바로 따라오지 않고, 한박자 늦게 따라오도록 조절할 수 있어요.',
+      '회전이 멈출 때 살짝 반동을 더해 더 자연스러운 움직임을 만들 수 있어요.',
+    ]
+  },
+  {
     version: 'v2026.02.18.02',
     date: '2026-02-18',
     summary: '마이크를 사용할 수 없을 때 입이 랜덤으로 움직이던 문제를 수정했어요.',

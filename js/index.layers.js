@@ -143,6 +143,22 @@ function normalizeRotateValue(value, rig) {
   return Math.min(100, Math.max(0, Math.round(nextValue)))
 }
 
+function normalizeRotateLagValue(value, fallback) {
+  let nextValue = Number.isFinite(value) ? value : parseInt(value, 10)
+  if (!Number.isFinite(nextValue)) {
+    nextValue = Number.isFinite(fallback) ? fallback : 0
+  }
+  return Math.min(300, Math.max(0, Math.round(nextValue)))
+}
+
+function normalizeRotateBounceValue(value, fallback) {
+  let nextValue = Number.isFinite(value) ? value : parseInt(value, 10)
+  if (!Number.isFinite(nextValue)) {
+    nextValue = Number.isFinite(fallback) ? fallback : 0
+  }
+  return Math.min(300, Math.max(0, Math.round(nextValue)))
+}
+
 function normalizeLayer(layer, fallback) {
   const base = layer || {}
   const fallbackLayer = fallback || {}
@@ -164,6 +180,8 @@ function normalizeLayer(layer, fallback) {
     rotatePivotY = fallbackLayer.rotatePivotY
   }
   rotatePivotY = normalizeRotatePivot(rotatePivotY, rig)
+  const rotateLag = normalizeRotateLagValue(base.rotateLag, fallbackLayer.rotateLag)
+  const rotateBounce = normalizeRotateBounceValue(base.rotateBounce, fallbackLayer.rotateBounce)
   const srcFallback = typeof fallbackLayer.src === 'string' ? fallbackLayer.src : getDefaultRigSrc(rig)
   const altFallback = typeof fallbackLayer.altSrc === 'string' ? fallbackLayer.altSrc : ''
   return {
@@ -175,7 +193,9 @@ function normalizeLayer(layer, fallback) {
     rig,
     role,
     rotate,
-    rotatePivotY
+    rotatePivotY,
+    rotateLag,
+    rotateBounce
   }
 }
 
@@ -298,6 +318,7 @@ function rebuildRigTargets(layers) {
       rigTargets[layer.rig].push(layer)
     }
   })
+  resetRigRotateLagState()
 }
 
 function applyStyleWithZ(element, styleText, zIndex) {
@@ -350,12 +371,71 @@ function applyRigStyles(rigKey, styles) {
   }
 }
 
-function applyRigRotationSensitivity(rotateDeg) {
+var rotateLagAnimationFrameId = null
+var rotateLagCurrentRotateDeg = 0
+var rotateLagTargetRotateDeg = 0
+var rotateLagSettleThreshold = 0.02
+
+function getRotateLagNowMs() {
+  if (typeof performance !== 'undefined' && performance && typeof performance.now === 'function') {
+    return performance.now()
+  }
+  return Date.now()
+}
+
+function stopRotateLagAnimationLoop() {
+  if (rotateLagAnimationFrameId == null) {
+    return
+  }
+  cancelAnimationFrame(rotateLagAnimationFrameId)
+  rotateLagAnimationFrameId = null
+}
+
+function scheduleRotateLagAnimationLoop() {
+  if (rotateLagAnimationFrameId != null || typeof requestAnimationFrame !== 'function') {
+    return
+  }
+  rotateLagAnimationFrameId = requestAnimationFrame(runRotateLagAnimationFrame)
+}
+
+function runRotateLagAnimationFrame(nowMs) {
+  rotateLagAnimationFrameId = null
+  var frameNow = Number.isFinite(nowMs) ? nowMs : getRotateLagNowMs()
+  var hasUnsettledLag = applyRigRotationSensitivityWithTimestamp(rotateLagCurrentRotateDeg, frameNow, rotateLagTargetRotateDeg)
+  if (hasUnsettledLag) {
+    scheduleRotateLagAnimationLoop()
+  }
+}
+
+function resetRigRotateLagState() {
+  stopRotateLagAnimationLoop()
+  rotateLagCurrentRotateDeg = Number.isFinite(currentRotate) ? currentRotate : 0
+  rotateLagTargetRotateDeg = rotateLagCurrentRotateDeg
+  if (!rigTargets) {
+    return
+  }
+  var rigKeys = Object.keys(rigTargets)
+  for (let i = 0; i < rigKeys.length; i++) {
+    var rigKey = rigKeys[i]
+    var targets = rigTargets[rigKey]
+    if (!targets || !targets.length) {
+      continue
+    }
+    for (let j = 0; j < targets.length; j++) {
+      targets[j].rotateLagState = null
+    }
+  }
+}
+
+function applyRigRotationSensitivityWithTimestamp(rotateDeg, nowMs, lagTargetDeg) {
+  var hasUnsettledLag = false
   if (!Number.isFinite(rotateDeg)) {
     rotateDeg = 0
   }
+  var lagTargetRotateDeg = Number.isFinite(lagTargetDeg) ? lagTargetDeg : rotateDeg
+  var frameNow = Number.isFinite(nowMs) ? nowMs : getRotateLagNowMs()
   if (!rigTargets) {
-    return
+    return hasUnsettledLag
   }
   var rigKeys = Object.keys(rigTargets)
   for (let i = 0; i < rigKeys.length; i++) {
@@ -368,8 +448,65 @@ function applyRigRotationSensitivity(rotateDeg) {
       const target = targets[j]
       var sensitivity = Number.isFinite(target.rotate) ? target.rotate : 100
       sensitivity = Math.min(100, Math.max(0, sensitivity))
-      var compensation = rotateDeg * (sensitivity / 100 - 1)
-      var transformText = Math.abs(compensation) < 0.001 ? '0deg' : `${compensation}deg`
+      var sensitivityRatio = sensitivity / 100
+      var baseCompensation = rotateDeg * (sensitivityRatio - 1)
+      var lagStrength = normalizeRotateLagValue(target.rotateLag, 0)
+      var bounceStrength = lagStrength > 0 ? normalizeRotateBounceValue(target.rotateBounce, 0) : 0
+      var finalCompensation = baseCompensation
+      if (lagStrength > 0 && sensitivityRatio > 0) {
+        var lagMs = 20 + lagStrength * 8
+        var bounceRatio = bounceStrength / 100
+        var zeta = bounceRatio <= 1
+          ? (1 - 0.75 * bounceRatio)
+          : (0.25 - 0.1 * (bounceRatio - 1))
+        zeta = Math.min(1, Math.max(0.05, zeta))
+        var lagSeconds = lagMs / 1000
+        var wn = lagSeconds > 0 ? 4 / lagSeconds : 0
+        var lagState = target.rotateLagState
+        if (!lagState || !Number.isFinite(lagState.followRotate) || !Number.isFinite(lagState.velocityRotate)) {
+          lagState = {
+            followRotate: rotateDeg,
+            velocityRotate: 0,
+            timestamp: frameNow
+          }
+        }
+        var previousTimestamp = Number.isFinite(lagState.timestamp) ? lagState.timestamp : frameNow
+        var deltaMs = frameNow - previousTimestamp
+        if (!Number.isFinite(deltaMs) || deltaMs < 0) {
+          deltaMs = 0
+        }
+        deltaMs = Math.min(64, deltaMs)
+        var steps = Math.max(1, Math.min(4, Math.ceil(deltaMs / 16)))
+        var stepMs = steps > 0 ? deltaMs / steps : 0
+        var dt = stepMs / 1000
+        for (let step = 0; step < steps; step++) {
+          var followRotate = Number.isFinite(lagState.followRotate) ? lagState.followRotate : rotateDeg
+          var velocityRotate = Number.isFinite(lagState.velocityRotate) ? lagState.velocityRotate : 0
+          var acceleration = wn * wn * (lagTargetRotateDeg - followRotate) - 2 * zeta * wn * velocityRotate
+          velocityRotate += acceleration * dt
+          followRotate += velocityRotate * dt
+          if (!Number.isFinite(followRotate) || !Number.isFinite(velocityRotate)) {
+            followRotate = rotateDeg
+            velocityRotate = 0
+          }
+          lagState.followRotate = followRotate
+          lagState.velocityRotate = velocityRotate
+        }
+        lagState.timestamp = frameNow
+        target.rotateLagState = lagState
+        var lagOffset = (lagState.followRotate - rotateDeg) * sensitivityRatio
+        finalCompensation = baseCompensation + lagOffset
+        if (Math.abs(lagState.followRotate - lagTargetRotateDeg) > rotateLagSettleThreshold || Math.abs(lagState.velocityRotate) > rotateLagSettleThreshold) {
+          hasUnsettledLag = true
+        }
+      } else {
+        target.rotateLagState = {
+          followRotate: rotateDeg,
+          velocityRotate: 0,
+          timestamp: frameNow
+        }
+      }
+      var transformText = Math.abs(finalCompensation) < 0.001 ? '0deg' : `${finalCompensation}deg`
       if (target.wrapper) {
         target.wrapper.style.setProperty('--rig-rotate-comp', transformText)
         var pivotY = Number.isFinite(target.rotatePivotY) ? target.rotatePivotY : 50
@@ -378,6 +515,21 @@ function applyRigRotationSensitivity(rotateDeg) {
         target.wrapper.style.setProperty('--rig-rotate-origin-x', '50%')
       }
     }
+  }
+  return hasUnsettledLag
+}
+
+function applyRigRotationSensitivity(rotateDeg, lagTargetDeg) {
+  if (!Number.isFinite(rotateDeg)) {
+    rotateDeg = 0
+  }
+  rotateLagCurrentRotateDeg = rotateDeg
+  rotateLagTargetRotateDeg = Number.isFinite(lagTargetDeg) ? lagTargetDeg : rotateDeg
+  var hasUnsettledLag = applyRigRotationSensitivityWithTimestamp(rotateDeg, getRotateLagNowMs(), rotateLagTargetRotateDeg)
+  if (hasUnsettledLag) {
+    scheduleRotateLagAnimationLoop()
+  } else {
+    stopRotateLagAnimationLoop()
   }
 }
 

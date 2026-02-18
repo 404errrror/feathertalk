@@ -113,6 +113,20 @@ function clampRotateValue(value, fallback) {
   return Math.min(100, Math.max(0, Math.round(value)))
 }
 
+function clampRotateLagValue(value, fallback) {
+  if (!Number.isFinite(value)) {
+    return fallback
+  }
+  return Math.min(300, Math.max(0, Math.round(value)))
+}
+
+function clampRotateBounceValue(value, fallback) {
+  if (!Number.isFinite(value)) {
+    return fallback
+  }
+  return Math.min(300, Math.max(0, Math.round(value)))
+}
+
 function getDefaultRotatePivotY(rig) {
   if (rig === 'bang' || rig === 'back') {
     return 30
@@ -197,6 +211,60 @@ function buildLayerItem(slotIndex, layer, layerIndex, slotLayers) {
   rotateRow.appendChild(rotateLabel)
   rotateRow.appendChild(rotateInputRow)
 
+  const rotateLagRow = document.createElement('div')
+  rotateLagRow.className = 'layer-row layer-row--advanced layer-row--rotate-lag'
+  const rotateLagLabel = document.createElement('label')
+  rotateLagLabel.textContent = '회전 지연'
+  const rotateLagInputRow = document.createElement('div')
+  rotateLagInputRow.className = 'input-row input-row--range'
+  const rotateLagRange = document.createElement('input')
+  rotateLagRange.type = 'range'
+  rotateLagRange.min = '0'
+  rotateLagRange.max = '300'
+  const rotateLagValue = clampRotateLagValue(parseInt(layer.rotateLag, 10), 0)
+  layer.rotateLag = rotateLagValue
+  rotateLagRange.value = rotateLagValue
+  const rotateLagValueWrap = document.createElement('div')
+  rotateLagValueWrap.className = 'range-value'
+  rotateLagValueWrap.setAttribute('data-unit', '%')
+  const rotateLagValueInput = document.createElement('input')
+  rotateLagValueInput.type = 'text'
+  rotateLagValueInput.inputMode = 'numeric'
+  rotateLagValueInput.pattern = '-?[0-9]*'
+  rotateLagValueInput.value = rotateLagValue
+  rotateLagValueWrap.appendChild(rotateLagValueInput)
+  rotateLagInputRow.appendChild(rotateLagRange)
+  rotateLagInputRow.appendChild(rotateLagValueWrap)
+  rotateLagRow.appendChild(rotateLagLabel)
+  rotateLagRow.appendChild(rotateLagInputRow)
+
+  const rotateBounceRow = document.createElement('div')
+  rotateBounceRow.className = 'layer-row layer-row--advanced layer-row--rotate-bounce'
+  const rotateBounceLabel = document.createElement('label')
+  rotateBounceLabel.textContent = '회전 반동'
+  const rotateBounceInputRow = document.createElement('div')
+  rotateBounceInputRow.className = 'input-row input-row--range'
+  const rotateBounceRange = document.createElement('input')
+  rotateBounceRange.type = 'range'
+  rotateBounceRange.min = '0'
+  rotateBounceRange.max = '300'
+  const rotateBounceValue = clampRotateBounceValue(parseInt(layer.rotateBounce, 10), 0)
+  layer.rotateBounce = rotateBounceValue
+  rotateBounceRange.value = rotateBounceValue
+  const rotateBounceValueWrap = document.createElement('div')
+  rotateBounceValueWrap.className = 'range-value'
+  rotateBounceValueWrap.setAttribute('data-unit', '%')
+  const rotateBounceValueInput = document.createElement('input')
+  rotateBounceValueInput.type = 'text'
+  rotateBounceValueInput.inputMode = 'numeric'
+  rotateBounceValueInput.pattern = '-?[0-9]*'
+  rotateBounceValueInput.value = rotateBounceValue
+  rotateBounceValueWrap.appendChild(rotateBounceValueInput)
+  rotateBounceInputRow.appendChild(rotateBounceRange)
+  rotateBounceInputRow.appendChild(rotateBounceValueWrap)
+  rotateBounceRow.appendChild(rotateBounceLabel)
+  rotateBounceRow.appendChild(rotateBounceInputRow)
+
   const pivotRow = document.createElement('div')
   pivotRow.className = 'layer-row layer-row--advanced layer-row--pivot'
   const pivotLabel = document.createElement('label')
@@ -266,6 +334,8 @@ function buildLayerItem(slotIndex, layer, layerIndex, slotLayers) {
   fields.appendChild(roleSelect.row)
   fields.appendChild(advancedRow)
   fields.appendChild(rotateRow)
+  fields.appendChild(rotateLagRow)
+  fields.appendChild(rotateBounceRow)
   fields.appendChild(pivotRow)
   fields.appendChild(altRow)
   fields.appendChild(actions)
@@ -326,6 +396,76 @@ function buildLayerItem(slotIndex, layer, layerIndex, slotLayers) {
       rotateValueInput.blur()
     }
   })
+
+  function syncRotateLagValue(nextValue) {
+    const clamped = clampRotateLagValue(nextValue, 0)
+    layer.rotateLag = clamped
+    rotateLagRange.value = clamped
+    rotateLagValueInput.value = clamped
+    updateRotateBounceAvailability()
+  }
+
+  rotateLagRange.addEventListener('input', function(e) {
+    syncRotateLagValue(parseInt(e.target.value, 10))
+  })
+
+  function commitRotateLagValue() {
+    const raw = rotateLagValueInput.value.trim()
+    if (!raw) {
+      rotateLagValueInput.value = rotateLagRange.value
+      return
+    }
+    syncRotateLagValue(parseInt(raw, 10))
+  }
+
+  rotateLagValueInput.addEventListener('change', commitRotateLagValue)
+  rotateLagValueInput.addEventListener('blur', commitRotateLagValue)
+  rotateLagValueInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      commitRotateLagValue()
+      rotateLagValueInput.blur()
+    }
+  })
+
+  function updateRotateBounceAvailability() {
+    const enabled = layer.rotateLag > 0
+    rotateBounceRange.disabled = !enabled
+    rotateBounceValueInput.disabled = !enabled
+  }
+
+  function syncRotateBounceValue(nextValue) {
+    if (layer.rotateLag <= 0) {
+      return
+    }
+    const clamped = clampRotateBounceValue(nextValue, 0)
+    layer.rotateBounce = clamped
+    rotateBounceRange.value = clamped
+    rotateBounceValueInput.value = clamped
+  }
+
+  rotateBounceRange.addEventListener('input', function(e) {
+    syncRotateBounceValue(parseInt(e.target.value, 10))
+  })
+
+  function commitRotateBounceValue() {
+    const raw = rotateBounceValueInput.value.trim()
+    if (!raw) {
+      rotateBounceValueInput.value = rotateBounceRange.value
+      return
+    }
+    syncRotateBounceValue(parseInt(raw, 10))
+  }
+
+  rotateBounceValueInput.addEventListener('change', commitRotateBounceValue)
+  rotateBounceValueInput.addEventListener('blur', commitRotateBounceValue)
+  rotateBounceValueInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      commitRotateBounceValue()
+      rotateBounceValueInput.blur()
+    }
+  })
+
+  updateRotateBounceAvailability()
 
   function syncPivotValue(nextValue) {
     const clamped = clampRotateValue(nextValue, 50)

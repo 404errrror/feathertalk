@@ -245,6 +245,8 @@ function buildLayersPayload(slotLayers) {
       role: normalized.role,
       rotate: normalized.rotate,
       rotatePivotY: normalized.rotatePivotY,
+      rotateLag: normalized.rotateLag,
+      rotateBounce: normalized.rotateBounce,
       altSrc: normalized.altSrc,
       altDisplay: normalized.altDisplay
     }

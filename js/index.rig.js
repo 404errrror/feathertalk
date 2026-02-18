@@ -160,6 +160,12 @@
     }
   }
 
+  function resolveRigRotateDegrees(rotateX) {
+    var width = document.body.clientWidth
+    var clampedRotatePercent = resolveClampedRigPercent(rotateX, width, window.bodyRotateMin, window.bodyRotateMax, 0, 100)
+    return (clampedRotatePercent - 50) / 100 * bodyRotateRangeDeg
+  }
+
   function pickAutoTargetPoint() {
     var width = document.body.clientWidth
     var height = document.body.clientHeight

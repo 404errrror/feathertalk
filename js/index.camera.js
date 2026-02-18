@@ -515,6 +515,9 @@ function applyCameraOffset(offsetX, offsetY, rollX, deltaMs) {
   targetX = Math.max(0, Math.min(width, targetX + pixelOffsetX))
   targetY = Math.max(0, Math.min(height, targetY + pixelOffsetY))
   rollTargetX = Math.max(0, Math.min(width, rollTargetX + rollOffsetX))
+  if (typeof setRigRotationLagTarget === 'function' && typeof resolveRigRotateDegrees === 'function') {
+    setRigRotationLagTarget(resolveRigRotateDegrees(rollTargetX))
+  }
 
   var baseSmoothing = getCameraInterpolationSmoothing()
   var smoothing = baseSmoothing

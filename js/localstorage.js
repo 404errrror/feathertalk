@@ -126,6 +126,22 @@ function normalizeRotateValue(value, rig) {
   return Math.min(100, Math.max(0, Math.round(nextValue)))
 }
 
+function normalizeRotateLagValue(value, fallback) {
+  let nextValue = Number.isFinite(value) ? value : parseInt(value, 10)
+  if (!Number.isFinite(nextValue)) {
+    nextValue = Number.isFinite(fallback) ? fallback : 0
+  }
+  return Math.min(300, Math.max(0, Math.round(nextValue)))
+}
+
+function normalizeRotateBounceValue(value, fallback) {
+  let nextValue = Number.isFinite(value) ? value : parseInt(value, 10)
+  if (!Number.isFinite(nextValue)) {
+    nextValue = Number.isFinite(fallback) ? fallback : 0
+  }
+  return Math.min(300, Math.max(0, Math.round(nextValue)))
+}
+
 function readLegacyArray(key, fallback) {
   const stored = localStorage.getItem(key)
   let values
@@ -186,6 +202,8 @@ function normalizeLayer(layer, fallback) {
     rotatePivotY = fallbackLayer.rotatePivotY
   }
   rotatePivotY = normalizeRotatePivot(rotatePivotY, rig)
+  const rotateLag = normalizeRotateLagValue(base.rotateLag, fallbackLayer.rotateLag)
+  const rotateBounce = normalizeRotateBounceValue(base.rotateBounce, fallbackLayer.rotateBounce)
   const srcFallback = typeof fallbackLayer.src === 'string' ? fallbackLayer.src : getDefaultRigSrc(rig)
   const altFallback = typeof fallbackLayer.altSrc === 'string' ? fallbackLayer.altSrc : ''
   const src = resolveInputSrc(base.src, srcFallback)
@@ -198,6 +216,8 @@ function normalizeLayer(layer, fallback) {
     role,
     rotate,
     rotatePivotY,
+    rotateLag,
+    rotateBounce,
     altSrc,
     altDisplay: typeof base.altDisplay === 'string' ? base.altDisplay : (fallbackLayer.altDisplay || '')
   }
