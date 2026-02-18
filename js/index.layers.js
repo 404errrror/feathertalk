@@ -383,6 +383,7 @@ function applyRigRotationSensitivity(rotateDeg) {
 
 var layerSlots = loadLayerSlots()
 var currentLayers = []
+var micInputAvailable = false
 var rigTargets = {
   bang: [],
   eyes: [],
@@ -460,7 +461,7 @@ window.addEventListener('keydown', function(e) {
 function updateExpression(volume) {
   const now = Date.now()
   const useCameraMouth = cameraMouthEnabled && cameraEnabled && cameraMode === 'face-mesh' && faceMeshReady && now - cameraMouthLastUpdate <= cameraMouthStaleMs
-  const mouthActive = useCameraMouth ? cameraMouthActive : volume >= thres && now % 400 >= 200
+  const mouthActive = useCameraMouth ? cameraMouthActive : micInputAvailable && volume >= thres && now % 400 >= 200
   const useCameraBlink = cameraBlinkEnabled && cameraEnabled && cameraMode === 'face-mesh' && faceMeshReady && now - cameraBlinkLastUpdate <= cameraBlinkStaleMs
   const blinkActive = useCameraBlink ? cameraBlinkActive : now % 3000 >= 2800
 
@@ -478,6 +479,7 @@ function updateExpression(volume) {
 
 async function audio () {
   let volumeCallback = null;
+  micInputAvailable = false
   // Initialize
   try {
     const audioStream = await navigator.mediaDevices.getUserMedia({
@@ -485,6 +487,7 @@ async function audio () {
         echoCancellation: true
       }
     });
+    micInputAvailable = true
     const audioContext = new AudioContext();
     const audioSource = audioContext.createMediaStreamSource(audioStream);
     const analyser = audioContext.createAnalyser();
@@ -506,15 +509,11 @@ async function audio () {
       // Value range: 127 = analyser.maxDecibels - analyser.minDecibels;
     };
   } catch(e) {
-    console.error('Failed to initialize volume visualizer, simulating instead...', e);
-    // Simulation
-    //TODO remove in production!
-    let lastVolume = 50;
+    micInputAvailable = false
+    console.error('Failed to initialize volume visualizer, microphone unavailable and mouth fallback disabled.', e);
     volumeCallback = () => {
-      const volume = Math.min(Math.max(Math.random() * 100, 0.8 * lastVolume), 1.2 * lastVolume);
-      lastVolume = volume;
-      lastVolumeValue = lastVolume
-      updateExpression(lastVolume)
+      lastVolumeValue = 0
+      updateExpression(0)
     };
   }
   setInterval(() => {

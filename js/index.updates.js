@@ -12,6 +12,16 @@ const UPDATE_LOG_SEEN_KEY = 'ftSeenUpdateVersion'
 /** @type {UpdateLogEntry[]} */
 const UPDATE_LOG_ENTRIES = [
   {
+    version: 'v2026.02.18.02',
+    date: '2026-02-18',
+    summary: '마이크를 사용할 수 없을 때 입이 랜덤으로 움직이던 문제를 수정했어요.',
+    details: [
+      '오디오 초기화 실패 시 사용하던 랜덤 볼륨 시뮬레이션을 제거했어요.',
+      '마이크 입력을 사용할 수 없으면 입은 닫힌 상태로 유지되도록 고정했어요.',
+      '카메라 입 추적(FaceMesh)이 정상 동작할 때는 기존처럼 카메라 입력이 우선 적용돼요.'
+    ]
+  },
+  {
     version: 'v2026.02.18.01',
     date: '2026-02-18',
     summary: '얼굴 좌/우 범위를 수정할 시, 몸 회전 범위에도 영향을 미치는 버그를 수정했어요.',
