@@ -12,6 +12,14 @@ const UPDATE_LOG_SEEN_KEY = 'ftSeenUpdateVersion'
 /** @type {UpdateLogEntry[]} */
 const UPDATE_LOG_ENTRIES = [
   {
+    version: 'v2026.02.20.01',
+    date: '2026-02-20',
+    summary: '카메라 입 추적 정확도와 안정성을 개선했어요.',
+    details: [
+      '카메라 입 추적을 선택하면 stale 구간 동안 마지막 상태를 짧게 유지한 뒤 닫고, 마이크로 자동 폴백하지 않도록 변경했어요.'
+    ]
+  },
+  {
     version: 'v2026.02.18.03',
     date: '2026-02-18',
     summary: '레이어별 회전 지연과 반동 효과를 추가했어요.',

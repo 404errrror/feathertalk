@@ -40,6 +40,17 @@ var cameraTargetRollX = 0
 var cameraTargetReady = false
 var cameraLastApplyTime = 0
 var cameraPreviewBound = false
+var cameraMouthRatioEma = 0
+var cameraMouthEmaAlpha = 0.35
+var cameraMouthOpenStreak = 0
+var cameraMouthCloseStreak = 0
+var cameraMouthOpenFrames = 2
+var cameraMouthCloseFrames = 2
+var cameraMouthMinRatio = 0.01
+var cameraMouthMaxRatio = 0.55
+var cameraMouthOpenMinDelta = Number.isFinite(cameraMouthOpenMinDelta) ? cameraMouthOpenMinDelta : 0.016
+var cameraMouthCloseMinDelta = Number.isFinite(cameraMouthCloseMinDelta) ? cameraMouthCloseMinDelta : 0.009
+var cameraMouthLostHoldMs = Number.isFinite(cameraMouthLostHoldMs) ? cameraMouthLostHoldMs : 300
 var cameraPerformanceProfiles = {
   'low-latency': {
     baseMs: 33,
@@ -291,9 +302,16 @@ function stopCameraTracking() {
   cameraBlinkActive = false
   cameraBlinkLastUpdate = 0
   cameraBlinkBaseline = 0
-  cameraMouthActive = false
-  cameraMouthLastUpdate = 0
-  cameraMouthBaseline = 0
+  if (typeof resetCameraMouthTrackingState === 'function') {
+    resetCameraMouthTrackingState()
+  } else {
+    cameraMouthActive = false
+    cameraMouthLastUpdate = 0
+    cameraMouthBaseline = 0
+    cameraMouthRatioEma = 0
+    cameraMouthOpenStreak = 0
+    cameraMouthCloseStreak = 0
+  }
   resetCameraInferenceTiming()
   stopCameraAnimation()
   if (cameraStream) {
@@ -516,7 +534,11 @@ function applyCameraOffset(offsetX, offsetY, rollX, deltaMs) {
   targetY = Math.max(0, Math.min(height, targetY + pixelOffsetY))
   rollTargetX = Math.max(0, Math.min(width, rollTargetX + rollOffsetX))
   if (typeof setRigRotationLagTarget === 'function' && typeof resolveRigRotateDegrees === 'function') {
-    setRigRotationLagTarget(resolveRigRotateDegrees(rollTargetX))
+    var lagTargetContext = {
+      source: cameraMode === 'face-mesh' ? 'camera-face-mesh' : 'camera-motion',
+      effectBoost: cameraMode === 'face-mesh' ? 2 : 1
+    }
+    setRigRotationLagTarget(resolveRigRotateDegrees(rollTargetX), lagTargetContext)
   }
 
   var baseSmoothing = getCameraInterpolationSmoothing()
@@ -689,37 +711,63 @@ function updateCameraBlinkState(landmarks) {
 
 function updateCameraMouthState(landmarks, yawValue) {
   if (!cameraMouthEnabled) {
+    cameraMouthOpenStreak = 0
+    cameraMouthCloseStreak = 0
     return
   }
   var ratio = getMouthAspectRatio(landmarks, 61, 291, 13, 14)
-  if (!Number.isFinite(ratio)) {
+  if (!Number.isFinite(ratio) || ratio < cameraMouthMinRatio || ratio > cameraMouthMaxRatio) {
     return
   }
   var adjustedRatio = ratio
   if (Number.isFinite(yawValue)) {
     var yawAbs = Math.abs(yawValue)
-    var yawScale = 1 + Math.min(1, yawAbs * 1.6) * 1.4
+    var yawScale = 1 + Math.min(0.6, yawAbs * 0.8)
     adjustedRatio = ratio / yawScale
   }
+  if (!Number.isFinite(adjustedRatio) || adjustedRatio < cameraMouthMinRatio || adjustedRatio > cameraMouthMaxRatio) {
+    return
+  }
+  if (!cameraMouthRatioEma) {
+    cameraMouthRatioEma = adjustedRatio
+  } else {
+    cameraMouthRatioEma = cameraMouthRatioEma * (1 - cameraMouthEmaAlpha) + adjustedRatio * cameraMouthEmaAlpha
+  }
+  var smoothedRatio = cameraMouthRatioEma
   cameraMouthLastUpdate = Date.now()
   if (!cameraMouthBaseline) {
-    cameraMouthBaseline = adjustedRatio
+    cameraMouthBaseline = smoothedRatio
+  } else if (smoothedRatio <= cameraMouthBaseline * 1.35) {
+    cameraMouthBaseline = cameraMouthBaseline * (1 - cameraMouthBaselineAlpha) + smoothedRatio * cameraMouthBaselineAlpha
   }
-  if (!cameraMouthActive) {
-    cameraMouthBaseline = cameraMouthBaseline * (1 - cameraMouthBaselineAlpha) + adjustedRatio * cameraMouthBaselineAlpha
-  }
-  var openThreshold = cameraMouthBaseline * cameraMouthOpenRatio
-  var closeThreshold = cameraMouthBaseline * cameraMouthCloseRatio
+  var openThreshold = Math.max(cameraMouthBaseline * cameraMouthOpenRatio, cameraMouthBaseline + cameraMouthOpenMinDelta)
+  var closeThreshold = Math.max(cameraMouthBaseline * cameraMouthCloseRatio, cameraMouthBaseline + cameraMouthCloseMinDelta)
   var nextMouthActive = cameraMouthActive
   if (cameraMouthActive) {
-    if (adjustedRatio < closeThreshold) {
+    if (smoothedRatio < closeThreshold) {
+      cameraMouthCloseStreak += 1
+    } else {
+      cameraMouthCloseStreak = 0
+    }
+    cameraMouthOpenStreak = 0
+    if (cameraMouthCloseStreak >= cameraMouthCloseFrames) {
       nextMouthActive = false
     }
-  } else if (adjustedRatio > openThreshold) {
-    nextMouthActive = true
+  } else {
+    if (smoothedRatio > openThreshold) {
+      cameraMouthOpenStreak += 1
+    } else {
+      cameraMouthOpenStreak = 0
+    }
+    cameraMouthCloseStreak = 0
+    if (cameraMouthOpenStreak >= cameraMouthOpenFrames) {
+      nextMouthActive = true
+    }
   }
   if (nextMouthActive !== cameraMouthActive) {
     cameraMouthActive = nextMouthActive
+    cameraMouthOpenStreak = 0
+    cameraMouthCloseStreak = 0
     updateExpression(lastVolumeValue)
   }
 }

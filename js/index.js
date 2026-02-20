@@ -297,10 +297,13 @@ var cameraBlinkOpenRatio = 0.93
 var cameraMouthActive = false
 var cameraMouthLastUpdate = 0
 var cameraMouthStaleMs = 800
+var cameraMouthLostHoldMs = 300
 var cameraMouthBaseline = 0
 var cameraMouthBaselineAlpha = 0.08
 var cameraMouthOpenRatio = 1.7
 var cameraMouthCloseRatio = 1.4
+var cameraMouthOpenMinDelta = 0.016
+var cameraMouthCloseMinDelta = 0.009
 var lastVolumeValue = 0
 var cameraStream
 var faceMeshReady
@@ -324,9 +327,26 @@ function updateCameraMouthSettings() {
   var adjusted = 3.1 - (clamped - 60) * 0.0125
   cameraMouthOpenRatio = Math.min(3.1, Math.max(1.2, adjusted))
   cameraMouthCloseRatio = Math.max(1.05, cameraMouthOpenRatio - 0.3)
+  cameraMouthOpenMinDelta = 0.026 - (clamped - 60) * 0.000175
+  cameraMouthCloseMinDelta = cameraMouthOpenMinDelta * 0.55
 }
 
 updateCameraMouthSettings()
+
+function resetCameraMouthTrackingState() {
+  cameraMouthActive = false
+  cameraMouthLastUpdate = 0
+  cameraMouthBaseline = 0
+  if (typeof cameraMouthRatioEma !== 'undefined') {
+    cameraMouthRatioEma = 0
+  }
+  if (typeof cameraMouthOpenStreak !== 'undefined') {
+    cameraMouthOpenStreak = 0
+  }
+  if (typeof cameraMouthCloseStreak !== 'undefined') {
+    cameraMouthCloseStreak = 0
+  }
+}
 
 var intervalLimitMin = 200
 var intervalLimitMax = 3000
@@ -802,9 +822,28 @@ var outlineFloodNode = document.querySelector('#ft-outline-flood')
 var character = document.querySelector('#character')
 var currentRotate = 0
 var rigRotateLagTargetDeg = NaN
+var rigRotateLagContext = null
 
-function setRigRotationLagTarget(rotateDeg) {
+function setRigRotationLagTarget(rotateDeg, context) {
   rigRotateLagTargetDeg = Number.isFinite(rotateDeg) ? rotateDeg : NaN
+  var nextContext = context && typeof context === 'object' ? context : null
+  if (!nextContext) {
+    rigRotateLagContext = null
+    return
+  }
+  var rawEffectBoost = Number.isFinite(nextContext.effectBoost)
+    ? nextContext.effectBoost
+    : parseFloat(nextContext.effectBoost)
+  if (!Number.isFinite(rawEffectBoost)) {
+    rawEffectBoost = 1
+  }
+  var normalizedSource = typeof nextContext.source === 'string'
+    ? nextContext.source
+    : ''
+  rigRotateLagContext = {
+    source: normalizedSource,
+    effectBoost: Math.min(3, Math.max(1, rawEffectBoost))
+  }
 }
 
 function getMicSensitivityValue() {
@@ -1616,9 +1655,11 @@ function applyCharacterTransform() {
   var scaleRatio = characterScale / 100
   character.style.transform = `translate(${offsetX}px, ${-offsetY}px) scale(${scaleRatio}) rotate(${currentRotate}deg)`
   var rotateLagTarget = Number.isFinite(rigRotateLagTargetDeg) ? rigRotateLagTargetDeg : currentRotate
+  var rotateLagContext = rigRotateLagContext
   rigRotateLagTargetDeg = NaN
+  rigRotateLagContext = null
   if (typeof applyRigRotationSensitivity === 'function') {
-    applyRigRotationSensitivity(currentRotate, rotateLagTarget)
+    applyRigRotationSensitivity(currentRotate, rotateLagTarget, rotateLagContext)
   }
 }
 
@@ -1989,9 +2030,7 @@ if (cameraMouthToggle) {
     cameraMouthEnabled = !cameraMouthEnabled
     localStorage.setItem('ftCameraMouthEnabled', String(cameraMouthEnabled))
     if (!cameraMouthEnabled) {
-      cameraMouthActive = false
-      cameraMouthLastUpdate = 0
-      cameraMouthBaseline = 0
+      resetCameraMouthTrackingState()
     }
     updateCameraUI()
     updateExpression(lastVolumeValue)
@@ -2003,9 +2042,10 @@ if (cameraMouthSensitivityInput) {
     var nextValue = parseInt(e.target.value, 10)
     cameraMouthSensitivity = Number.isFinite(nextValue) ? nextValue : 100
     localStorage.setItem('ftCameraMouthSensitivity', cameraMouthSensitivity)
-    cameraMouthBaseline = 0
+    resetCameraMouthTrackingState()
     updateCameraMouthSettings()
     updateCameraUI()
+    updateExpression(lastVolumeValue)
   })
 }
 

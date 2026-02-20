@@ -374,7 +374,28 @@ function applyRigStyles(rigKey, styles) {
 var rotateLagAnimationFrameId = null
 var rotateLagCurrentRotateDeg = 0
 var rotateLagTargetRotateDeg = 0
+var rotateLagTargetContext = null
 var rotateLagSettleThreshold = 0.02
+
+function normalizeRotateLagContext(context) {
+  var source = ''
+  var effectBoost = 1
+  if (context && typeof context === 'object') {
+    if (typeof context.source === 'string') {
+      source = context.source
+    }
+    var parsedBoost = Number.isFinite(context.effectBoost)
+      ? context.effectBoost
+      : parseFloat(context.effectBoost)
+    if (Number.isFinite(parsedBoost)) {
+      effectBoost = parsedBoost
+    }
+  }
+  return {
+    source: source,
+    effectBoost: Math.min(3, Math.max(1, effectBoost))
+  }
+}
 
 function getRotateLagNowMs() {
   if (typeof performance !== 'undefined' && performance && typeof performance.now === 'function') {
@@ -401,7 +422,12 @@ function scheduleRotateLagAnimationLoop() {
 function runRotateLagAnimationFrame(nowMs) {
   rotateLagAnimationFrameId = null
   var frameNow = Number.isFinite(nowMs) ? nowMs : getRotateLagNowMs()
-  var hasUnsettledLag = applyRigRotationSensitivityWithTimestamp(rotateLagCurrentRotateDeg, frameNow, rotateLagTargetRotateDeg)
+  var hasUnsettledLag = applyRigRotationSensitivityWithTimestamp(
+    rotateLagCurrentRotateDeg,
+    frameNow,
+    rotateLagTargetRotateDeg,
+    rotateLagTargetContext
+  )
   if (hasUnsettledLag) {
     scheduleRotateLagAnimationLoop()
   }
@@ -411,6 +437,7 @@ function resetRigRotateLagState() {
   stopRotateLagAnimationLoop()
   rotateLagCurrentRotateDeg = Number.isFinite(currentRotate) ? currentRotate : 0
   rotateLagTargetRotateDeg = rotateLagCurrentRotateDeg
+  rotateLagTargetContext = normalizeRotateLagContext(null)
   if (!rigTargets) {
     return
   }
@@ -427,12 +454,18 @@ function resetRigRotateLagState() {
   }
 }
 
-function applyRigRotationSensitivityWithTimestamp(rotateDeg, nowMs, lagTargetDeg) {
+function applyRigRotationSensitivityWithTimestamp(rotateDeg, nowMs, lagTargetDeg, lagContext) {
   var hasUnsettledLag = false
   if (!Number.isFinite(rotateDeg)) {
     rotateDeg = 0
   }
   var lagTargetRotateDeg = Number.isFinite(lagTargetDeg) ? lagTargetDeg : rotateDeg
+  var normalizedLagContext = normalizeRotateLagContext(lagContext)
+  var effectBoost = normalizedLagContext.effectBoost
+  var effectiveLagTarget = rotateDeg + (lagTargetRotateDeg - rotateDeg) * effectBoost
+  if (!Number.isFinite(effectiveLagTarget)) {
+    effectiveLagTarget = lagTargetRotateDeg
+  }
   var frameNow = Number.isFinite(nowMs) ? nowMs : getRotateLagNowMs()
   if (!rigTargets) {
     return hasUnsettledLag
@@ -482,7 +515,7 @@ function applyRigRotationSensitivityWithTimestamp(rotateDeg, nowMs, lagTargetDeg
         for (let step = 0; step < steps; step++) {
           var followRotate = Number.isFinite(lagState.followRotate) ? lagState.followRotate : rotateDeg
           var velocityRotate = Number.isFinite(lagState.velocityRotate) ? lagState.velocityRotate : 0
-          var acceleration = wn * wn * (lagTargetRotateDeg - followRotate) - 2 * zeta * wn * velocityRotate
+          var acceleration = wn * wn * (effectiveLagTarget - followRotate) - 2 * zeta * wn * velocityRotate
           velocityRotate += acceleration * dt
           followRotate += velocityRotate * dt
           if (!Number.isFinite(followRotate) || !Number.isFinite(velocityRotate)) {
@@ -496,7 +529,7 @@ function applyRigRotationSensitivityWithTimestamp(rotateDeg, nowMs, lagTargetDeg
         target.rotateLagState = lagState
         var lagOffset = (lagState.followRotate - rotateDeg) * sensitivityRatio
         finalCompensation = baseCompensation + lagOffset
-        if (Math.abs(lagState.followRotate - lagTargetRotateDeg) > rotateLagSettleThreshold || Math.abs(lagState.velocityRotate) > rotateLagSettleThreshold) {
+        if (Math.abs(lagState.followRotate - effectiveLagTarget) > rotateLagSettleThreshold || Math.abs(lagState.velocityRotate) > rotateLagSettleThreshold) {
           hasUnsettledLag = true
         }
       } else {
@@ -519,13 +552,19 @@ function applyRigRotationSensitivityWithTimestamp(rotateDeg, nowMs, lagTargetDeg
   return hasUnsettledLag
 }
 
-function applyRigRotationSensitivity(rotateDeg, lagTargetDeg) {
+function applyRigRotationSensitivity(rotateDeg, lagTargetDeg, lagContext) {
   if (!Number.isFinite(rotateDeg)) {
     rotateDeg = 0
   }
   rotateLagCurrentRotateDeg = rotateDeg
   rotateLagTargetRotateDeg = Number.isFinite(lagTargetDeg) ? lagTargetDeg : rotateDeg
-  var hasUnsettledLag = applyRigRotationSensitivityWithTimestamp(rotateDeg, getRotateLagNowMs(), rotateLagTargetRotateDeg)
+  rotateLagTargetContext = normalizeRotateLagContext(lagContext)
+  var hasUnsettledLag = applyRigRotationSensitivityWithTimestamp(
+    rotateDeg,
+    getRotateLagNowMs(),
+    rotateLagTargetRotateDeg,
+    rotateLagTargetContext
+  )
   if (hasUnsettledLag) {
     scheduleRotateLagAnimationLoop()
   } else {
@@ -612,8 +651,16 @@ window.addEventListener('keydown', function(e) {
 
 function updateExpression(volume) {
   const now = Date.now()
-  const useCameraMouth = cameraMouthEnabled && cameraEnabled && cameraMode === 'face-mesh' && faceMeshReady && now - cameraMouthLastUpdate <= cameraMouthStaleMs
-  const mouthActive = useCameraMouth ? cameraMouthActive : micInputAvailable && volume >= thres && now % 400 >= 200
+  const cameraMouthReady = cameraEnabled && cameraMode === 'face-mesh' && faceMeshReady
+  const mouthAgeMs = now - cameraMouthLastUpdate
+  const mouthLostHoldMs = typeof cameraMouthLostHoldMs === 'number' && Number.isFinite(cameraMouthLostHoldMs)
+    ? Math.max(0, cameraMouthLostHoldMs)
+    : 0
+  const cameraMouthFresh = cameraMouthReady && mouthAgeMs <= cameraMouthStaleMs
+  const cameraMouthHold = cameraMouthReady && mouthAgeMs <= cameraMouthStaleMs + mouthLostHoldMs
+  const mouthActive = cameraMouthEnabled
+    ? (cameraMouthFresh || cameraMouthHold ? cameraMouthActive : false)
+    : micInputAvailable && volume >= thres && now % 400 >= 200
   const useCameraBlink = cameraBlinkEnabled && cameraEnabled && cameraMode === 'face-mesh' && faceMeshReady && now - cameraBlinkLastUpdate <= cameraBlinkStaleMs
   const blinkActive = useCameraBlink ? cameraBlinkActive : now % 3000 >= 2800
 
