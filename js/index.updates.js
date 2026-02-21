@@ -12,6 +12,13 @@ const UPDATE_LOG_SEEN_KEY = 'ftSeenUpdateVersion'
 /** @type {UpdateLogEntry[]} */
 const UPDATE_LOG_ENTRIES = [
   {
+    version: 'v2026.02.21.01',
+    date: '2026-02-21',
+    summary: '얼굴을 좌/우 끝까지 돌릴 때 입 중앙 경계가 깨져 보이던 문제를 수정했어요.',
+    details: [
+    ]
+  },
+  {
     version: 'v2026.02.20.01',
     date: '2026-02-20',
     summary: '카메라 입 추적 정확도와 안정성을 개선했어요.',

@@ -3,6 +3,9 @@
   let autoFrameTimers = []
   var pointerIdleDelay = 1500
   var bodyRotateRangeDeg = 36
+  var mouthSplitDivFactor = 12
+  var mouthSplitImgFactor = 20
+  var mouthSeamOverlapPx = 2
 
   function isAutoMotionEnabled() {
     if (typeof window.autoMotionEnabled === 'boolean') {
@@ -233,10 +236,13 @@
     var eyesImgRStyle = `width: min(${100 - xDelta * 20}vw, ${100 - xDelta * 20}dvh);top: ${yDelta * 30}px;`
     applyRigStyles('eyes', { divL: eyesDivLStyle, divR: eyesDivRStyle, imgL: eyesImgLStyle, imgR: eyesImgRStyle })
 
-    var mouthDivLStyle = `width: calc(min(${50 + xDelta * 15}vw, ${50 + xDelta * 15}dvh) + 1px);`
-    var mouthDivRStyle = `width: calc(min(${50 - xDelta * 15}vw, ${50 - xDelta * 15}dvh) + 1px); left: calc(min(${50 + xDelta * 15}vw, ${50 + xDelta * 15}dvh) - 1px);`
-    var mouthImgLStyle = `width: min(${100 + xDelta * 20}vw, ${100 + xDelta * 20}dvh);top: ${yDelta * 20}px;`
-    var mouthImgRStyle = `width: min(${100 - xDelta * 20}vw, ${100 - xDelta * 20}dvh);top: ${yDelta * 20}px;`
+    var mouthCenter = 50 + xDelta * mouthSplitDivFactor
+    var mouthCenterSize = `min(${mouthCenter}vw, ${mouthCenter}dvh)`
+    var mouthMirrorSize = `min(${100 - mouthCenter}vw, ${100 - mouthCenter}dvh)`
+    var mouthDivLStyle = `width: calc(${mouthCenterSize} + ${mouthSeamOverlapPx}px);`
+    var mouthDivRStyle = `width: calc(${mouthMirrorSize} + ${mouthSeamOverlapPx}px); left: calc(${mouthCenterSize} - ${mouthSeamOverlapPx}px);`
+    var mouthImgLStyle = `width: min(${100 + xDelta * mouthSplitImgFactor}vw, ${100 + xDelta * mouthSplitImgFactor}dvh);top: ${yDelta * 20}px;`
+    var mouthImgRStyle = `width: min(${100 - xDelta * mouthSplitImgFactor}vw, ${100 - xDelta * mouthSplitImgFactor}dvh);top: ${yDelta * 20}px;`
     applyRigStyles('mouth', { divL: mouthDivLStyle, divR: mouthDivRStyle, imgL: mouthImgLStyle, imgR: mouthImgRStyle })
 
     var faceDivLStyle = `width: calc(min(${50 + xDelta * 15}vw, ${50 + xDelta * 15}dvh) + 1px);`
@@ -267,10 +273,13 @@
     var eyesImgRStyle = `height: ${100 * normalizedScaleY}dvh; width: min(${(100 - xDelta * 20) * normalizedScaleX}vw, ${(100 - xDelta * 20) * normalizedScaleX}dvh);top: ${yDelta * 30}px;`
     applyRigStyles('eyes', { divL: eyesDivLStyle, divR: eyesDivRStyle, imgL: eyesImgLStyle, imgR: eyesImgRStyle })
 
-    var mouthDivLStyle = `width: calc(min(${50 + xDelta * 15}vw, ${50 + xDelta * 15}dvh) + 1px);`
-    var mouthDivRStyle = `width: calc(min(${50 - xDelta * 15}vw, ${50 - xDelta * 15}dvh) + 1px); left: calc(min(${50 + xDelta * 15}vw, ${50 + xDelta * 15}dvh) - 1px);`
-    var mouthImgLStyle = `height: ${100 * normalizedScaleY}dvh; width: min(${100 + xDelta * 20}vw, ${100 + xDelta * 20}dvh);top: ${yDelta * 20}px;`
-    var mouthImgRStyle = `height: ${100 * normalizedScaleY}dvh; width: min(${100 - xDelta * 20}vw, ${100 - xDelta * 20}dvh);top: ${yDelta * 20}px;`
+    var mouthCenter = 50 + xDelta * mouthSplitDivFactor
+    var mouthCenterSize = `min(${mouthCenter}vw, ${mouthCenter}dvh)`
+    var mouthMirrorSize = `min(${100 - mouthCenter}vw, ${100 - mouthCenter}dvh)`
+    var mouthDivLStyle = `width: calc(${mouthCenterSize} + ${mouthSeamOverlapPx}px);`
+    var mouthDivRStyle = `width: calc(${mouthMirrorSize} + ${mouthSeamOverlapPx}px); left: calc(${mouthCenterSize} - ${mouthSeamOverlapPx}px);`
+    var mouthImgLStyle = `height: ${100 * normalizedScaleY}dvh; width: min(${100 + xDelta * mouthSplitImgFactor}vw, ${100 + xDelta * mouthSplitImgFactor}dvh);top: ${yDelta * 20}px;`
+    var mouthImgRStyle = `height: ${100 * normalizedScaleY}dvh; width: min(${100 - xDelta * mouthSplitImgFactor}vw, ${100 - xDelta * mouthSplitImgFactor}dvh);top: ${yDelta * 20}px;`
     applyRigStyles('mouth', { divL: mouthDivLStyle, divR: mouthDivRStyle, imgL: mouthImgLStyle, imgR: mouthImgRStyle })
 
     var faceDivLStyle = `width: calc(min(${50 + xDelta * 15}vw, ${50 + xDelta * 15}dvh) + 1px);`
