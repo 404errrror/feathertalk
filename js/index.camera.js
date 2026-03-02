@@ -533,14 +533,6 @@ function applyCameraOffset(offsetX, offsetY, rollX, deltaMs) {
   targetX = Math.max(0, Math.min(width, targetX + pixelOffsetX))
   targetY = Math.max(0, Math.min(height, targetY + pixelOffsetY))
   rollTargetX = Math.max(0, Math.min(width, rollTargetX + rollOffsetX))
-  if (typeof setRigRotationLagTarget === 'function' && typeof resolveRigRotateDegrees === 'function') {
-    var lagTargetContext = {
-      source: cameraMode === 'face-mesh' ? 'camera-face-mesh' : 'camera-motion',
-      effectBoost: cameraMode === 'face-mesh' ? 2 : 1
-    }
-    setRigRotationLagTarget(resolveRigRotateDegrees(rollTargetX), lagTargetContext)
-  }
-
   var baseSmoothing = getCameraInterpolationSmoothing()
   var smoothing = baseSmoothing
   if (Number.isFinite(deltaMs) && deltaMs > 0) {
@@ -560,6 +552,14 @@ function applyCameraOffset(offsetX, offsetY, rollX, deltaMs) {
     cameraHasRoll = true
   } else {
     cameraLastRollX += (rollTargetX - cameraLastRollX) * smoothing
+  }
+  if (typeof setRigRotationLagTarget === 'function' && typeof resolveRigRotateDegrees === 'function') {
+    var lagTargetContext = {
+      source: cameraMode === 'face-mesh' ? 'camera-face-mesh' : 'camera-motion',
+      // Keep lag behavior independent from camera interpolation strength.
+      effectBoost: 1
+    }
+    setRigRotationLagTarget(resolveRigRotateDegrees(cameraLastRollX), lagTargetContext)
   }
 
   var velocityX = (lastX - cameraLastX) * stiffness * damping

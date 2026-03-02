@@ -12,6 +12,13 @@ const UPDATE_LOG_SEEN_KEY = 'ftSeenUpdateVersion'
 /** @type {UpdateLogEntry[]} */
 const UPDATE_LOG_ENTRIES = [
   {
+    version: 'v2026.03.02.01',
+    date: '2026-03-02',
+    summary: '카메라 보간 강도이 레이어 회전 지연에 영향 주던 버그를 수정했어요.',
+    details: [
+    ]
+  },
+  {
     version: 'v2026.02.21.01',
     date: '2026-02-21',
     summary: '얼굴을 좌/우 끝까지 돌릴 때 입 중앙 경계가 깨져 보이던 문제를 수정했어요.',
